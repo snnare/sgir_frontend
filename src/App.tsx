@@ -12,7 +12,7 @@ import { AddServerPage } from './pages/AddServerPage';
 import { AddCredentialPage } from './pages/AddCredentialPage'
 import { AddInstancePage } from './pages/AddInstancePage'
 import { AddDbmsPage } from './pages/AddDbmsPage'
-
+import { AddBackupPolicyPage } from './pages/AddBackupPolicyPage';
 function App() {
   const mode = useThemeStore((state) => state.mode);
 
@@ -33,6 +33,7 @@ function App() {
           <Route path='/add-credential' element={<AddCredentialPage />} />
           <Route path='/add-instance' element={<AddInstancePage />} />
           <Route path="/add-dbms" element={<AddDbmsPage />} />
+          <Route path="/add-policy" element={<AddBackupPolicyPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
