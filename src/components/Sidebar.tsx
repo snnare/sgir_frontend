@@ -5,10 +5,17 @@ import BackupIcon from '@mui/icons-material/Backup';
 import SearchIcon from '@mui/icons-material/Search';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { SidebarItem } from './SidebarItem';
+import { useAuthStore } from '../store/useAuthStore';
 
 const SIDEBAR_WIDTH = 260;
 
 export const Sidebar = () => {
+  const logoutAction = useAuthStore((state) => state.logout);
+
+  const handleLogout = async () => {
+    await logoutAction();
+  };
+
   return (
     <Box 
       component="nav"
@@ -72,6 +79,7 @@ export const Sidebar = () => {
           label="Cerrar Sesión" 
           to="/login"
           isLogout
+          onClick={handleLogout}
         />
       </Box>
     </Box>

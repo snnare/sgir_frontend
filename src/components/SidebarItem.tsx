@@ -7,16 +7,24 @@ interface SidebarItemProps {
   to: string;
   active?: boolean;
   isLogout?: boolean;
+  onClick?: () => void;
 }
 
-export const SidebarItem = ({ icon, label, to, active, isLogout }: SidebarItemProps) => {
+export const SidebarItem = ({ icon, label, to, active, isLogout, onClick }: SidebarItemProps) => {
   const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    }
+    navigate(to);
+  };
 
   return (
     <Stack 
       direction="row" 
       spacing={1.5} 
-      onClick={() => navigate(to)}
+      onClick={handleClick}
       sx={{ 
         p: 1.2, 
         borderRadius: 1.5, // Look Poimandres

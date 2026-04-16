@@ -1,10 +1,13 @@
 import { Box, Avatar, Stack, Typography } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
+import { useAuthStore } from '../store/useAuthStore';
 
 const SIDEBAR_WIDTH = 260;
 
 export const DashboardLayout = () => {
+  const { user } = useAuthStore();
+
   return (
     <Box sx={{ display: 'flex' }}>
       {/* Sidebar fijo a la izquierda */}
@@ -40,10 +43,10 @@ export const DashboardLayout = () => {
           <Stack direction="row" spacing={2} alignItems="center">
             <Box sx={{ textAlign: 'right' }}>
               <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                Angel Rios
+                {user ? `${user.nombres} ${user.apellidos}` : 'Usuario SGIR'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Backend Engineer
+                {user?.id_rol === 1 ? 'Administrador' : 'Operador'}
               </Typography>
             </Box>
             <Avatar 
@@ -55,7 +58,7 @@ export const DashboardLayout = () => {
                 fontWeight: 600
               }}
             >
-              AR
+              {user ? `${user.nombres[0]}${user.apellidos[0]}`.toUpperCase() : 'SG'}
             </Avatar>
           </Stack>
         </Box>
