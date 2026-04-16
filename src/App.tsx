@@ -9,6 +9,9 @@ import { LoginPage } from './pages/LoginPage';
 import { CheckPage } from './pages/CheckPage'
 
 import { AddServerPage} from './pages/AddServerPage';
+import {AddCredentialPage} from './pages/AddCredentialPage'
+import {AddInstancePage} from './pages/AddInstancePage'
+
 function App() {
   const mode = useThemeStore((state) => state.mode);
   
@@ -26,6 +29,9 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
 
           <Route path="/add-server" element={<AddServerPage />} />
+          <Route path='/add-credential' element={<AddCredentialPage />} />
+          <Route path='/add-instance' element={<AddInstancePage />} />
+
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
