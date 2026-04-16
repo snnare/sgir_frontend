@@ -6,7 +6,9 @@ import { useThemeStore } from './store/useThemeStore';
 import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { LoginPage } from './pages/LoginPage';
+import { CheckPage } from './pages/CheckPage'
 
+import { AddServerPage} from './pages/AddServerPage';
 function App() {
   const mode = useThemeStore((state) => state.mode);
   
@@ -19,8 +21,11 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/ping" element={<CheckPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
+
+          <Route path="/add-server" element={<AddServerPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
