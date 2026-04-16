@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { login as loginService, register as registerService, getMe, logout as logoutService } from '../api/authService';
-import type { LoginInput, RegisterInput, UserResponse } from '../api/types';
+import { login as loginService, register as registerService, getMe, logout as logoutService, updateUser as updateUserService } from '../api/authService';
+import type { LoginInput, RegisterInput, UserResponse, UserUpdateInput } from '../api/types';
 
 interface AuthState {
     user: UserResponse | null;
@@ -11,6 +11,7 @@ interface AuthState {
     
     login: (credentials: LoginInput) => Promise<void>;
     register: (userData: RegisterInput) => Promise<void>;
+    updateUser: (userData: UserUpdateInput) => Promise<void>;
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
     clearError: () => void;
@@ -57,6 +58,26 @@ export const useAuthStore = create<AuthState>()(
                             : JSON.stringify(error.response.data.detail);
                     }
                     set({ status: 'unauthenticated', error: message });
+                    throw error;
+                }
+            },
+
+            updateUser: async (userData: UserUpdateInput) => {
+                const { user } = get();
+                if (!user) return;
+
+                set({ status: 'loading', error: null });
+                try {
+                    const updatedUser = await updateUserService(user.id_usuario, userData);
+                    set({ user: updatedUser, status: 'authenticated' });
+                } catch (error: any) {
+                    let message = 'Error al actualizar el perfil';
+                    if (error.response?.data?.detail) {
+                        message = typeof error.response.data.detail === 'string' 
+                            ? error.response.data.detail 
+                            : JSON.stringify(error.response.data.detail);
+                    }
+                    set({ status: 'authenticated', error: message });
                     throw error;
                 }
             },

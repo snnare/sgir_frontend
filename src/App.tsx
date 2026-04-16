@@ -9,6 +9,8 @@ import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { LoginPage } from './pages/LoginPage';
 import { CheckPage } from './pages/CheckPage'
+
+import { ProfilePage } from './pages/ProfilePage';
 import { AddServerPage } from './pages/AddServerPage';
 import { AddCredentialPage } from './pages/AddCredentialPage'
 import { AddInstancePage } from './pages/AddInstancePage'
@@ -88,6 +90,7 @@ function App() {
           {/* Rutas Protegidas (Bajo DashboardLayout) */}
           <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<HomePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="add-server" element={<AddServerPage />} />
             <Route path="add-credential" element={<AddCredentialPage />} />
             <Route path="add-instance" element={<AddInstancePage />} />

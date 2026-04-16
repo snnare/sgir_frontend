@@ -1,6 +1,6 @@
 import api from './client';
 import { LoginResponseSchema, UserResponseSchema } from './types';
-import type { LoginInput, LoginResponse, RegisterInput, UserResponse } from './types';
+import type { LoginInput, LoginResponse, RegisterInput, UserResponse, UserUpdateInput } from './types';
 
 export const login = async (credentials: LoginInput): Promise<LoginResponse> => {
     // FastAPI OAuth2PasswordRequestForm requiere x-www-form-urlencoded
@@ -29,4 +29,9 @@ export const getMe = async (): Promise<UserResponse> => {
 
 export const logout = async (): Promise<void> => {
     await api.post('/users/logout');
+};
+
+export const updateUser = async (userId: number, userData: UserUpdateInput): Promise<UserResponse> => {
+    const { data } = await api.put(`/users/${userId}`, userData);
+    return UserResponseSchema.parse(data);
 };
