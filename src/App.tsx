@@ -5,7 +5,7 @@ import { getTheme } from './theme';
 import { useThemeStore } from './store/useThemeStore';
 import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
-
+import { LoginPage } from './pages/LoginPage';
 
 function App() {
   const mode = useThemeStore((state) => state.mode);
@@ -20,6 +20,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
