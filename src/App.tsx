@@ -4,6 +4,8 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from './theme';
 import { useThemeStore } from './store/useThemeStore';
 import { HomePage } from './pages/HomePage';
+import { RegisterPage } from './pages/RegisterPage';
+
 
 function App() {
   const mode = useThemeStore((state) => state.mode);
@@ -17,6 +19,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/register" element={<RegisterPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
