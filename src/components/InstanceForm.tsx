@@ -1,10 +1,13 @@
-import { 
-  Box, TextField, Button, Stack, MenuItem, 
-  InputAdornment, IconButton, Tooltip 
+import {
+  Box, TextField, Button, Stack, MenuItem,
+  InputAdornment, IconButton, Tooltip
 } from '@mui/material';
 import StorageIcon from '@mui/icons-material/Storage';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
+import { useNavigate } from 'react-router-dom';
+
+
 
 // Datos de ejemplo basados en tu tabla de base de datos
 const DBMS_OPTIONS = [
@@ -17,10 +20,13 @@ const DBMS_OPTIONS = [
 ];
 
 export const InstanceForm = () => {
+  const navigate = useNavigate();
+
+
   return (
     <Box component="form" noValidate sx={{ width: '100%' }}>
       <Stack spacing={3}>
-        
+
         {/* Fila DBMS + Botón Agregar */}
         <Stack direction="row" spacing={1} alignItems="flex-start">
           <TextField
@@ -39,14 +45,15 @@ export const InstanceForm = () => {
               </MenuItem>
             ))}
           </TextField>
-          
+
           <Tooltip title="Registrar nuevo motor DBMS">
-            <IconButton 
-              sx={{ 
-                mt: 1, 
-                border: '1px dashed', 
+            <IconButton
+              onClick={() => navigate('/add-dbms')} // <--- Añadir navegación
+              sx={{
+                mt: 1,
+                border: '1px dashed',
                 borderColor: 'divider',
-                borderRadius: 1 
+                borderRadius: 1
               }}
             >
               <AddBoxIcon />
@@ -96,9 +103,9 @@ export const InstanceForm = () => {
           fullWidth
           variant="contained"
           startIcon={<StorageIcon />}
-          sx={{ 
-            mt: 2, 
-            py: 1.5, 
+          sx={{
+            mt: 2,
+            py: 1.5,
             fontWeight: 700,
             bgcolor: 'text.primary',
             color: 'background.paper'
