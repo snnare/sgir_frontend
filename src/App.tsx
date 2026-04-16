@@ -1,22 +1,24 @@
+import { useMemo } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, Box } from '@mui/material';
-import { theme } from './theme';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { getTheme } from './theme';
+import { useThemeStore } from './store/useThemeStore';
 import { HomePage } from './pages/HomePage';
 
-// Nota: En un futuro, aquí envolverás las rutas con tu Sidebar y Topbar (Layouts)
 function App() {
+  const mode = useThemeStore((state) => state.mode);
+  
+  // Generamos el tema basado en el modo del store
+  const theme = useMemo(() => getTheme(mode), [mode]);
+
   return (
     <ThemeProvider theme={theme}>
-      {/* CssBaseline aplica el fondo y resetea estilos globales de CSS */}
-      <CssBaseline /> 
-      
-      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-          </Routes>
-        </BrowserRouter>
-      </Box>
+      <CssBaseline />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+        </Routes>
+      </BrowserRouter>
     </ThemeProvider>
   );
 }
