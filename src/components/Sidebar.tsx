@@ -1,85 +1,72 @@
-import { Box, Typography, Stack, Divider } from '@mui/material';
+import { Box, Typography, Stack, Divider, IconButton } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import BackupIcon from '@mui/icons-material/Backup';
 import SearchIcon from '@mui/icons-material/Search';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { SidebarItem } from './SidebarItem';
-import { useAuthStore } from '../store/useAuthStore';
 
-const SIDEBAR_WIDTH = 260;
+interface SidebarProps {
+  open: boolean;
+  onToggle: () => void;
+}
 
-export const Sidebar = () => {
-  const logoutAction = useAuthStore((state) => state.logout);
-
-  const handleLogout = async () => {
-    await logoutAction();
-  };
-
+export const Sidebar = ({ open, onToggle }: SidebarProps) => {
   return (
     <Box 
       component="nav"
       sx={{ 
-        width: SIDEBAR_WIDTH, 
-        flexShrink: 0,
+        width: open ? 260 : 70, // Ancho dinámico
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        height: '100vh',
+        zIndex: 1200,
         borderRight: '1px solid', 
         borderColor: 'divider',
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
-        position: 'fixed',
-        zIndex: 1200,
-        bgcolor: 'background.paper'
+        bgcolor: 'background.paper',
+        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Transición suave
+        overflowX: 'hidden'
       }}
     >
-      {/* Logo Section */}
-      <Box sx={{ p: 3, mb: 2 }}>
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            fontWeight: 800, 
-            letterSpacing: '-0.05em',
-            color: 'text.primary' 
-          }}
-        >
-          SGIR
-        </Typography>
-      </Box>
-
-      {/* Navigation Items */}
-      <Stack spacing={0.5} sx={{ px: 2, flexGrow: 1 }}>
-        <SidebarItem 
-          icon={<DashboardIcon fontSize="small" />} 
-          label="Dashboard" 
-          active 
-          to="/"
-        />
-        <SidebarItem 
-          icon={<MonitorHeartIcon fontSize="small" />} 
-          label="Monitoreo" 
-          to="/monitoreo"
-        />
-        <SidebarItem 
-          icon={<BackupIcon fontSize="small" />} 
-          label="Backups" 
-          to="/backups"
-        />
-        <SidebarItem 
-          icon={<SearchIcon fontSize="small" />} 
-          label="Activos" 
-          to="/activos"
-        />
+      {/* Header: Logo + Toggle */}
+      <Stack 
+        direction="row" 
+        alignItems="center" 
+        justifyContent={open ? 'space-between' : 'center'} 
+        sx={{ p: 2, minHeight: 64 }}
+      >
+        {open && (
+          <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
+            SGIR
+          </Typography>
+        )}
+        <IconButton onClick={onToggle} size="small" sx={{ border: '1px solid', borderColor: 'divider' }}>
+          {open ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+        </IconButton>
       </Stack>
 
-      {/* Footer / Logout */}
-      <Box sx={{ p: 2 }}>
+      {/* Navigation Items */}
+      <Stack spacing={0.5} sx={{ px: open ? 2 : 1, mt: 2, flexGrow: 1 }}>
+        <SidebarItem icon={<DashboardIcon fontSize="small" />} label="Dashboard" to="/" active open={open} />
+        <SidebarItem icon={<MonitorHeartIcon fontSize="small" />} label="Monitoreo" to="/monitoreo" open={open} />
+        <SidebarItem icon={<BackupIcon fontSize="small" />} label="Backups" to="/backups" open={open} />
+        <SidebarItem icon={<SearchIcon fontSize="small" />} label="Activos" to="/activos" open={open} />
+      </Stack>
+
+      {/* Footer */}
+      <Box sx={{ p: open ? 2 : 1 }}>
         <Divider sx={{ mb: 2 }} />
         <SidebarItem 
           icon={<LogoutIcon fontSize="small" />} 
           label="Cerrar Sesión" 
-          to="/login"
-          isLogout
-          onClick={handleLogout}
+          to="/login" 
+          isLogout 
+          open={open} 
         />
       </Box>
     </Box>

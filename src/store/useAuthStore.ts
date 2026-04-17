@@ -95,17 +95,27 @@ export const useAuthStore = create<AuthState>()(
             clearError: () => set({ error: null }),
 
             checkAuth: async () => {
-                const { token } = get();
+                const { token, user, status } = get();
+                
+                // Si no hay token, no estamos autenticados
                 if (!token) {
-                    set({ status: 'unauthenticated' });
+                    set({ status: 'unauthenticated', user: null });
                     return;
                 }
 
+                // Si ya tenemos el usuario y el estado es autenticado (viniendo de persistencia),
+                // no bloqueamos la UI con una nueva petición.
+                if (user && status === 'authenticated') {
+                    return;
+                }
+
+                // Si tenemos token pero no usuario (o queremos refrescar), llamamos a la API
                 set({ status: 'loading' });
                 try {
-                    const user = await getMe();
-                    set({ user, status: 'authenticated' });
+                    const userData = await getMe();
+                    set({ user: userData, status: 'authenticated' });
                 } catch (error) {
+                    // Si el token es inválido o expiró
                     set({ user: null, token: null, status: 'unauthenticated' });
                 }
             },

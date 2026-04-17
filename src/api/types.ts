@@ -64,14 +64,34 @@ export const RoleSchema = z.object({
 export type Role = z.infer<typeof RoleSchema>;
 
 // --- Infraestructura ---
+export const ServerCreateSchema = z.object({
+    nombre_servidor: z.string().min(1, 'El nombre es requerido'),
+    direccion_ip: z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/, 'IP v4 inválida'),
+    descripcion: z.string().optional(),
+    id_tipo_acceso: z.number().int().positive(),
+    id_nivel_criticidad: z.number().int().positive(),
+    id_estado: z.number().int().positive(),
+});
+
+export type ServerCreateInput = z.infer<typeof ServerCreateSchema>;
+
 export const ServerSchema = z.object({
     id_servidor: z.number(),
     nombre_servidor: z.string(),
     direccion_ip: z.string(),
+    descripcion: z.string().nullable().optional(),
+    id_tipo_acceso: z.number(),
     id_nivel_criticidad: z.number(),
-    id_estado_servidor: z.number(),
+    id_estado: z.number(),
+    fecha_registro: z.string().optional(),
 });
 export type Server = z.infer<typeof ServerSchema>;
+
+export const ServerCheckResponseSchema = z.object({
+    message: z.string(),
+    server: z.any() // Usamos any temporalmente para asegurar que no se bloquee por validación estricta
+});
+export type ServerCheckResponse = z.infer<typeof ServerCheckResponseSchema>;
 
 export const InstanceSchema = z.object({
     id_instancia: z.number(),
@@ -98,6 +118,7 @@ export type Credential = z.infer<typeof CredentialSchema>;
 export const CriticalitySchema = z.object({
     id_nivel_criticidad: z.number(),
     nombre_nivel: z.string(),
+    descripcion: z.string().optional(),
 });
 export type Criticality = z.infer<typeof CriticalitySchema>;
 

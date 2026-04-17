@@ -1,6 +1,7 @@
 import api from './client';
 import { 
-    ServerSchema, type Server, 
+    ServerSchema, type Server, ServerCreateSchema, type ServerCreateInput,
+    ServerCheckResponseSchema, type ServerCheckResponse,
     InstanceSchema, type Instance, 
     DbmsSchema, type Dbms, 
     CredentialSchema, type Credential, 
@@ -9,13 +10,23 @@ import {
 import { z } from 'zod';
 
 export const getServers = async (): Promise<Server[]> => {
-    const { data } = await api.get('/servidores/');
+    const { data } = await api.get('/core/servidores/');
     return z.array(ServerSchema).parse(data);
 };
 
-export const getServerById = async (id: number): Promise<Server> => {
-    const { data } = await api.get(`/servidores/${id}`);
+export const createServer = async (serverData: ServerCreateInput): Promise<Server> => {
+    const { data } = await api.post('/core/servidores/', serverData);
     return ServerSchema.parse(data);
+};
+
+export const getServerById = async (id: number): Promise<Server> => {
+    const { data } = await api.get(`/core/servidores/${id}`);
+    return ServerSchema.parse(data);
+};
+
+export const checkServerByIp = async (ip: string): Promise<ServerCheckResponse> => {
+    const { data } = await api.get(`/servidores/${ip}`);
+    return ServerCheckResponseSchema.parse(data);
 };
 
 export const getInstancesByServer = async (serverId: number): Promise<Instance[]> => {

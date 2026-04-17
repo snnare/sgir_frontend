@@ -85,12 +85,12 @@ function App() {
           {/* Rutas Públicas */}
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/ping" element={<CheckPage />} />
 
           {/* Rutas Protegidas (Bajo DashboardLayout) */}
           <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<HomePage />} />
-            <Route path="/profile" element={<ProfilePage />} />
             <Route path="add-server" element={<AddServerPage />} />
             <Route path="add-credential" element={<AddCredentialPage />} />
             <Route path="add-instance" element={<AddInstancePage />} />

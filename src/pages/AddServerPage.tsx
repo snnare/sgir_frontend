@@ -1,36 +1,39 @@
-import { Container, Box, Typography, Button } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { Container, Box, Typography } from '@mui/material';
 import { ServerForm } from '../components/ServerForm';
+import { BackButton } from '../components/BackButton';
 
 export const AddServerPage = () => {
-  const navigate = useNavigate();
-
   return (
-    <Container maxWidth="sm" sx={{ py: 8 }}>
-      <Box sx={{ mb: 4 }}>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          onClick={() => navigate('/')}
-          sx={{ color: 'text.secondary', mb: 2 }}
-        >
-          Volver al Dashboard
-        </Button>
+    <Container maxWidth="sm" sx={{ py: 6 }}>
+      {/* Contenedor del encabezado alineado a la izquierda */}
+      <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
         
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.03em' }}>
+        <BackButton to="/" label="Volver al Dashboard" />
+        
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 800, 
+            letterSpacing: '-0.04em',
+            mt: 0.5, 
+            lineHeight: 1.2
+          }}
+        >
           Nuevo Servidor
         </Typography>
+        
         <Typography variant="body2" color="text.secondary">
-          Registra un nuevo activo en el inventario del SGIR para comenzar el monitoreo.
+          Registra un nuevo activo en el inventario para habilitar el monitoreo.
         </Typography>
       </Box>
 
+      {/* Caja del Formulario */}
       <Box sx={{ 
-        p: 4, 
+        p: { xs: 3, sm: 5 }, 
         border: '1px solid', 
         borderColor: 'divider', 
         borderRadius: 2,
-        bgcolor: 'background.paper' 
+        bgcolor: 'background.paper'
       }}>
         <ServerForm />
       </Box>

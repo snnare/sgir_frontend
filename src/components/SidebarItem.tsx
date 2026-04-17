@@ -1,54 +1,62 @@
-import { Typography, Stack } from '@mui/material';
+import { Typography, Stack, Tooltip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
   label: string;
-  to: string;
+  to?: string;
   active?: boolean;
   isLogout?: boolean;
-  onClick?: () => void;
+  open: boolean;
 }
 
-export const SidebarItem = ({ icon, label, to, active, isLogout, onClick }: SidebarItemProps) => {
+export const SidebarItem = ({ icon, label, to, active, isLogout, open }: SidebarItemProps) => {
   const navigate = useNavigate();
+  const logout = useAuthStore((state) => state.logout);
 
-  const handleClick = () => {
-    if (onClick) {
-      onClick();
+  const handleClick = async () => {
+    if (isLogout) {
+      try {
+        await logout();
+        navigate('/login');
+      } catch (error) {
+        console.error('Error during logout:', error);
+      }
+    } else if (to) {
+      navigate(to);
     }
-    navigate(to);
   };
 
-  return (
+  const content = (
     <Stack 
       direction="row" 
-      spacing={1.5} 
+      spacing={open ? 1.5 : 0} 
       onClick={handleClick}
+      justifyContent={open ? 'flex-start' : 'center'}
       sx={{ 
         p: 1.2, 
-        borderRadius: 1.5, // Look Poimandres
+        borderRadius: 1.5,
         cursor: 'pointer',
         transition: 'all 0.2s ease',
-        // Colores dinámicos basados en el estado
         color: active ? 'text.primary' : isLogout ? 'error.main' : 'text.secondary',
         bgcolor: active ? 'action.selected' : 'transparent',
-        '&:hover': { 
-          bgcolor: isLogout ? 'error.lighter' : 'action.hover',
-          color: isLogout ? 'error.dark' : 'text.primary'
-        }
+        '&:hover': { bgcolor: 'action.hover' }
       }}
     >
       {icon}
-      <Typography 
-        variant="body2" 
-        sx={{ 
-          fontWeight: active ? 600 : 500,
-          fontSize: '0.875rem'
-        }}
-      >
-        {label}
-      </Typography>
+      {open && (
+        <Typography variant="body2" sx={{ fontWeight: active ? 600 : 500, whiteSpace: 'nowrap' }}>
+          {label}
+        </Typography>
+      )}
     </Stack>
   );
+
+  // Si está cerrado, mostramos Tooltip para que el usuario sepa qué icono es cada cosa
+  return !open ? (
+    <Tooltip title={label} placement="right">
+      {content}
+    </Tooltip>
+  ) : content;
 };

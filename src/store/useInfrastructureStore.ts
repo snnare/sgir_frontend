@@ -84,10 +84,14 @@ export const useInfrastructureStore = create<InfrastructureState>((set) => ({
     },
 
     fetchCriticalities: async () => {
+        const { criticalities } = get();
+        // Si ya tenemos datos, no volvemos a llamar a la API
+        if (criticalities.length > 0) return;
+
         set({ loading: true, error: null });
         try {
-            const criticalities = await getCriticalities();
-            set({ criticalities, loading: false });
+            const data = await getCriticalities();
+            set({ criticalities: data, loading: false });
         } catch (err: any) {
             set({ error: err.message, loading: false });
         }
