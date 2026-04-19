@@ -10,12 +10,12 @@ import { MetricCard } from '../components/MetricCard';
 
 export const HomePage = () => {
   const navigate = useNavigate();
-  // Simulación: Cambia a false para ver el Empty State
+  // Simulación: Cambia a false para ver el estado vacío
   const [hasServers] = useState(true);
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
-      {/* --- HEADER SECCIÓN --- */}
+      {/* --- SECCIÓN DE ENCABEZADO --- */}
       <Stack 
         direction={{ xs: 'column', sm: 'row' }} 
         justifyContent="space-between" 
@@ -25,41 +25,52 @@ export const HomePage = () => {
       >
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em' }}>
-            Dashboard General
+            Panel de Control
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Estado actual de la infraestructura monitoreada.
+            Resumen del estado actual de la infraestructura monitoreada.
           </Typography>
         </Box>
 
-        {/* Botones de acción siempre visibles */}
+        {/* Botones de acción principales */}
         <Stack direction="row" spacing={1.5}>
           <Button
             variant="outlined"
-            size="small"
+            size="medium"
             startIcon={<CloudUploadIcon />}
             sx={{ 
               borderStyle: 'dashed', 
               color: 'text.secondary', 
               borderColor: 'divider',
-              px: 2
+              px: 3,
+              borderRadius: 2,
+              '&:hover': {
+                borderStyle: 'dashed',
+                bgcolor: 'action.hover'
+              }
             }}
           >
             Carga Masiva
           </Button>
           <Button
             variant="contained"
-            size="small"
+            size="medium"
             startIcon={<MonitorHeartIcon />}
             onClick={() => navigate('/add-server')}
             sx={{ 
               bgcolor: 'text.primary', 
               color: 'background.paper',
-              px: 2,
-              fontWeight: 600
+              px: 3,
+              borderRadius: 2,
+              fontWeight: 700,
+              boxShadow: '0 4px 14px 0 rgba(0,0,0,0.15)',
+              '&:hover': {
+                bgcolor: 'text.secondary',
+                boxShadow: '0 6px 20px 0 rgba(0,0,0,0.2)',
+              }
             }}
           >
-            Add Monitoreo
+            Registrar Activo
           </Button>
         </Stack>
       </Stack>
@@ -100,7 +111,7 @@ export const HomePage = () => {
           />
         </Box>
       ) : (
-        /* Vista de Empty State (ahora más compacta dentro del layout) */
+        /* Vista de estado vacío */
         <Paper 
           elevation={0} 
           sx={{ 
@@ -111,7 +122,8 @@ export const HomePage = () => {
             bgcolor: 'transparent',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center'
+            alignItems: 'center',
+            borderRadius: 4
           }}
         >
           <MonitorHeartIcon sx={{ fontSize: 48, color: 'divider', mb: 2 }} />
@@ -119,7 +131,7 @@ export const HomePage = () => {
             No hay activos registrados
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400 }}>
-            Utiliza los botones superiores para registrar tu primer servidor y comenzar a recolectar métricas.
+            Utiliza los botones superiores para registrar tu primer servidor y comenzar a recolectar métricas en tiempo real.
           </Typography>
         </Paper>
       )}

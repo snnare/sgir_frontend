@@ -1,11 +1,13 @@
 import { Box, Typography, Stack, Divider, IconButton } from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
+import HomeIcon from '@mui/icons-material/Home';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import BackupIcon from '@mui/icons-material/Backup';
 import SearchIcon from '@mui/icons-material/Search';
+import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { useLocation } from 'react-router-dom';
 import { SidebarItem } from './SidebarItem';
 
 interface SidebarProps {
@@ -14,11 +16,13 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ open, onToggle }: SidebarProps) => {
+  const location = useLocation();
+
   return (
     <Box 
       component="nav"
       sx={{ 
-        width: open ? 260 : 70, // Ancho dinámico
+        width: open ? 260 : 70, 
         position: 'fixed',
         top: 0,
         left: 0,
@@ -29,7 +33,7 @@ export const Sidebar = ({ open, onToggle }: SidebarProps) => {
         display: 'flex',
         flexDirection: 'column',
         bgcolor: 'background.paper',
-        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Transición suave
+        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
         overflowX: 'hidden'
       }}
     >
@@ -52,19 +56,49 @@ export const Sidebar = ({ open, onToggle }: SidebarProps) => {
 
       {/* Navigation Items */}
       <Stack spacing={0.5} sx={{ px: open ? 2 : 1, mt: 2, flexGrow: 1 }}>
-        <SidebarItem icon={<DashboardIcon fontSize="small" />} label="Dashboard" to="/" active open={open} />
-        <SidebarItem icon={<MonitorHeartIcon fontSize="small" />} label="Monitoreo" to="/monitoreo" open={open} />
-        <SidebarItem icon={<BackupIcon fontSize="small" />} label="Backups" to="/backups" open={open} />
-        <SidebarItem icon={<SearchIcon fontSize="small" />} label="Activos" to="/activos" open={open} />
+        <SidebarItem 
+          icon={<HomeIcon fontSize="small" />} 
+          label="Home" 
+          to="/" 
+          active={location.pathname === '/'} 
+          open={open} 
+        />
+        <SidebarItem 
+          icon={<SearchIcon fontSize="small" />} 
+          label="Activos" 
+          to="/activos" 
+          active={location.pathname.startsWith('/activos')} 
+          open={open} 
+        />
+        <SidebarItem 
+          icon={<BackupIcon fontSize="small" />} 
+          label="Backups" 
+          to="/backups" 
+          active={location.pathname.startsWith('/backups')} 
+          open={open} 
+        />
+        <SidebarItem 
+          icon={<MonitorHeartIcon fontSize="small" />} 
+          label="Monitoreo" 
+          to="/monitoreo" 
+          active={location.pathname.startsWith('/monitoreo')} 
+          open={open} 
+        />
       </Stack>
 
-      {/* Footer */}
+      {/* Footer / User Profile & Logout */}
       <Box sx={{ p: open ? 2 : 1 }}>
-        <Divider sx={{ mb: 2 }} />
+        <SidebarItem 
+          icon={<PersonIcon fontSize="small" />} 
+          label="Perfil" 
+          to="/profile" 
+          active={location.pathname === '/profile'} 
+          open={open} 
+        />
+        <Divider sx={{ my: 1.5 }} />
         <SidebarItem 
           icon={<LogoutIcon fontSize="small" />} 
           label="Cerrar Sesión" 
-          to="/login" 
           isLogout 
           open={open} 
         />
