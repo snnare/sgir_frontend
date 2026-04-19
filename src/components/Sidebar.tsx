@@ -2,6 +2,7 @@ import { Box, Typography, Stack, Divider, IconButton } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import BackupIcon from '@mui/icons-material/Backup';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -75,6 +76,13 @@ export const Sidebar = ({ open, onToggle }: SidebarProps) => {
           label="Backups" 
           to="/backups" 
           active={location.pathname.startsWith('/backups')} 
+          open={open} 
+        />
+        <SidebarItem 
+          icon={<VpnKeyIcon fontSize="small" />} 
+          label="Credenciales" 
+          to="/credenciales" 
+          active={location.pathname.startsWith('/credenciales')} 
           open={open} 
         />
         <SidebarItem 
