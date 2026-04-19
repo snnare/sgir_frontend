@@ -41,7 +41,8 @@ export const UserResponseSchema = z.object({
     nombres: z.string(),
     apellidos: z.string(),
     id_rol: z.number(),
-    creado_en: z.string().optional(),
+    id_estado_usuario: z.number(),
+    fecha_creacion: z.string().optional(),
 });
 
 export type UserResponse = z.infer<typeof UserResponseSchema>;
@@ -68,9 +69,9 @@ export const ServerCreateSchema = z.object({
     nombre_servidor: z.string().min(1, 'El nombre es requerido'),
     direccion_ip: z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/, 'IP v4 inválida'),
     descripcion: z.string().optional(),
-    id_tipo_acceso: z.number().int().positive(),
     id_nivel_criticidad: z.number().int().positive(),
-    id_estado: z.number().int().positive(),
+    id_estado_servidor: z.number().int().positive(),
+    es_legacy: z.boolean().default(false).optional(),
 });
 
 export type ServerCreateInput = z.infer<typeof ServerCreateSchema>;
@@ -79,17 +80,17 @@ export const ServerSchema = z.object({
     id_servidor: z.number(),
     nombre_servidor: z.string(),
     direccion_ip: z.string(),
+    es_legacy: z.boolean().default(false),
     descripcion: z.string().nullable().optional(),
-    id_tipo_acceso: z.number(),
     id_nivel_criticidad: z.number(),
-    id_estado: z.number(),
+    id_estado_servidor: z.number(),
     fecha_registro: z.string().optional(),
 });
 export type Server = z.infer<typeof ServerSchema>;
 
 export const ServerCheckResponseSchema = z.object({
     message: z.string(),
-    server: z.any() // Usamos any temporalmente para asegurar que no se bloquee por validación estricta
+    server: z.any() 
 });
 export type ServerCheckResponse = z.infer<typeof ServerCheckResponseSchema>;
 
@@ -97,7 +98,10 @@ export const InstanceSchema = z.object({
     id_instancia: z.number(),
     nombre_instancia: z.string(),
     puerto: z.number(),
+    id_servidor: z.number(),
     id_dbms: z.number(),
+    id_estado_instancia: z.number(),
+    fecha_inicio: z.string().optional(),
 });
 export type Instance = z.infer<typeof InstanceSchema>;
 
@@ -105,13 +109,26 @@ export const DbmsSchema = z.object({
     id_dbms: z.number(),
     nombre_dbms: z.string(),
     version: z.string(),
+    descripcion: z.string().optional(),
 });
 export type Dbms = z.infer<typeof DbmsSchema>;
+
+export const DatabaseSchema = z.object({
+    id_base_datos: z.number(),
+    nombre_base: z.string(),
+    tamano_mb: z.number().nullable().optional(),
+    fecha_creacion: z.string().optional(),
+    id_instancia: z.number(),
+    id_estado_bd: z.number(),
+});
+export type Database = z.infer<typeof DatabaseSchema>;
 
 export const CredentialSchema = z.object({
     id_credencial: z.number(),
     usuario: z.string(),
     id_tipo_acceso: z.number(),
+    id_estado_credencial: z.number(),
+    id_servidor: z.number(),
 });
 export type Credential = z.infer<typeof CredentialSchema>;
 
@@ -122,28 +139,44 @@ export const CriticalitySchema = z.object({
 });
 export type Criticality = z.infer<typeof CriticalitySchema>;
 
+export const GeneralStatusSchema = z.object({
+    id_estado: z.number(),
+    nombre_estado: z.string(),
+});
+export type GeneralStatus = z.infer<typeof GeneralStatusSchema>;
+
 // --- Respaldos ---
 export const BackupPolicySchema = z.object({
     id_politica: z.number(),
     nombre_politica: z.string(),
-    frecuencia: z.string(),
-    hora_ejecucion: z.string(), // Viene como time string
+    descripcion: z.string().optional(),
+    frecuencia_horas: z.number(),
+    retencion_dias: z.number(),
+    id_tipo_respaldo: z.number(),
+    id_estado_politica: z.number(),
 });
 export type BackupPolicy = z.infer<typeof BackupPolicySchema>;
 
 export const BackupPathSchema = z.object({
     id_ruta: z.number(),
+    descripcion_ruta: z.string(),
     path: z.string(),
     id_tipo_almacenamiento: z.number(),
+    id_estado_ruta: z.number(),
 });
 export type BackupPath = z.infer<typeof BackupPathSchema>;
 
 export const BackupHistorySchema = z.object({
     id_respaldo: z.number(),
     id_base_datos: z.number(),
+    id_politica: z.number(),
+    id_credencial: z.number(),
+    id_ruta_respaldo: z.number(),
     fecha_inicio: z.string(),
+    fecha_fin: z.string().nullable().optional(),
+    tamano_mb: z.number().nullable().optional(),
     id_estado_ejecucion: z.number(),
-    tamano_bytes: z.number(),
+    hash_integridad: z.string().optional(),
 });
 export type BackupHistory = z.infer<typeof BackupHistorySchema>;
 
@@ -152,14 +185,17 @@ export const AlertSchema = z.object({
     id_alerta: z.number(),
     descripcion: z.string(),
     fecha_alerta: z.string(),
-    resuelta: z.boolean(),
+    id_servidor: z.number(),
+    id_monitoreo: z.number().nullable().optional(),
+    id_nivel_alerta: z.number(),
+    id_estado_alerta: z.number(),
 });
 export type Alert = z.infer<typeof AlertSchema>;
 
 export const AlertLevelSchema = z.object({
     id_nivel_alerta: z.number(),
     nombre_nivel: z.string(),
-    color_hex: z.string(),
+    color_hex: z.string().optional(), // Mantenemos opcional por si el frontend lo requiere
 });
 export type AlertLevel = z.infer<typeof AlertLevelSchema>;
 
@@ -194,8 +230,10 @@ export type MongoDBMetrics = z.infer<typeof MongoDBMetricsSchema>;
 export const AuditLogSchema = z.object({
     id_bitacora: z.number(),
     id_usuario: z.number(),
-    entidad: z.string(),
-    descripcion: z.string(),
+    id_tipo_evento: z.number(),
+    id_entidad: z.number(),
+    entidad_afectada: z.string(),
+    descripcion_evento: z.string(),
     fecha_evento: z.string(),
 });
 export type AuditLog = z.infer<typeof AuditLogSchema>;

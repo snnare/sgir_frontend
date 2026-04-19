@@ -2,15 +2,17 @@ import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
-  Box, TextField, Button, Stack, MenuItem, 
-  CircularProgress 
+  Box, TextField, Button, Stack, 
+  CircularProgress, FormControlLabel, Switch, Tooltip, IconButton
 } from '@mui/material';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useNavigate } from 'react-router-dom';
 import { ServerCreateSchema, type ServerCreateInput } from '../api/types';
 import { createServer, checkServerByIp } from '../api/infrastructureService';
 import { useNotificationStore } from './GlobalNotification';
 import { CriticalitySelect } from './CriticalitySelect';
+import { StatusSelect } from './StatusSelect';
 
 export const ServerForm = () => {
   const navigate = useNavigate();
@@ -27,9 +29,9 @@ export const ServerForm = () => {
   } = useForm<ServerCreateInput>({
     resolver: zodResolver(ServerCreateSchema),
     defaultValues: {
-      id_tipo_acceso: 1, 
       id_nivel_criticidad: 1, 
-      id_estado: 1, 
+      id_estado_servidor: 1, 
+      es_legacy: false,
     }
   });
 
@@ -44,14 +46,11 @@ export const ServerForm = () => {
     setChecking(true);
     try {
       const response = await checkServerByIp(ipValue);
-      // Caso 200 OK: El servidor existe
       showNotification(`${response.message}: ${response.server?.nombre_servidor || 'Ya registrado'}`, 'info');
     } catch (error: any) {
       if (error.response?.status === 404) {
-        // Caso 404: El servidor no existe (IP disponible)
         showNotification('La IP está disponible para registro', 'success');
       } else if (error.response?.status === 200 || !error.response) {
-        // Si por alguna razón el parsing falló pero el status fue 200
         showNotification('Esta IP ya se encuentra registrada en el sistema', 'info');
       } else {
         console.error('Error checking IP:', error);
@@ -63,14 +62,37 @@ export const ServerForm = () => {
   };
 
   const onSubmit = async (data: ServerCreateInput) => {
+    const payload = {
+      nombre_servidor: data.nombre_servidor,
+      direccion_ip: data.direccion_ip,
+      es_legacy: data.es_legacy,
+      id_nivel_criticidad: data.id_nivel_criticidad,
+      id_estado_servidor: data.id_estado_servidor,
+      descripcion: data.descripcion || "",
+    };
+    
+    console.log('Enviando payload al backend:', JSON.stringify(payload, null, 2));
     setLoading(true);
     try {
-      await createServer(data);
+      await createServer(payload);
       showNotification('Servidor registrado correctamente', 'success');
       navigate('/'); 
     } catch (error: any) {
-      if (error.response?.status === 400) {
+      if (error.response?.status === 422) {
+        // Extraemos el detalle exacto del error de FastAPI
+        const details = error.response.data.detail;
+        console.error('Detalle técnico del error 422:', details);
+        
+        // Creamos un mensaje amigable indicando el campo erróneo
+        const errorMessage = Array.isArray(details) 
+          ? details.map((d: any) => `${d.loc[d.loc.length - 1]}: ${d.msg}`).join(', ')
+          : 'Error de validación en el servidor';
+          
+        showNotification(`Error: ${errorMessage}`, 'error');
+      } else if (error.response?.status === 400) {
         showNotification(error.response.data.detail || 'Ya existe un servidor con esa IP', 'error');
+      } else {
+        showNotification('Error al registrar el servidor', 'error');
       }
     } finally {
       setLoading(false);
@@ -81,7 +103,6 @@ export const ServerForm = () => {
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ width: '100%' }}>
       <Stack spacing={3}>
         
-        {/* IP del Servidor con botón Check */}
         <Stack direction="row" spacing={1} alignItems="flex-start">
           <TextField
             required
@@ -112,26 +133,31 @@ export const ServerForm = () => {
           helperText={errors.nombre_servidor?.message}
         />
 
-        {/* Tipo de Acceso */}
-        <Controller
-          name="id_tipo_acceso"
-          control={control}
-          render={({ field }) => (
-            <TextField
-              select
-              fullWidth
-              label="Tipo de Acceso"
-              {...field}
-              onChange={(e) => field.onChange(Number(e.target.value))}
-            >
-              <MenuItem value={1}>SSH</MenuItem>
-              <MenuItem value={2}>RDP</MenuItem>
-              <MenuItem value={3}>WinRM</MenuItem>
-            </TextField>
-          )}
-        />
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Controller
+            name="es_legacy"
+            control={control}
+            render={({ field }) => (
+              <FormControlLabel
+                control={
+                  <Switch 
+                    checked={field.value} 
+                    onChange={(e) => field.onChange(e.target.checked)} 
+                    color="primary" 
+                  />
+                }
+                label="Servidor Legacy"
+                sx={{ mr: 0 }}
+              />
+            )}
+          />
+          <Tooltip title="Los servidores legacy utilizan protocolos de conexión antiguos">
+            <IconButton size="small">
+              <InfoOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
 
-        {/* Nivel de Criticidad Modularizado */}
         <CriticalitySelect name="id_nivel_criticidad" control={control} />
 
         <TextField
@@ -142,23 +168,11 @@ export const ServerForm = () => {
           {...register('descripcion')}
         />
 
-        {/* Estado del Servidor */}
-        <Controller
-          name="id_estado"
-          control={control}
-          render={({ field }) => (
-            <TextField
-              select
-              fullWidth
-              label="Estado Inicial"
-              {...field}
-              onChange={(e) => field.onChange(Number(e.target.value))}
-            >
-              <MenuItem value={1}>Activo</MenuItem>
-              <MenuItem value={2}>Inactivo</MenuItem>
-              <MenuItem value={3}>Mantenimiento</MenuItem>
-            </TextField>
-          )}
+        <StatusSelect 
+          name="id_estado_servidor" 
+          control={control} 
+          label="Estado Inicial"
+          filterIds={[1, 2]} 
         />
 
         <Button

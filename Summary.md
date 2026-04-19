@@ -1,38 +1,35 @@
 # Resumen de Cambios - Proyecto SGIR Frontend
 
-**ID de Sesión para Continuar:** `SGIR-SESSION-2026-04-16-AR`
+**ID de Sesión para Continuar:** `SGIR-SESSION-2026-04-17-AR`
 
 Este documento resume las implementaciones realizadas en la infraestructura del frontend para el Sistema de Gestión de Infraestructura y Respaldos (SGIR).
 
 ## 1. Núcleo de Autenticación y Seguridad
-- **Servicios API (`src/api/authService.ts`)**: Implementación de Login (OAuth2 form-urlencoded), Registro, Obtención de Perfil (`/me`) y Logout.
-- **Estado Global (`src/store/useAuthStore.ts`)**: Store de Zustand con persistencia automática (`auth-storage`). Maneja el token JWT, los datos del usuario y el estado de la sesión.
-- **Protección de Rutas (`src/App.tsx`)**: 
-    - `ProtectedRoute`: Bloquea acceso a rutas privadas si no hay sesión.
-    - `PublicRoute`: Redirige al Home si un usuario logueado intenta entrar a Login/Register.
-    - Validación automática de token al cargar la aplicación (`checkAuth`).
+- **Servicios API (`src/api/authService.ts`)**: Implementación de Login (OAuth2), Registro, Obtención de Perfil (`/me`) y Logout.
+- **Estado Global (`src/store/useAuthStore.ts`)**: Store de Zustand con persistencia. 
+- **Optimización de Sesión**: Se mejoró `checkAuth` para utilizar datos persistidos en recargas, eliminando llamadas redundantes a la API y acelerando el arranque de la aplicación.
+- **Flujo de Cierre de Sesión**: Integración completa del Logout en el Sidebar, asegurando la limpieza de tokens tanto en el cliente como en el servidor.
 
-## 2. Comunicación y Manejo de Errores
-- **Cliente Axios (`src/api/client.ts`)**: 
-    - Interceptor de Peticiones: Inyecta `Authorization: Bearer <token>` automáticamente.
-    - Interceptor de Respuestas: Captura errores globales (500, 403, 429, Network Errors) y los envía al sistema de notificaciones.
-    - Timeout configurado a 10s.
-- **Sistema de Notificaciones (`src/components/GlobalNotification.tsx`)**: Implementación de un Snackbar global con un store dedicado para mostrar alertas visuales (éxito, error, advertencia) desde cualquier parte del código.
+## 2. Gestión de Inventario (Servidores)
+- **Registro de Servidores**: Implementación del formulario `ServerForm.tsx` con soporte para:
+    - Validación de IP v4 mediante Regex.
+    - Parámetro `es_legacy` con Tooltips informativos.
+    - Generación automática de `fecha_registro` (now).
+- **Verificación de IP en Tiempo Real**: Funcionalidad de botón "Check" que consulta el endpoint `/servidores/{ip}` para validar disponibilidad antes del registro, con notificaciones visuales inteligentes.
+- **Manejo de Errores Técnicos**: Implementación de depuración avanzada para errores 422 (FastAPI), mostrando al usuario exactamente qué campo falló en la validación del servidor.
 
-## 3. Gestión de Perfil
-- **Actualización de Datos (`src/components/ProfileDetails.tsx`)**: Refactorización completa para permitir la edición de nombres, apellidos y email. 
-- **Validación**: Integración con `react-hook-form` y `Zod` para asegurar la integridad de los datos antes de enviarlos al backend.
+## 3. Arquitectura de Componentes Modulares
+Se han creado selectores inteligentes y reutilizables que gestionan su propio estado y carga de datos:
+- **`CriticalitySelect.tsx`**: Selector de nivel de criticidad que consume datos dinámicos de la base de datos.
+- **`StatusSelect.tsx`**: Selector de estado general con capacidad de filtrado por IDs (ej. solo mostrar 'Activo' e 'Inactivo' para servidores).
+- **Sistema de Caché**: Ambos componentes utilizan el `useInfrastructureStore` para cachear los metadatos, evitando peticiones repetitivas al navegar entre páginas.
 
-## 4. Infraestructura Modular de API y Stores
-Se ha creado una arquitectura escalable para los siguientes módulos, con sus respectivos servicios y stores de Zustand:
-- **Roles**: `roleService.ts`, `useRoleStore.ts`.
-- **Inventario Técnico**: `infrastructureService.ts`, `useInfrastructureStore.ts` (Servidores, Instancias, DBMS, Credenciales, Criticidad).
-- **Estrategia de Respaldos**: `backupService.ts`, `useBackupStore.ts` (Políticas, Rutas, Historial).
-- **Monitoreo Real-Time**: `monitoringService.ts`, `useMonitoringStore.ts` (Alertas, Métricas de S.O., MySQL 8 y MongoDB).
-- **Bitácora de Auditoría**: `auditService.ts`, `useAuditStore.ts` (Logs globales, tipos de eventos).
+## 4. Infraestructura de API y Stores
+- **Actualización de Endpoints**: Estandarización de rutas hacia `/servidores/` y `/estados/`.
+- **Zustand Store (`useInfrastructureStore.ts`)**: Centralización de servidores, instancias, DBMS, criticidades y estados con lógica de carga optimizada.
 
 ## 5. Tipado y Esquemas (`src/api/types.ts`)
-- Centralización de esquemas de Zod para todas las entidades del sistema, asegurando que cada respuesta del backend sea validada antes de ser procesada por la UI.
+- Evolución de los esquemas de Zod para soportar la creación de servidores, incluyendo validaciones estrictas y tipado para las respuestas de verificación de IP.
 
 ---
-**Nota:** Todos los cambios han sido sincronizados en la rama `master` del repositorio remoto.
+**Nota:** Todos los cambios han sido sincronizados en la rama `master` del repositorio remoto mediante Git.

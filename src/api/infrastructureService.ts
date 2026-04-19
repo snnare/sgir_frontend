@@ -5,22 +5,23 @@ import {
     InstanceSchema, type Instance, 
     DbmsSchema, type Dbms, 
     CredentialSchema, type Credential, 
-    CriticalitySchema, type Criticality 
+    CriticalitySchema, type Criticality,
+    GeneralStatusSchema, type GeneralStatus
 } from './types';
 import { z } from 'zod';
 
 export const getServers = async (): Promise<Server[]> => {
-    const { data } = await api.get('/core/servidores/');
+    const { data } = await api.get('/servidores/');
     return z.array(ServerSchema).parse(data);
 };
 
 export const createServer = async (serverData: ServerCreateInput): Promise<Server> => {
-    const { data } = await api.post('/core/servidores/', serverData);
+    const { data } = await api.post('/servidores/', serverData);
     return ServerSchema.parse(data);
 };
 
 export const getServerById = async (id: number): Promise<Server> => {
-    const { data } = await api.get(`/core/servidores/${id}`);
+    const { data } = await api.get(`/servidores/${id}`);
     return ServerSchema.parse(data);
 };
 
@@ -47,4 +48,9 @@ export const getCredentialsByServer = async (serverId: number): Promise<Credenti
 export const getCriticalities = async (): Promise<Criticality[]> => {
     const { data } = await api.get('/criticidad/');
     return z.array(CriticalitySchema).parse(data);
+};
+
+export const getGeneralStatuses = async (): Promise<GeneralStatus[]> => {
+    const { data } = await api.get('/estados/');
+    return z.array(GeneralStatusSchema).parse(data);
 };

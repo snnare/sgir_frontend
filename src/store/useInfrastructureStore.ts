@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { 
     getServers, getServerById, getInstancesByServer, 
-    getDbms, getCredentialsByServer, getCriticalities 
+    getDbms, getCredentialsByServer, getCriticalities, getGeneralStatuses 
 } from '../api/infrastructureService';
-import type { Server, Instance, Dbms, Credential, Criticality } from '../api/types';
+import type { Server, Instance, Dbms, Credential, Criticality, GeneralStatus } from '../api/types';
 
 interface InfrastructureState {
     servers: Server[];
@@ -12,6 +12,7 @@ interface InfrastructureState {
     dbmsList: Dbms[];
     credentials: Credential[];
     criticalities: Criticality[];
+    statuses: GeneralStatus[];
     loading: boolean;
     error: string | null;
 
@@ -21,15 +22,17 @@ interface InfrastructureState {
     fetchDbmsList: () => Promise<void>;
     fetchCredentialsByServer: (serverId: number) => Promise<void>;
     fetchCriticalities: () => Promise<void>;
+    fetchStatuses: () => Promise<void>;
 }
 
-export const useInfrastructureStore = create<InfrastructureState>((set) => ({
+export const useInfrastructureStore = create<InfrastructureState>((set, get) => ({
     servers: [],
     currentServer: null,
     instances: [],
     dbmsList: [],
     credentials: [],
     criticalities: [],
+    statuses: [],
     loading: false,
     error: null,
 
@@ -85,13 +88,25 @@ export const useInfrastructureStore = create<InfrastructureState>((set) => ({
 
     fetchCriticalities: async () => {
         const { criticalities } = get();
-        // Si ya tenemos datos, no volvemos a llamar a la API
         if (criticalities.length > 0) return;
 
         set({ loading: true, error: null });
         try {
             const data = await getCriticalities();
             set({ criticalities: data, loading: false });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+        }
+    },
+
+    fetchStatuses: async () => {
+        const { statuses } = get();
+        if (statuses.length > 0) return;
+
+        set({ loading: true, error: null });
+        try {
+            const data = await getGeneralStatuses();
+            set({ statuses: data, loading: false });
         } catch (err: any) {
             set({ error: err.message, loading: false });
         }
