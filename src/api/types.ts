@@ -151,6 +151,16 @@ export const CredentialEnrichedSchema = z.object({
 export type Credential = z.infer<typeof CredentialSchema>;
 export type CredentialEnriched = z.infer<typeof CredentialEnrichedSchema>;
 
+export const CredentialUpdateSchema = z.object({
+    usuario: z.string().min(1, 'El usuario es requerido').optional(),
+    password: z.string().min(1, 'La contraseña es requerida').optional(),
+    id_tipo_acceso: z.number().int().positive().optional(),
+    id_servidor: z.number().int().positive().optional(),
+    id_estado_credencial: z.number().int().positive().optional(),
+});
+
+export type CredentialUpdateInput = z.infer<typeof CredentialUpdateSchema>;
+
 export const CredentialCreateSchema = z.object({
     usuario: z.string().min(1, 'El usuario es requerido'),
     password_hash: z.string().min(1, 'La contraseña es requerida'),

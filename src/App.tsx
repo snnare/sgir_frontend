@@ -12,6 +12,7 @@ import { CheckPage } from './pages/CheckPage'
 
 import { ProfilePage } from './pages/ProfilePage';
 import { CredentialsPage } from './pages/CredentialsPage';
+import { EditCredentialPage } from './pages/EditCredentialPage';
 import { PostRegisterWizard } from './pages/PostRegisterWizard';
 import { BulkUploadPage } from './pages/BulkUploadPage';
 import { AddServerPage } from './pages/AddServerPage';
@@ -98,6 +99,7 @@ function App() {
             <Route path="bulk-upload" element={<BulkUploadPage />} />
             <Route path="credenciales" element={<CredentialsPage />} />
             <Route path="credenciales/nueva" element={<AddCredentialPage />} />
+            <Route path="credenciales/editar/:id" element={<EditCredentialPage />} />
             <Route path="add-instance" element={<AddInstancePage />} />
             <Route path="add-dbms" element={<AddDbmsPage />} />
             <Route path="add-policy" element={<AddBackupPolicyPage />} />

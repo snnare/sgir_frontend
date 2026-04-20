@@ -10,7 +10,7 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import { useNavigate } from 'react-router-dom';
-import { getCredentials } from '../api/infrastructureService';
+import { getCredentials, deleteCredential } from '../api/infrastructureService';
 import { type CredentialEnriched } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
 
@@ -30,6 +30,22 @@ export const CredentialsPage = () => {
       showNotification('Error al cargar la lista de credenciales', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number, usuario: string) => {
+    if (!window.confirm(`¿Está seguro de eliminar la credencial del usuario "${usuario}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteCredential(id);
+      showNotification('Credencial eliminada correctamente', 'success');
+      // Actualizar el estado local para remover el item sin recargar toda la página
+      setCredentials(prev => prev.filter(c => c.id_credencial !== id));
+    } catch (error: any) {
+      console.error('Error deleting credential:', error);
+      showNotification(error.response?.data?.detail || 'Error al eliminar la credencial', 'error');
     }
   };
 
@@ -138,14 +154,23 @@ export const CredentialsPage = () => {
                   <TableCell align="right">
                     <Stack direction="row" spacing={1} justifyContent="flex-end">
                       <Tooltip title="Editar">
-                        <IconButton size="small"><EditIcon fontSize="small" /></IconButton>
+                        <IconButton 
+                          size="small"
+                          onClick={() => navigate(`/credenciales/editar/${cred.id_credencial}`)}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
                       </Tooltip>
-                      <Tooltip title="Eliminar">
-                        <IconButton size="small" color="error"><DeleteOutlinedIcon fontSize="small" /></IconButton>
+                      <Tooltip title="Eliminar">                        <IconButton 
+                          size="small" 
+                          color="error" 
+                          onClick={() => handleDelete(cred.id_credencial, cred.usuario)}
+                        >
+                          <DeleteOutlinedIcon fontSize="small" />
+                        </IconButton>
                       </Tooltip>
                     </Stack>
-                  </TableCell>
-                </TableRow>
+                  </TableCell>                </TableRow>
               ))
             )}
           </TableBody>

@@ -7,6 +7,7 @@ import {
     CredentialSchema, type Credential, 
     CredentialEnrichedSchema, type CredentialEnriched,
     CredentialCreateSchema, type CredentialCreateInput,
+    CredentialUpdateSchema, type CredentialUpdateInput,
     CriticalitySchema, type Criticality,
     GeneralStatusSchema, type GeneralStatus
 } from './types';
@@ -50,6 +51,20 @@ export const createCredential = async (credentialData: CredentialCreateInput): P
 export const getCredentials = async (): Promise<CredentialEnriched[]> => {
     const { data } = await api.get('/credenciales/');
     return z.array(CredentialEnrichedSchema).parse(data);
+};
+
+export const getCredentialById = async (id: number): Promise<Credential> => {
+    const { data } = await api.get(`/credenciales/${id}`);
+    return CredentialSchema.parse(data);
+};
+
+export const updateCredential = async (id: number, credentialData: CredentialUpdateInput): Promise<Credential> => {
+    const { data } = await api.put(`/credenciales/${id}`, credentialData);
+    return CredentialSchema.parse(data);
+};
+
+export const deleteCredential = async (id: number): Promise<void> => {
+    await api.delete(`/credenciales/${id}`);
 };
 
 export const getCredentialsByServer = async (serverId: number): Promise<Credential[]> => {
