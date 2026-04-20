@@ -3,11 +3,13 @@ import { Box, Typography, Button, Stack, Paper, CircularProgress } from '@mui/ma
 import { useNavigate } from 'react-router-dom';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import SpeedIcon from '@mui/icons-material/Speed';
-import MemoryIcon from '@mui/icons-material/Memory';
-import StorageIcon from '@mui/icons-material/Storage';
 import AddIcon from '@mui/icons-material/Add';
+import TerminalIcon from '@mui/icons-material/Terminal';
+import DnsIcon from '@mui/icons-material/Dns';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import { MetricCard } from '../components/MetricCard';
+import { ServerCard } from '../components/ServerCard';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
 
 export const HomePage = () => {
@@ -19,6 +21,15 @@ export const HomePage = () => {
   }, [fetchServers]);
 
   const hasServers = servers.length > 0;
+  const onlineServers = servers.filter(s => s.id_estado_servidor === 1).length;
+  const criticalServers = servers.filter(s => s.id_estado_servidor !== 1).length;
+
+  // Datos mock de métricas para visualización dinámica
+  const getMockMetrics = (id: number) => ({
+    cpu: Math.floor(((id * 7) % 50) + 15),
+    ram: Math.floor(((id * 13) % 40) + 30),
+    disk: Math.floor(((id * 3) % 20) + 10),
+  });
 
   if (loading && servers.length === 0) {
     return (
@@ -105,39 +116,59 @@ export const HomePage = () => {
 
       {/* --- CONTENIDO PRINCIPAL --- */}
       {hasServers ? (
-        <Box 
-          sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { 
-              xs: '1fr', 
-              sm: 'repeat(2, 1fr)', 
-              lg: 'repeat(3, 1fr)' 
-            }, 
-            gap: 3 
-          }}
-        >
-          <MetricCard 
-            title="Uso de CPU" 
-            value="42.5" 
-            unit="%" 
-            percent={42.5} 
-            icon={<SpeedIcon fontSize="small" />} 
-          />
-          <MetricCard 
-            title="Memoria RAM" 
-            value="12.8" 
-            unit="GB" 
-            percent={88} 
-            icon={<MemoryIcon fontSize="small" />} 
-          />
-          <MetricCard 
-            title="Almacenamiento" 
-            value="1.2" 
-            unit="TB" 
-            percent={15} 
-            icon={<StorageIcon fontSize="small" />} 
-          />
-        </Box>
+        <Stack spacing={4}>
+          {/* Resumen de Inventario */}
+          <Box 
+            sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { 
+                xs: '1fr', 
+                sm: 'repeat(2, 1fr)', 
+                lg: 'repeat(3, 1fr)' 
+              }, 
+              gap: 3 
+            }}
+          >
+            <MetricCard 
+              title="Total de Servidores" 
+              value={servers.length} 
+              unit="Nodos" 
+              percent={100} 
+              icon={<DnsIcon fontSize="small" />} 
+            />
+            <MetricCard 
+              title="Servidores Online" 
+              value={onlineServers} 
+              unit="Activos" 
+              percent={servers.length > 0 ? (onlineServers / servers.length) * 100 : 0} 
+              icon={<CheckCircleIcon fontSize="small" sx={{ color: '#22c55e' }} />} 
+            />
+            <MetricCard 
+              title="Alertas Activas" 
+              value={criticalServers} 
+              unit="Incidencias" 
+              percent={criticalServers > 0 ? 90 : 0} 
+              icon={<ReportProblemIcon fontSize="small" sx={{ color: criticalServers > 0 ? '#ef4444' : 'text.secondary' }} />} 
+            />
+          </Box>
+
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <TerminalIcon fontSize="small" color="primary" />
+              Servidores en Monitoreo
+            </Typography>
+            
+            <Stack spacing={3}>
+              {servers.map((server) => (
+                <ServerCard 
+                  key={server.id_servidor} 
+                  server={server} 
+                  metrics={getMockMetrics(server.id_servidor)}
+                />
+              ))}
+            </Stack>
+          </Box>
+        </Stack>
       ) : (
         /* Vista de estado vacío */
         <Paper 
