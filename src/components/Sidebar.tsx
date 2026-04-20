@@ -6,10 +6,13 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import SearchIcon from '@mui/icons-material/Search';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useLocation } from 'react-router-dom';
 import { SidebarItem } from './SidebarItem';
+import { useThemeStore } from '../store/useThemeStore';
 
 interface SidebarProps {
   open: boolean;
@@ -18,6 +21,7 @@ interface SidebarProps {
 
 export const Sidebar = ({ open, onToggle }: SidebarProps) => {
   const location = useLocation();
+  const { mode, toggleTheme } = useThemeStore();
 
   return (
     <Box 
@@ -96,6 +100,12 @@ export const Sidebar = ({ open, onToggle }: SidebarProps) => {
 
       {/* Footer / User Profile & Logout */}
       <Box sx={{ p: open ? 2 : 1 }}>
+        <SidebarItem 
+          icon={mode === 'light' ? <DarkModeIcon fontSize="small" /> : <LightModeIcon fontSize="small" />} 
+          label={mode === 'light' ? 'Modo Oscuro' : 'Modo Claro'} 
+          onClick={toggleTheme} 
+          open={open} 
+        />
         <SidebarItem 
           icon={<PersonIcon fontSize="small" />} 
           label="Perfil" 

@@ -2,13 +2,14 @@ import api from './client';
 import { LoginResponseSchema, UserResponseSchema } from './types';
 import type { LoginInput, LoginResponse, RegisterInput, UserResponse, UserUpdateInput } from './types';
 
-export const login = async (credentials: LoginInput): Promise<LoginResponse> => {
+export const login = async (credentials: LoginInput, rememberMe: boolean = false): Promise<LoginResponse> => {
     // FastAPI OAuth2PasswordRequestForm requiere x-www-form-urlencoded
     const formData = new URLSearchParams();
     formData.append('username', credentials.email);
     formData.append('password', credentials.password);
 
-    const { data } = await api.post('/users/login', formData, {
+    // Se añade remember_me como query parameter
+    const { data } = await api.post(`/users/login?remember_me=${rememberMe}`, formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },

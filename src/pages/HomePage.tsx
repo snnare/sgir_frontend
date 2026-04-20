@@ -1,17 +1,32 @@
-import { useState } from 'react';
-import { Box, Typography, Button, Stack, Paper } from '@mui/material';
+import { useEffect } from 'react';
+import { Box, Typography, Button, Stack, Paper, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SpeedIcon from '@mui/icons-material/Speed';
 import MemoryIcon from '@mui/icons-material/Memory';
 import StorageIcon from '@mui/icons-material/Storage';
+import AddIcon from '@mui/icons-material/Add';
 import { MetricCard } from '../components/MetricCard';
+import { useInfrastructureStore } from '../store/useInfrastructureStore';
 
 export const HomePage = () => {
   const navigate = useNavigate();
-  // Simulación: Cambia a false para ver el estado vacío
-  const [hasServers] = useState(true);
+  const { servers, loading, fetchServers } = useInfrastructureStore();
+
+  useEffect(() => {
+    fetchServers();
+  }, [fetchServers]);
+
+  const hasServers = servers.length > 0;
+
+  if (loading && servers.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
@@ -32,47 +47,60 @@ export const HomePage = () => {
           </Typography>
         </Box>
 
-        {/* Botones de acción principales */}
-        <Stack direction="row" spacing={1.5}>
-          <Button
-            variant="outlined"
-            size="medium"
-            startIcon={<CloudUploadIcon />}
-            sx={{ 
-              borderStyle: 'dashed', 
-              color: 'text.secondary', 
-              borderColor: 'divider',
-              px: 3,
-              borderRadius: 2,
-              '&:hover': {
-                borderStyle: 'dashed',
-                bgcolor: 'action.hover'
-              }
-            }}
-          >
-            Carga Masiva
-          </Button>
-          <Button
-            variant="contained"
-            size="medium"
-            startIcon={<MonitorHeartIcon />}
-            onClick={() => navigate('/add-server')}
-            sx={{ 
-              bgcolor: 'text.primary', 
-              color: 'background.paper',
-              px: 3,
-              borderRadius: 2,
-              fontWeight: 700,
-              boxShadow: '0 4px 14px 0 rgba(0,0,0,0.15)',
-              '&:hover': {
-                bgcolor: 'text.secondary',
-                boxShadow: '0 6px 20px 0 rgba(0,0,0,0.2)',
-              }
-            }}
-          >
-            Registrar Activo
-          </Button>
-        </Stack>
+        {/* Botones de acción principales - Solo visibles si hay activos */}
+        {hasServers && (
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="outlined"
+              size="medium"
+              startIcon={<CloudUploadIcon />}
+              sx={{ 
+                border: '1.5px dashed', 
+                borderColor: 'divider',
+                color: 'text.secondary', 
+                px: 3,
+                py: 1,
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 600,
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  border: '1.5px dashed',
+                  borderColor: 'text.primary',
+                  color: 'text.primary',
+                  bgcolor: 'transparent',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+            >
+              Carga Masiva
+            </Button>
+            <Button
+              variant="contained"
+              size="medium"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/add-server')}
+              sx={{ 
+                bgcolor: 'text.primary', 
+                color: 'background.paper',
+                px: 3,
+                py: 1,
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 700,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  bgcolor: 'grey.800',
+                  boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+            >
+              Registro Servidor
+            </Button>
+          </Stack>
+        )}
       </Stack>
 
       {/* --- CONTENIDO PRINCIPAL --- */}
@@ -128,11 +156,32 @@ export const HomePage = () => {
         >
           <MonitorHeartIcon sx={{ fontSize: 48, color: 'divider', mb: 2 }} />
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-            No hay activos registrados
+            Primero agrega un servidor
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400 }}>
-            Utiliza los botones superiores para registrar tu primer servidor y comenzar a recolectar métricas en tiempo real.
+          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400, mb: 4 }}>
+            No se han detectado activos en el sistema. Es necesario registrar al menos un servidor para comenzar con el monitoreo.
           </Typography>
+          
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/add-server')}
+            sx={{ 
+              bgcolor: 'text.primary', 
+              color: 'background.paper',
+              px: 4,
+              py: 1.5,
+              borderRadius: 3,
+              fontWeight: 700,
+              boxShadow: '0 8px 24px 0 rgba(0,0,0,0.12)',
+              '&:hover': {
+                bgcolor: 'text.secondary',
+              }
+            }}
+          >
+            Registrar Primer Servidor
+          </Button>
         </Paper>
       )}
     </Box>

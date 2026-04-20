@@ -9,13 +9,19 @@ interface SidebarItemProps {
   active?: boolean;
   isLogout?: boolean;
   open: boolean;
+  onClick?: () => void;
 }
 
-export const SidebarItem = ({ icon, label, to, active, isLogout, open }: SidebarItemProps) => {
+export const SidebarItem = ({ icon, label, to, active, isLogout, open, onClick }: SidebarItemProps) => {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
 
   const handleClick = async () => {
+    if (onClick) {
+      onClick();
+      return;
+    }
+    
     if (isLogout) {
       try {
         await logout();

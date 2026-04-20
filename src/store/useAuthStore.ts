@@ -9,7 +9,7 @@ interface AuthState {
     status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
     error: string | null;
     
-    login: (credentials: LoginInput) => Promise<void>;
+    login: (credentials: LoginInput, rememberMe?: boolean) => Promise<void>;
     register: (userData: RegisterInput) => Promise<void>;
     updateUser: (userData: UserUpdateInput) => Promise<void>;
     logout: () => Promise<void>;
@@ -25,10 +25,10 @@ export const useAuthStore = create<AuthState>()(
             status: 'idle',
             error: null,
 
-            login: async (credentials: LoginInput) => {
+            login: async (credentials: LoginInput, rememberMe: boolean = false) => {
                 set({ status: 'loading', error: null });
                 try {
-                    const { access_token } = await loginService(credentials);
+                    const { access_token } = await loginService(credentials, rememberMe);
                     set({ token: access_token });
                     
                     const user = await getMe();

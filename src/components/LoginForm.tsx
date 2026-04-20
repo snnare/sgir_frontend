@@ -1,4 +1,4 @@
-import { Box, TextField, Button, Typography, Link, Stack, Alert, CircularProgress } from '@mui/material';
+import { Box, TextField, Button, Typography, Link, Stack, Alert, CircularProgress, FormControlLabel, Checkbox } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,6 +15,7 @@ export const LoginForm = () => {
   const errorStore = useAuthStore((state) => state.error);
   const showNotification = useNotificationStore((state) => state.showNotification);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
     clearError();
@@ -31,7 +32,7 @@ export const LoginForm = () => {
   const onSubmit = async (data: LoginInput) => {
     setLocalError(null);
     try {
-      await loginAction(data);
+      await loginAction(data, rememberMe);
       showNotification('¡Bienvenido al sistema!', 'success');
       navigate('/');
     } catch (err: any) {
@@ -74,6 +75,22 @@ export const LoginForm = () => {
           autoComplete="current-password"
           error={!!errors.password}
           helperText={errors.password?.message}
+        />
+        
+        <FormControlLabel
+          control={
+            <Checkbox 
+              value="remember" 
+              color="primary" 
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            />
+          }
+          label={
+            <Typography variant="body2" color="text.secondary">
+              Mantener sesión iniciada (7 días)
+            </Typography>
+          }
         />
       </Stack>
 
