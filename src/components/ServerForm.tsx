@@ -74,9 +74,10 @@ export const ServerForm = () => {
     console.log('Enviando payload al backend:', JSON.stringify(payload, null, 2));
     setLoading(true);
     try {
-      await createServer(payload);
+      const newServer = await createServer(payload);
       showNotification('Servidor registrado correctamente', 'success');
-      navigate('/'); 
+      // Redirigimos al Wizard de configuración con el ID del servidor recién creado
+      navigate(`/setup-wizard/${newServer.id_servidor}`); 
     } catch (error: any) {
       if (error.response?.status === 422) {
         // Extraemos el detalle exacto del error de FastAPI

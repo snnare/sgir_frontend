@@ -131,7 +131,19 @@ export const CredentialSchema = z.object({
     id_estado_credencial: z.number(),
     id_servidor: z.number(),
 });
+
 export type Credential = z.infer<typeof CredentialSchema>;
+
+export const CredentialCreateSchema = z.object({
+    usuario: z.string().min(1, 'El usuario es requerido'),
+    password: z.string().min(1, 'La contraseña es requerida'),
+    id_tipo_acceso: z.number().int().positive(),
+    id_servidor: z.number().int().positive(),
+    id_estado_credencial: z.number().int().positive().default(1),
+});
+
+export type CredentialCreateInput = z.infer<typeof CredentialCreateSchema>;
+
 
 export const CriticalitySchema = z.object({
     id_nivel_criticidad: z.number(),

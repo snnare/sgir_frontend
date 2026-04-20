@@ -45,7 +45,7 @@ export const ProfileDetails = () => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Stack alignItems="center" spacing={2} sx={{ mb: 4 }}>
+      <Stack alignItems="center" spacing={2} sx={{ mb: 6 }}>
         <Avatar 
           sx={{ 
             width: 80, 
@@ -61,13 +61,13 @@ export const ProfileDetails = () => {
           <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>
             {user.nombres} {user.apellidos}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize', mt: 0.5 }}>
             {roleName} — Sistema SGIR
           </Typography>
         </Box>
       </Stack>
 
-      <Stack spacing={2.5}>
+      <Stack spacing={3}>
         <DataRow label="Correo Electrónico" value={user.email} />
         <Divider />
         <DataRow label="ID de Usuario" value={`USR-${user.id_usuario.toString().padStart(4, '0')}-SGIR`} isMono />
@@ -80,7 +80,7 @@ export const ProfileDetails = () => {
         <DataRow 
           label="Estado de Cuenta" 
           value={user.id_estado_usuario === 1 ? 'Activo' : 'Inactivo'} 
-          color={user.id_estado_usuario === 1 ? 'success.main' : 'error.main'}
+          color={user.id_estado_usuario === 1 ? '#22c55e' : '#ef4444'}
         />
       </Stack>
     </Box>
@@ -88,16 +88,18 @@ export const ProfileDetails = () => {
 };
 
 const DataRow = ({ label, value, isMono = false, color }: any) => (
-  <Stack direction="row" justifyContent="space-between" alignItems="center">
-    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.5 }}>
+    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, pr: 2 }}>
       {label}
     </Typography>
     <Typography 
       variant="body2" 
       sx={{ 
-        fontWeight: 600, 
+        fontWeight: 700, 
         fontFamily: isMono ? '"JetBrains Mono", monospace' : 'inherit',
-        color: color || 'inherit'
+        color: color || 'text.primary',
+        textAlign: 'right',
+        wordBreak: 'break-all'
       }}
     >
       {value}

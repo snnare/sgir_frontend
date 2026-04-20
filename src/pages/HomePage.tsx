@@ -65,6 +65,7 @@ export const HomePage = () => {
               variant="outlined"
               size="medium"
               startIcon={<CloudUploadIcon />}
+              onClick={() => navigate('/bulk-upload')}
               sx={{ 
                 border: '1.5px dashed', 
                 borderColor: 'divider',

@@ -11,6 +11,8 @@ import { LoginPage } from './pages/LoginPage';
 import { CheckPage } from './pages/CheckPage'
 
 import { ProfilePage } from './pages/ProfilePage';
+import { PostRegisterWizard } from './pages/PostRegisterWizard';
+import { BulkUploadPage } from './pages/BulkUploadPage';
 import { AddServerPage } from './pages/AddServerPage';
 import { AddCredentialPage } from './pages/AddCredentialPage'
 import { AddInstancePage } from './pages/AddInstancePage'
@@ -90,7 +92,9 @@ function App() {
           <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<HomePage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="setup-wizard/:serverId" element={<PostRegisterWizard />} />
             <Route path="add-server" element={<AddServerPage />} />
+            <Route path="bulk-upload" element={<BulkUploadPage />} />
             <Route path="add-credential" element={<AddCredentialPage />} />
             <Route path="add-instance" element={<AddInstancePage />} />
             <Route path="add-dbms" element={<AddDbmsPage />} />
