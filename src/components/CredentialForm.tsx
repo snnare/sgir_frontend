@@ -93,9 +93,9 @@ export const CredentialForm = ({ serverId, onSuccess }: CredentialFormProps) => 
           fullWidth
           label="Contraseña / Token / Secret Key"
           type={showPassword ? 'text' : 'password'}
-          {...register('password')}
-          error={!!errors.password}
-          helperText={errors.password?.message}
+          {...register('password_hash')}
+          error={!!errors.password_hash}
+          helperText={errors.password_hash?.message}
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">

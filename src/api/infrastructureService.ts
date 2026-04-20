@@ -4,7 +4,9 @@ import {
     ServerCheckResponseSchema, type ServerCheckResponse,
     InstanceSchema, type Instance, 
     DbmsSchema, type Dbms, 
-    CredentialSchema, type Credential, CredentialCreateSchema, type CredentialCreateInput,
+    CredentialSchema, type Credential, 
+    CredentialEnrichedSchema, type CredentialEnriched,
+    CredentialCreateSchema, type CredentialCreateInput,
     CriticalitySchema, type Criticality,
     GeneralStatusSchema, type GeneralStatus
 } from './types';
@@ -43,6 +45,11 @@ export const getDbms = async (): Promise<Dbms[]> => {
 export const createCredential = async (credentialData: CredentialCreateInput): Promise<Credential> => {
     const { data } = await api.post('/credenciales/', credentialData);
     return CredentialSchema.parse(data);
+};
+
+export const getCredentials = async (): Promise<CredentialEnriched[]> => {
+    const { data } = await api.get('/credenciales/');
+    return z.array(CredentialEnrichedSchema).parse(data);
 };
 
 export const getCredentialsByServer = async (serverId: number): Promise<Credential[]> => {
