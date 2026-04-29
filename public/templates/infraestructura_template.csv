@@ -1,3 +1,4 @@
-nombre_servidor,direccion_ip,es_legacy,nivel_criticidad,descripcion,estado,nombre_dbms,nombre_instancia,puerto_db,usuario,password,tipo_acceso
-Srv-Oracle,148.215.1.98,true,Crítico,Nodo Principal,Activo,Oracle Database,ORCL,1521,oracle,claveSSH123,SSH
-Srv-Oracle,148.215.1.98,true,Crítico,Nodo Principal,Activo,Oracle Database,ORCL,1521,system,claveDB456,DB Native
+nombre_servidor,direccion_ip,es_legacy,descripcion,nivel_criticidad,estado,nombre_dbms,nombre_instancia,puerto_db,tipo_acceso,usuario,password
+Servidor Produccion 01,192.168.1.10,false,Servidor principal de apps,Crítico,Activo,Oracle,PRODDB,1521,SSH,root,miPasswordSegura
+Servidor Produccion 01,192.168.1.10,false,Servidor principal de apps,Crítico,Activo,Oracle,PRODDB,1521,DB Native,system,manager123
+Nodo Legacy 05,10.0.0.50,true,Servidor RHEL 4 antiguo,Medio,Activo,,, ,SSH,admin,admin123

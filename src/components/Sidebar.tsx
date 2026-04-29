@@ -45,9 +45,12 @@ export const Sidebar = ({ open, onToggle }: SidebarProps) => {
       {/* Header: Logo + Toggle */}
       <Stack 
         direction="row" 
-        alignItems="center" 
-        justifyContent={open ? 'space-between' : 'center'} 
-        sx={{ p: 2, minHeight: 64 }}
+        sx={{ 
+          p: 2, 
+          minHeight: 64,
+          alignItems: 'center',
+          justifyContent: open ? 'space-between' : 'center'
+        }}
       >
         {open && (
           <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>

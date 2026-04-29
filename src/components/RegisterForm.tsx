@@ -1,11 +1,12 @@
-import { Box, TextField, Button, Typography, Link, Stack, Alert, CircularProgress } from '@mui/material';
+import { Box, TextField, Button, Typography, Link, Stack, Alert, CircularProgress, IconButton, InputAdornment } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RegisterSchema, type RegisterInput } from '../api/types';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNotificationStore } from './GlobalNotification';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export const RegisterForm = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export const RegisterForm = () => {
   const status = useAuthStore((state) => state.status);
   const errorStore = useAuthStore((state) => state.error);
   const showNotification = useNotificationStore((state) => state.showNotification);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Limpiar errores previos al entrar a la página
   useEffect(() => {
@@ -44,6 +46,11 @@ export const RegisterForm = () => {
       showNotification(formattedMessage, 'error');
       console.error('Registration failed', err);
     }
+  };
+
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
   };
 
   return (
@@ -93,11 +100,25 @@ export const RegisterForm = () => {
           fullWidth
           name="password"
           label="Contraseña"
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           id="password"
           autoComplete="new-password"
           error={!!errors.password}
           helperText={errors.password?.message}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="toggle password visibility"
+                  onClick={handleClickShowPassword}
+                  onMouseDown={handleMouseDownPassword}
+                  edge="end"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
         />
       </Stack>
 

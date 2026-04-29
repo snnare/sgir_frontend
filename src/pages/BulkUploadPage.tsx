@@ -42,7 +42,9 @@ export const BulkUploadPage = () => {
     setIsUploading(true);
     setSummary(null);
     try {
+      console.log('Iniciando carga de archivo:', file.name);
       const result = await importBulkServers(file);
+      console.log('Resultado de la importación:', result);
       setSummary(result);
       if (result.errores.length === 0) {
         showNotification('¡Importación completada con éxito!', 'success');
@@ -50,6 +52,7 @@ export const BulkUploadPage = () => {
         showNotification(`Importación finalizada con ${result.errores.length} errores.`, 'warning');
       }
     } catch (error: any) {
+      console.error('Error detallado en BulkUpload:', error);
       const message = error.response?.data?.detail || 'Error al procesar el archivo.';
       showNotification(typeof message === 'string' ? message : JSON.stringify(message), 'error');
     } finally {
@@ -245,8 +248,10 @@ export const BulkUploadPage = () => {
                         <ListItemText 
                           primary={`Fila ${err.fila}`} 
                           secondary={err.error}
-                          primaryTypographyProps={{ variant: 'caption', fontWeight: 700 }}
-                          secondaryTypographyProps={{ variant: 'caption' }}
+                          slotProps={{
+                            primary: { variant: 'caption', fontWeight: 700 },
+                            secondary: { variant: 'caption' }
+                          }}
                         />
                       </ListItem>
                     ))}

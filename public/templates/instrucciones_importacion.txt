@@ -1,28 +1,36 @@
-📝 INSTRUCCIONES PARA IMPORTACIÓN MASIVA - SGIR
-
-Para realizar una carga masiva exitosa en el Sistema de Gestión de Infraestructura y Respaldos, siga estas directrices:
-
-1. FORMATO DEL ARCHIVO:
-   - El archivo debe ser un CSV (Valores separados por comas).
-   - Mantenga la cabecera (primera fila) exactamente como está en la plantilla.
-
-2. COLUMNAS Y VALORES PERMITIDOS:
-   - nombre_servidor: Nombre descriptivo (ej. Srv-DB-Prod).
-   - direccion_ip: IPv4 o IPv6 válida.
-   - es_legacy: 'true' para conexiones SSH antiguas, 'false' para modernas.
-   - nivel_criticidad: Bajo, Medio, Alto, Crítico.
-   - estado: Activo, Inactivo.
-   - nombre_dbms: Oracle Database, MySQL, PostgreSQL, MongoDB (o dejar vacío).
-   - nombre_instancia: SID o Service Name (ej. ORCL).
-   - tipo_acceso: SSH, DB Native.
-
-3. CONSOLIDACIÓN POR IP:
-   - Si desea agregar múltiples instancias o credenciales a un mismo servidor, repita la fila del servidor con la misma IP pero cambie los datos de la instancia/credencial. El sistema creará un solo servidor y le asignará todos los elementos relacionados.
-
-4. SEGURIDAD:
-   - Las contraseñas se escriben en texto plano en el CSV. 
-   - El sistema las cifrará automáticamente con AES-256 al procesarlas.
-   - SE RECOMIENDA ELIMINAR EL ARCHIVO CSV DE SU EQUIPO UNA VEZ COMPLETADA LA CARGA.
-
----
-SGIR - Sistema de Gestión de Infraestructura y Respaldos
+1 INSTRUCCIONES PARA CARGA MASIVA (CSV) - SGIR
+2 ============================================
+3
+4 1. FORMATO DE ARCHIVO:
+5    - El archivo debe ser extensión .csv
+6    - Codificación sugerida: UTF-8.
+7    - El separador debe ser coma ( , ).
+8
+9 2. ESTRUCTURA LÓGICA:
+10    - El sistema usa la 'direccion_ip' como identificador único del servidor.
+11    - Si deseas agregar múltiples instancias de base de datos o múltiples credenciales a un mismo servidor, simplemente repite la fila con la misma IP pero con diferentes datos de instancia/usuario.
+12
+13 3. COLUMNAS OBLIGATORIAS:
+14    - direccion_ip: IP v4 o v6 del servidor.
+15    - nombre_servidor: Nombre descriptivo.
+16    - nivel_criticidad: Debe ser exactamente uno de estos: [Bajo, Medio, Alto, Crítico]
+17
+18 4. COLUMNAS DE INFRAESTRUCTURA:
+19    - es_legacy: Pon 'true' si el servidor es antiguo (ej. RHEL 4/5), de lo contrario 'false'.
+20    - estado: [Activo, Inactivo, Pendiente]. Si se deja vacío, por defecto es 'Activo'.
+21
+22 5. COLUMNAS DE BASE DE DATOS (Opcionales):
+23    - Para registrar una instancia, rellena:
+24      - nombre_dbms: [Oracle, MySQL, MongoDB]
+25      - nombre_instancia: Nombre de la base o SID.
+26      - puerto_db: Número de puerto (ej. 1521, 3306).
+27
+28 6. COLUMNAS DE SEGURIDAD (Opcionales):
+29    - tipo_acceso: [SSH, DB Native]
+30    - usuario: Nombre de usuario de acceso.
+31    - password: La contraseña (el sistema la cifrará automáticamente con AES-256).
+32
+33 7. NOTAS IMPORTANTES:
+34    - No cambies el nombre de los encabezados (primera fila).
+35    - El sistema ignorará filas con IP vacía.
+36    - Si una fila falla, se te informará el número de fila exacto, pero el resto del archivo se procesará.

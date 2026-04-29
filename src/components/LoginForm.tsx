@@ -1,4 +1,5 @@
-import { Box, TextField, Button, Typography, Link, Stack, Alert, CircularProgress, FormControlLabel, Checkbox } from '@mui/material';
+import { Box, TextField, Button, Typography, Link, Stack, Alert, CircularProgress, FormControlLabel, Checkbox, IconButton, InputAdornment } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,6 +17,7 @@ export const LoginForm = () => {
   const showNotification = useNotificationStore((state) => state.showNotification);
   const [localError, setLocalError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     clearError();
@@ -41,6 +43,11 @@ export const LoginForm = () => {
       showNotification(formattedMessage, 'error');
       console.error('Login failed', err);
     }
+  };
+
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
   };
 
   return (
@@ -70,11 +77,25 @@ export const LoginForm = () => {
           fullWidth
           name="password"
           label="Contraseña"
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           id="password"
           autoComplete="current-password"
           error={!!errors.password}
           helperText={errors.password?.message}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="toggle password visibility"
+                  onClick={handleClickShowPassword}
+                  onMouseDown={handleMouseDownPassword}
+                  edge="end"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
         />
         
         <FormControlLabel
