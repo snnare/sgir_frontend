@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# SGIR Frontend - Sistema de Gestión de Infraestructura y Respaldos
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporcionar a los SRE (Site Reliability Engineers) una herramienta robusta de control de activos y automatización de respaldos.
 
-Currently, two official plugins are available:
+## 🚀 Tecnologías Core
+- **React 18** + **TypeScript**
+- **Vite** (Build tool)
+- **Material UI (MUI)** (Componentes y Estilos)
+- **Zustand** (Gestión de estado)
+- **Zod** (Validación de esquemas de datos)
+- **React Hook Form** (Gestión de formularios)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🛠️ Funcionalidades Implementadas
 
-## React Compiler
+### 🔐 Autenticación y Seguridad
+- Login con persistencia extendida ("Recuérdame").
+- Flujo de registro y gestión de perfil de usuario.
+- Rutas protegidas y manejo de tokens JWT.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🏗️ Gestión de Inventario (Infraestructura)
+- **Alta de Servidores**: Formulario inteligente con detección de criticidad.
+- **Importación Masiva**: Motor de carga vía CSV con soporte para:
+  - Consolidación por IP (Upsert).
+  - Traducción automática de catálogos.
+  - Cifrado de credenciales on-the-fly.
+- **Setup Wizard**: Configuración guiada post-registro para monitoreo y accesos SSH/DB.
 
-## Expanding the ESLint configuration
+### 📊 Monitoreo y Dashboard
+- Panel principal con KPIs de flota (Nodos totales, Online, Alertas).
+- Tarjetas técnicas de servidor con métricas de recursos en tiempo real (CPU, RAM, Disco).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 📥 Kit de Importación
+El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que contiene la plantilla técnica oficial y el manual de instrucciones para asegurar la integridad de los datos importados.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 📦 Instalación y Desarrollo
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+1. Clonar el repositorio.
+2. Instalar dependencias:
+   ```bash
+   pnpm install
+   ```
+3. Configurar variables de entorno en un archivo `.env` (basado en `.env.example`).
+4. Iniciar el servidor de desarrollo:
+   ```bash
+   pnpm dev
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+Diseñado para la eficiencia operativa y la seguridad de datos.

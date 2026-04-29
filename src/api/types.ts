@@ -283,3 +283,20 @@ export const AuditEventTypeSchema = z.object({
     nombre_evento: z.string(),
 });
 export type AuditEventType = z.infer<typeof AuditEventTypeSchema>;
+
+// --- Importación Masiva ---
+export const ImportErrorSchema = z.object({
+    fila: z.number(),
+    error: z.string(),
+});
+
+export const ImportSummarySchema = z.object({
+    total_filas: z.number(),
+    servidores_procesados: z.number(),
+    instancias_procesadas: z.number(),
+    credenciales_procesadas: z.number(),
+    errores: z.array(ImportErrorSchema),
+});
+
+export type ImportError = z.infer<typeof ImportErrorSchema>;
+export type ImportSummary = z.infer<typeof ImportSummarySchema>;

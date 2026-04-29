@@ -9,7 +9,8 @@ import {
     CredentialCreateSchema, type CredentialCreateInput,
     CredentialUpdateSchema, type CredentialUpdateInput,
     CriticalitySchema, type Criticality,
-    GeneralStatusSchema, type GeneralStatus
+    GeneralStatusSchema, type GeneralStatus,
+    ImportSummarySchema, type ImportSummary
 } from './types';
 import { z } from 'zod';
 
@@ -80,4 +81,17 @@ export const getCriticalities = async (): Promise<Criticality[]> => {
 export const getGeneralStatuses = async (): Promise<GeneralStatus[]> => {
     const { data } = await api.get('/estados/');
     return z.array(GeneralStatusSchema).parse(data);
+};
+
+export const importBulkServers = async (file: File): Promise<ImportSummary> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const { data } = await api.post('/servidores/import-bulk', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+
+    return ImportSummarySchema.parse(data);
 };
