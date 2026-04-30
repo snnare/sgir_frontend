@@ -36,7 +36,9 @@ export const RegisterForm = () => {
 
   const onSubmit = async (data: RegisterInput) => {
     try {
-      await registerAction(data);
+      // Omitimos confirmPassword antes de enviar al backend
+      const { confirmPassword, ...registerData } = data;
+      await registerAction(registerData as any);
       showNotification('¡Usuario registrado con éxito! Ya puedes iniciar sesión.', 'success');
       // Tras registro exitoso, enviamos al login
       navigate('/login');
@@ -105,19 +107,49 @@ export const RegisterForm = () => {
           autoComplete="new-password"
           error={!!errors.password}
           helperText={errors.password?.message}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label="toggle password visibility"
-                  onClick={handleClickShowPassword}
-                  onMouseDown={handleMouseDownPassword}
-                  edge="end"
-                >
-                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    onMouseDown={handleMouseDownPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <TextField
+          {...register('confirmPassword')}
+          required
+          fullWidth
+          name="confirmPassword"
+          label="Confirmar Contraseña"
+          type={showPassword ? 'text' : 'password'}
+          id="confirmPassword"
+          autoComplete="new-password"
+          error={!!errors.confirmPassword}
+          helperText={errors.confirmPassword?.message}
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    onMouseDown={handleMouseDownPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
           }}
         />
       </Stack>

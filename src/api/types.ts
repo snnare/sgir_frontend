@@ -20,8 +20,12 @@ export const RegisterSchema = z.object({
     apellidos: z.string().min(1, 'Los apellidos son requeridos'),
     email: z.string().email('Email inválido').min(1, 'El email es requerido'),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    confirmPassword: z.string().min(6, 'La confirmación es requerida'),
     id_rol: z.number().optional().default(2),
     id_estado_usuario: z.number().optional().default(1),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
 });
 
 export type RegisterInput = z.infer<typeof RegisterSchema>;
