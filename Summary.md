@@ -1,36 +1,39 @@
 # Resumen de Cambios - Proyecto SGIR Frontend
 
-**ID de Sesión para Continuar:** `SGIR-SESSION-2026-04-29-PW-LOGS`
+**ID de Sesión para Continuar:** `SGIR-SESSION-2026-04-30-UI-UX-REFACTOR`
 
 Este documento resume las implementaciones realizadas en la infraestructura del frontend para el Sistema de Gestión de Infraestructura y Respaldos (SGIR).
 
-## 1. Núcleo de Autenticación y Seguridad
-- **Toggle de Contraseña**: Implementación de visibilidad de contraseña en `LoginForm.tsx` y `RegisterForm.tsx` utilizando MUI `InputAdornment`.
-- **Sesión Extendida**: Funcionalidad "Recuérdame" en el Login (token 7 días).
-- **Zustand Persistence**: Verificación y explicación del middleware `persist` para mantener el estado entre recargas.
+## 1. Patrón de Diseño y UI/UX (Nuevo)
+- **Estandarización UI**: Implementación del nuevo patrón de diseño `UI_PATTERN.md` (Header, Métricas, Barra de Control, Listado) en `HomePage` y `CredentialsPage`.
+- **Dashboard (`HomePage`)**: Rediseño profesional eliminando saludos informales y estandarizando la terminología ("Panel de Control", "Inventario de Servidores").
+- **Sidebar Inteligente**:
+  - Función de **Auto-hide** (expansión por hover) para maximizar el espacio de datos.
+  - Función de **Anclaje (Pin)** con el icono `PushPin`.
+  - **Menús Colapsables**: Las opciones "Políticas" y "Rutas" ahora se agrupan ordenadamente bajo el submenú "Backups".
+- **Toggle de Contraseñas**: Implementado globalmente (Login, Registro, Edición de Credenciales) usando el estándar `slotProps` de React 19/MUI 9.
 
-## 2. Inventario e Infraestructura Masiva
-- **Mejoras en Carga Masiva (`BulkUploadPage.tsx`)**: 
-    - Implementación de logs detallados (`console.log` y `console.error`) para diagnóstico de errores de validación del backend.
-    - Corrección de advertencias de React 19 mediante el uso de `slotProps` en `ListItemText`.
-- **Compatibilidad con React 19**: Ajustes en `Sidebar.tsx` y otros componentes para mover propiedades de diseño (`alignItems`, `justifyContent`) al objeto `sx`, eliminando advertencias en consola.
-- **Kit de Importación**: Plantilla técnica CSV y manual de instrucciones integrados.
+## 2. Inventario e Infraestructura
+- **Wizard Único de Registro (`AddServerPage`)**: Se unificaron `AddServerPage` y el antiguo `PostRegisterWizard` en un único flujo continuo mediante un `Stepper` de 4 pasos (Datos Técnicos, Alcance, Credenciales, Finalizado).
+- **Gestión de Servidores**: Se añadieron acciones directas de **Edición** y **Eliminación** en las tarjetas (`ServerCard`).
+  - Creación de `UpdateServerInfoPage.tsx` para modificar datos existentes enviando solo los campos requeridos (PUT parcial).
+- **Carga Masiva (`BulkUploadPage`)**: 
+    - Se adaptó la plantilla CSV y el manual para soportar el registro de **múltiples particiones** en un mismo servidor.
+    - Interfaz gráfica actualizada para reflejar esta nueva capacidad técnica.
+- **Credenciales (`CredentialsPage`)**: Rediseñada al nuevo estándar, implementando filtros interactivos por Tipo de Acceso (SSH, DB, SFTP, API) y búsqueda en tiempo real.
 
-## 3. Experiencia de Usuario (UI/UX)
-- **Limpieza de Consola**: Eliminación de "Unknown Prop" warnings en todo el flujo principal.
-- **Feedback de Errores**: Mejora en la visualización de errores de validación de PostgreSQL (`NotNullViolation`) mediante diagnóstico por consola.
+## 3. Configuración del Servidor de Desarrollo
+- Modificación en `vite.config.ts` para exponer el servidor (`host: '0.0.0.0'`, `allowedHosts: true`) y permitir acceso local desde otras IPs (ej. `148.215.4.110`).
 
 ---
 
 ### 🟢 ¿Dónde nos quedamos?
-La autenticación es ahora más amigable con el toggle de password. La carga masiva está en fase de depuración de datos; el frontend está listo para reportar errores detallados, pero el CSV del usuario presenta fallos de validación (`NotNullViolation` en columnas obligatorias como criticidad).
+La arquitectura visual y de navegación ha sido completamente estandarizada. Los flujos principales de gestión de servidores y credenciales (CRUD completo) operan de manera fluida y con excelente UX (búsquedas en tiempo real, menús contraíbles, asistentes paso a paso).
 
-### 🟡 ¿Qué falta?
-- **Corrección de Datos CSV**: Ajustar la plantilla para que cumpla con los constraints del backend.
-- **Monitoreo Real**: Conectar los indicadores de las tarjetas con datos vivos de la API.
-- **Módulo de Backups**: Implementar vistas para políticas, rutas y ejecución de respaldos.
+### 🟡 ¿Qué falta por hacer?
+- **Módulo de Backups**: Las opciones del menú ya están preparadas ("Políticas" y "Rutas"), falta construir estas vistas bajo el nuevo `UI_PATTERN.md`.
+- **Monitoreo Real**: Conectar los indicadores mockeados de las tarjetas (`ServerCard`) con el endpoint de métricas reales de la API.
 - **Auditoría**: Interfaz de consulta para la bitácora de eventos.
 
 ---
 **Nota:** Cambios sincronizados en la rama `master`.
----

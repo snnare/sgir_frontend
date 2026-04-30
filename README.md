@@ -19,17 +19,19 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - Rutas protegidas y manejo de tokens JWT.
 
 ### 🏗️ Gestión de Inventario (Infraestructura)
-- **Alta de Servidores**: Formulario inteligente con detección de criticidad.
+- **Dashboard Estandarizado**: Panel principal rediseñado con filtros en tiempo real y KPI de salud de flota.
+- **Wizard de Registro de Servidores**: Asistente único paso a paso para dar de alta datos técnicos, alcance de monitoreo y credenciales sin salir del flujo.
+- **Gestión Completa**: Capacidad de editar y eliminar servidores directamente desde la interfaz con actualización en vivo.
 - **Importación Masiva**: Motor de carga vía CSV con soporte para:
+  - Definición de **múltiples particiones** por servidor.
   - Consolidación por IP (Upsert).
   - Traducción automática de catálogos.
   - Cifrado de credenciales on-the-fly.
-  - **Diagnóstico avanzado**: Logs detallados en consola para depuración de validaciones.
-- **Setup Wizard**: Configuración guiada post-registro para monitoreo y accesos SSH/DB.
+  - **Diagnóstico avanzado**: Resumen detallado en UI y logs técnicos.
 
-### 📊 Monitoreo y Dashboard
-- Panel principal con KPIs de flota (Nodos totales, Online, Alertas).
-- Tarjetas técnicas de servidor con métricas de recursos en tiempo real (CPU, RAM, Disco).
+### 🎨 Experiencia de Usuario (UI/UX)
+- Implementación de un patrón de diseño global (`UI_PATTERN.md`).
+- **Sidebar Inteligente** con auto-hide (hover para expandir) y submenús colapsables para mantener una interfaz limpia.
 
 ## 📥 Kit de Importación
 El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que contiene la plantilla técnica oficial y el manual de instrucciones para asegurar la integridad de los datos importados.
