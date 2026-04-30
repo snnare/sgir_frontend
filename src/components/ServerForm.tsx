@@ -14,7 +14,11 @@ import { useNotificationStore } from './GlobalNotification';
 import { CriticalitySelect } from './CriticalitySelect';
 import { StatusSelect } from './StatusSelect';
 
-export const ServerForm = () => {
+interface ServerFormProps {
+  onSuccess?: (serverId: number) => void;
+}
+
+export const ServerForm = ({ onSuccess }: ServerFormProps) => {
   const navigate = useNavigate();
   const { showNotification } = useNotificationStore();
   const [loading, setLoading] = useState(false);
@@ -76,19 +80,19 @@ export const ServerForm = () => {
     try {
       const newServer = await createServer(payload);
       showNotification('Servidor registrado correctamente', 'success');
-      // Redirigimos al Wizard de configuración con el ID del servidor recién creado
-      navigate(`/setup-wizard/${newServer.id_servidor}`); 
+      
+      if (onSuccess) {
+        onSuccess(newServer.id_servidor);
+      } else {
+        // Redirigimos al Wizard de configuración con el ID del servidor recién creado
+        navigate(`/setup-wizard/${newServer.id_servidor}`); 
+      }
     } catch (error: any) {
       if (error.response?.status === 422) {
-        // Extraemos el detalle exacto del error de FastAPI
         const details = error.response.data.detail;
-        console.error('Detalle técnico del error 422:', details);
-        
-        // Creamos un mensaje amigable indicando el campo erróneo
         const errorMessage = Array.isArray(details) 
           ? details.map((d: any) => `${d.loc[d.loc.length - 1]}: ${d.msg}`).join(', ')
           : 'Error de validación en el servidor';
-          
         showNotification(`Error: ${errorMessage}`, 'error');
       } else if (error.response?.status === 400) {
         showNotification(error.response.data.detail || 'Ya existe un servidor con esa IP', 'error');

@@ -1,9 +1,11 @@
-import { Box, Typography, Stack, Divider, IconButton } from '@mui/material';
+import { Box, Typography, Stack, Divider, IconButton, Collapse } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import BackupIcon from '@mui/icons-material/Backup';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import SearchIcon from '@mui/icons-material/Search';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import FolderSpecialIcon from '@mui/icons-material/FolderSpecial';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -24,9 +26,17 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
   const location = useLocation();
   const { mode, toggleTheme } = useThemeStore();
   const [isHovered, setIsHovered] = useState(false);
+  const [backupsExpanded, setBackupsExpanded] = useState(false);
 
   // The sidebar is visually "open" if it's either pinned or hovered
   const isExpanded = pinned || isHovered;
+
+  const handleBackupsToggle = () => {
+    if (!isExpanded) {
+      onToggle();
+    }
+    setBackupsExpanded(!backupsExpanded);
+  };
 
   return (
     <Box 
@@ -98,13 +108,38 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
           active={location.pathname.startsWith('/activos')} 
           open={isExpanded} 
         />
+        
+        {/* Grupo de Backups */}
         <SidebarItem 
           icon={<BackupIcon fontSize="small" />} 
           label="Backups" 
-          to="/backups" 
+          onClick={handleBackupsToggle}
           active={location.pathname.startsWith('/backups')} 
           open={isExpanded} 
+          hasChildren
+          expanded={backupsExpanded}
         />
+        <Collapse in={isExpanded && backupsExpanded} timeout="auto" unmountOnExit>
+          <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+            <SidebarItem 
+              icon={<AssignmentIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
+              label="Políticas" 
+              to="/add-policy" 
+              active={location.pathname === '/add-policy'} 
+              open={isExpanded} 
+              isSubItem
+            />
+            <SidebarItem 
+              icon={<FolderSpecialIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
+              label="Rutas" 
+              to="/add-path" 
+              active={location.pathname === '/add-path'} 
+              open={isExpanded} 
+              isSubItem
+            />
+          </Stack>
+        </Collapse>
+
         <SidebarItem 
           icon={<VpnKeyIcon fontSize="small" />} 
           label="Credenciales" 

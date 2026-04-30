@@ -13,7 +13,6 @@ import { CheckPage } from './pages/CheckPage'
 import { ProfilePage } from './pages/ProfilePage';
 import { CredentialsPage } from './pages/CredentialsPage';
 import { EditCredentialPage } from './pages/EditCredentialPage';
-import { PostRegisterWizard } from './pages/PostRegisterWizard';
 import { BulkUploadPage } from './pages/BulkUploadPage';
 import { AddServerPage } from './pages/AddServerPage';
 import { AddCredentialPage } from './pages/AddCredentialPage'
@@ -94,7 +93,6 @@ function App() {
           <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<HomePage />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="setup-wizard/:serverId" element={<PostRegisterWizard />} />
             <Route path="add-server" element={<AddServerPage />} />
             <Route path="bulk-upload" element={<BulkUploadPage />} />
             <Route path="credenciales" element={<CredentialsPage />} />
