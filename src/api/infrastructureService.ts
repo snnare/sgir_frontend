@@ -40,7 +40,7 @@ export const deleteServer = async (id: number): Promise<void> => {
 };
 
 export const checkServerByIp = async (ip: string): Promise<ServerCheckResponse> => {
-    const { data } = await api.get(`/servidores/${ip}`);
+    const { data } = await api.get(`/servidores/ip/${ip}`);
     return ServerCheckResponseSchema.parse(data);
 };
 
