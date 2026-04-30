@@ -136,7 +136,7 @@ export const BulkUploadPage = () => {
               icon={<InfoOutlinedIcon />}
               sx={{ mb: 4, textAlign: 'left', borderRadius: 2 }}
             >
-              El archivo debe estar en formato <strong>.csv</strong> y seguir la estructura de columnas definida en la plantilla técnica.
+              El archivo debe estar en formato <strong>.csv</strong>. Ahora puedes definir múltiples <strong>particiones</strong> y asociar instancias de bases de datos a los servidores en un solo paso. Descarga la plantilla para ver la estructura exacta.
             </Alert>
           )}
 

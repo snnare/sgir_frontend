@@ -8,29 +8,29 @@
 8
 9 2. ESTRUCTURA LÓGICA:
 10    - El sistema usa la 'direccion_ip' como identificador único del servidor.
-11    - Si deseas agregar múltiples instancias de base de datos o múltiples credenciales a un mismo servidor, simplemente repite la fila con la misma IP pero con diferentes datos de instancia/usuario.
+11    - Si la IP no existe, crea el servidor. Si ya existe, vincula los nuevos elementos.
 12
 13 3. COLUMNAS OBLIGATORIAS:
-14    - direccion_ip: IP v4 o v6 del servidor.
-15    - nombre_servidor: Nombre descriptivo.
-16    - nivel_criticidad: Debe ser exactamente uno de estos: [Bajo, Medio, Alto, Crítico]
-17
-18 4. COLUMNAS DE INFRAESTRUCTURA:
-19    - es_legacy: Pon 'true' si el servidor es antiguo (ej. RHEL 4/5), de lo contrario 'false'.
-20    - estado: [Activo, Inactivo, Pendiente]. Si se deja vacío, por defecto es 'Activo'.
-21
-22 5. COLUMNAS DE BASE DE DATOS (Opcionales):
-23    - Para registrar una instancia, rellena:
-24      - nombre_dbms: [Oracle, MySQL, MongoDB]
-25      - nombre_instancia: Nombre de la base o SID.
-26      - puerto_db: Número de puerto (ej. 1521, 3306).
-27
-28 6. COLUMNAS DE SEGURIDAD (Opcionales):
-29    - tipo_acceso: [SSH, DB Native]
-30    - usuario: Nombre de usuario de acceso.
+14    - nombre_servidor: Nombre descriptivo (ej: SVR-DB-01).
+15    - direccion_ip: IP v4 o v6 del servidor.
+16    - es_legacy: Pon 'true' si el sistema es antiguo (ej. RHEL 4/5), de lo contrario 'false'.
+17    - nivel_criticidad: Debe ser exactamente uno de estos: [Bajo, Medio, Alto, Crítico].
+18
+19 4. PARTICIONES (Paths de Almacenamiento):
+20    - particiones: Lista de particiones a monitorear.
+21      - Si es una sola: / o /u01
+22      - Si son varias: (/, /u01, /var/log)
+23      - Si está vacío: El sistema asigna / por defecto.
+24
+25 5. COLUMNAS DE BASE DE DATOS (Opcionales):
+26    - nombre_dbms: [Oracle Database, MySQL, PostgreSQL, etc.]
+27    - nombre_instancia: Nombre de la base o SID.
+28
+29 6. COLUMNAS DE SEGURIDAD (Opcionales):
+30    - usuario: Nombre de usuario para monitoreo SSH o DB.
 31    - password: La contraseña (el sistema la cifrará automáticamente con AES-256).
 32
 33 7. NOTAS IMPORTANTES:
 34    - No cambies el nombre de los encabezados (primera fila).
 35    - El sistema ignorará filas con IP vacía.
-36    - Si una fila falla, se te informará el número de fila exacto, pero el resto del archivo se procesará.
+36    - Si una fila falla, se te informará el número de fila exacto en el reporte final, pero el resto se procesará.
