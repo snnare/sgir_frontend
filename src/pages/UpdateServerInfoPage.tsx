@@ -4,7 +4,6 @@ import {
   Container, Box, Typography, Button, TextField, Stack, 
   CircularProgress, Paper, FormControlLabel, Switch, Tooltip, IconButton
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useForm, Controller } from 'react-hook-form';
@@ -14,6 +13,7 @@ import { ServerUpdateSchema, type ServerUpdateInput } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { CriticalitySelect } from '../components/CriticalitySelect';
 import { StatusSelect } from '../components/StatusSelect';
+import { BackButton } from '../components/BackButton';
 
 export const UpdateServerInfoPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -88,16 +88,10 @@ export const UpdateServerInfoPage = () => {
 
   return (
     <Container maxWidth="sm" sx={{ py: 8 }}>
-      <Box sx={{ mb: 4 }}>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          onClick={() => navigate('/')}
-          sx={{ color: 'text.secondary', mb: 2 }}
-        >
-          Volver al Panel
-        </Button>
+      <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        <BackButton to="/" label="Volver al Panel de Control" />
         
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.03em' }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em', mt: 0.5, lineHeight: 1.2 }}>
           Editar Servidor
         </Typography>
         <Typography variant="body2" color="text.secondary">
