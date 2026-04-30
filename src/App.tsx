@@ -15,6 +15,7 @@ import { CredentialsPage } from './pages/CredentialsPage';
 import { EditCredentialPage } from './pages/EditCredentialPage';
 import { BulkUploadPage } from './pages/BulkUploadPage';
 import { AddServerPage } from './pages/AddServerPage';
+import { UpdateServerInfoPage } from './pages/UpdateServerInfoPage';
 import { AddCredentialPage } from './pages/AddCredentialPage'
 import { AddInstancePage } from './pages/AddInstancePage'
 import { AddDbmsPage } from './pages/AddDbmsPage'
@@ -94,6 +95,7 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="add-server" element={<AddServerPage />} />
+            <Route path="server/edit/:id" element={<UpdateServerInfoPage />} />
             <Route path="bulk-upload" element={<BulkUploadPage />} />
             <Route path="credenciales" element={<CredentialsPage />} />
             <Route path="credenciales/nueva" element={<AddCredentialPage />} />

@@ -17,10 +17,13 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { MetricCard } from '../components/MetricCard';
 import { ServerCard } from '../components/ServerCard';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
+import { deleteServer } from '../api/infrastructureService';
+import { useNotificationStore } from '../components/GlobalNotification';
 
 export const HomePage = () => {
   const navigate = useNavigate();
   const { servers, loading, fetchServers } = useInfrastructureStore();
+  const { showNotification } = useNotificationStore();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'critical'>('all');
@@ -28,6 +31,25 @@ export const HomePage = () => {
   useEffect(() => {
     fetchServers();
   }, [fetchServers]);
+
+  const handleEdit = (id: number) => {
+    navigate(`/server/edit/${id}`);
+  };
+
+  const handleDelete = async (id: number, name: string) => {
+    if (!window.confirm(`¿Está seguro de que desea eliminar el servidor "${name}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    
+    try {
+      await deleteServer(id);
+      showNotification('Servidor eliminado correctamente', 'success');
+      fetchServers(); // Refresh the list
+    } catch (error: any) {
+      console.error('Error deleting server:', error);
+      showNotification(error.response?.data?.detail || 'Error al eliminar el servidor', 'error');
+    }
+  };
 
   const onlineServersCount = servers.filter(s => s.id_estado_servidor === 1).length;
   const criticalServersCount = servers.filter(s => s.id_estado_servidor !== 1).length;
@@ -225,6 +247,8 @@ export const HomePage = () => {
               key={server.id_servidor} 
               server={server} 
               metrics={getMockMetrics(server.id_servidor)}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           ))}
         </Stack>

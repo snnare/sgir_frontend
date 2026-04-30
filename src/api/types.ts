@@ -81,6 +81,17 @@ export const ServerCreateSchema = z.object({
 
 export type ServerCreateInput = z.infer<typeof ServerCreateSchema>;
 
+export const ServerUpdateSchema = z.object({
+    nombre_servidor: z.string().min(1, 'El nombre es requerido').optional(),
+    direccion_ip: z.string().regex(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/, 'IP v4 inválida').optional(),
+    descripcion: z.string().optional(),
+    id_nivel_criticidad: z.number().int().positive().optional(),
+    id_estado_servidor: z.number().int().positive().optional(),
+    es_legacy: z.boolean().optional(),
+});
+
+export type ServerUpdateInput = z.infer<typeof ServerUpdateSchema>;
+
 export const ServerSchema = z.object({
     id_servidor: z.number(),
     nombre_servidor: z.string(),

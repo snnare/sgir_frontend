@@ -1,9 +1,11 @@
-import { Box, Typography, Paper, Stack, Divider, Tooltip } from '@mui/material';
+import { Box, Typography, Paper, Stack, Divider, Tooltip, IconButton } from '@mui/material';
 import SpeedIcon from '@mui/icons-material/Speed';
 import MemoryIcon from '@mui/icons-material/Memory';
 import StorageIcon from '@mui/icons-material/Storage';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import EditIcon from '@mui/icons-material/Edit';
 import { MetricCard } from './MetricCard';
 import { type Server } from '../api/types';
 
@@ -14,9 +16,16 @@ interface ServerCardProps {
     ram: number;
     disk: number;
   };
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number, name: string) => void;
 }
 
-export const ServerCard = ({ server, metrics = { cpu: 0, ram: 0, disk: 0 } }: ServerCardProps) => {
+export const ServerCard = ({ 
+  server, 
+  metrics = { cpu: 0, ram: 0, disk: 0 },
+  onEdit,
+  onDelete
+}: ServerCardProps) => {
   // Mapeo de estados técnicos
   const getStatusColor = (id: number) => {
     switch (id) {
@@ -50,7 +59,7 @@ export const ServerCard = ({ server, metrics = { cpu: 0, ram: 0, disk: 0 } }: Se
         }
       }}
     >
-      {/* HEADER: IP + STATUS */}
+      {/* HEADER: IP + STATUS + ACTIONS */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Box sx={{ p: 1, bgcolor: 'action.hover', borderRadius: 2 }}>
@@ -66,23 +75,48 @@ export const ServerCard = ({ server, metrics = { cpu: 0, ram: 0, disk: 0 } }: Se
           </Box>
         </Stack>
 
-        <Tooltip title={getStatusLabel(server.id_estado_servidor)}>
-          <Box 
-            sx={{ 
-              width: 12, 
-              height: 12, 
-              borderRadius: '50%', 
-              bgcolor: getStatusColor(server.id_estado_servidor),
-              boxShadow: `0 0 10px ${getStatusColor(server.id_estado_servidor)}80`,
-              animation: server.id_estado_servidor === 1 ? 'pulse 2s infinite' : 'none',
-              '@keyframes pulse': {
-                '0%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.7)' },
-                '70%': { transform: 'scale(1)', boxShadow: '0 0 0 6px rgba(34, 197, 94, 0)' },
-                '100%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(34, 197, 94, 0)' },
-              }
-            }} 
-          />
-        </Tooltip>
+        <Stack direction="row" alignItems="center" spacing={2}>
+          {/* Status Indicator */}
+          <Tooltip title={getStatusLabel(server.id_estado_servidor)}>
+            <Box 
+              sx={{ 
+                width: 12, 
+                height: 12, 
+                borderRadius: '50%', 
+                bgcolor: getStatusColor(server.id_estado_servidor),
+                boxShadow: `0 0 10px ${getStatusColor(server.id_estado_servidor)}80`,
+                animation: server.id_estado_servidor === 1 ? 'pulse 2s infinite' : 'none',
+                '@keyframes pulse': {
+                  '0%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.7)' },
+                  '70%': { transform: 'scale(1)', boxShadow: '0 0 0 6px rgba(34, 197, 94, 0)' },
+                  '100%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(34, 197, 94, 0)' },
+                }
+              }} 
+            />
+          </Tooltip>
+
+          {/* Action Buttons */}
+          <Stack direction="row" spacing={0.5}>
+            {onEdit && (
+              <Tooltip title="Editar Servidor">
+                <IconButton size="small" onClick={() => onEdit(server.id_servidor)}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip title="Eliminar Servidor">
+                <IconButton 
+                  size="small" 
+                  color="error" 
+                  onClick={() => onDelete(server.id_servidor, server.nombre_servidor)}
+                >
+                  <DeleteOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+        </Stack>
       </Stack>
 
       <Divider sx={{ mb: 3, borderStyle: 'dashed' }} />

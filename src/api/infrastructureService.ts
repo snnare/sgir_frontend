@@ -1,6 +1,7 @@
 import api from './client';
 import { 
     ServerSchema, type Server, ServerCreateSchema, type ServerCreateInput,
+    ServerUpdateSchema, type ServerUpdateInput,
     ServerCheckResponseSchema, type ServerCheckResponse,
     InstanceSchema, type Instance, 
     DbmsSchema, type Dbms, 
@@ -27,6 +28,15 @@ export const createServer = async (serverData: ServerCreateInput): Promise<Serve
 export const getServerById = async (id: number): Promise<Server> => {
     const { data } = await api.get(`/servidores/${id}`);
     return ServerSchema.parse(data);
+};
+
+export const updateServer = async (id: number, serverData: ServerUpdateInput): Promise<Server> => {
+    const { data } = await api.put(`/servidores/${id}`, serverData);
+    return ServerSchema.parse(data);
+};
+
+export const deleteServer = async (id: number): Promise<void> => {
+    await api.delete(`/servidores/${id}`);
 };
 
 export const checkServerByIp = async (ip: string): Promise<ServerCheckResponse> => {
