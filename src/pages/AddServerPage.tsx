@@ -21,12 +21,14 @@ export const AddServerPage = () => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [serverId, setServerId] = useState<number | null>(null);
+  const [serverIp, setServerIp] = useState<string>(''); // Nuevo estado para la IP
   const [scope, setScope] = useState<MonitoringScope | null>(null);
 
   const steps = ['Datos Técnicos', 'Alcance', 'Credenciales', 'Finalizado'];
 
-  const handleServerSuccess = (newServerId: number) => {
+  const handleServerSuccess = (newServerId: number, ip: string) => {
     setServerId(newServerId);
+    setServerIp(ip); // Guardamos la IP cuando el servidor se crea con éxito
     setActiveStep(1);
   };
 
@@ -138,6 +140,7 @@ export const AddServerPage = () => {
                {serverId && (
                  <CredentialForm 
                     serverId={serverId} 
+                    serverIp={serverIp}
                     onSuccess={handleCredentialSuccess} 
                  />
                )}

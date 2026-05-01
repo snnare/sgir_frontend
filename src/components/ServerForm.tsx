@@ -15,7 +15,7 @@ import { CriticalitySelect } from './CriticalitySelect';
 import { StatusSelect } from './StatusSelect';
 
 interface ServerFormProps {
-  onSuccess?: (serverId: number) => void;
+  onSuccess?: (serverId: number, ip: string) => void;
 }
 
 export const ServerForm = ({ onSuccess }: ServerFormProps) => {
@@ -82,7 +82,7 @@ export const ServerForm = ({ onSuccess }: ServerFormProps) => {
       showNotification('Servidor registrado correctamente', 'success');
       
       if (onSuccess) {
-        onSuccess(newServer.id_servidor);
+        onSuccess(newServer.id_servidor, data.direccion_ip);
       } else {
         // Redirigimos al Wizard de configuración con el ID del servidor recién creado
         navigate(`/setup-wizard/${newServer.id_servidor}`); 

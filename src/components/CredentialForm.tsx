@@ -16,6 +16,7 @@ import { useNotificationStore } from './GlobalNotification';
 
 interface CredentialFormProps {
   serverId?: number;
+  serverIp?: string; // Prop opcional para la IP
   onSuccess?: () => void;
 }
 
@@ -25,7 +26,7 @@ interface ExtendedCredentialInput extends CredentialCreateInput {
   puerto?: number;
 }
 
-export const CredentialForm = ({ serverId, onSuccess }: CredentialFormProps) => {
+export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dbmsList, setDbmsList] = useState<Dbms[]>([]);
@@ -95,6 +96,7 @@ export const CredentialForm = ({ serverId, onSuccess }: CredentialFormProps) => 
       endpoint = `/conexion/test/db/${motor}`;
       
       payload = {
+        direccion_ip: serverIp || '0.0.0.0', // Inyectamos la IP del servidor
         puerto: values.puerto,
         usuario: values.usuario,
         password: values.password_hash
@@ -103,13 +105,14 @@ export const CredentialForm = ({ serverId, onSuccess }: CredentialFormProps) => 
       // Monitoreo SSH (id_tipo_acceso === 1 u otros)
       endpoint = `/conexion/test/ssh`;
       payload = {
+        direccion_ip: serverIp || '0.0.0.0', // Inyectamos la IP del servidor
         usuario: values.usuario,
         password: values.password_hash
       };
     }
 
     console.log(`Disparando a ${endpoint}`, payload);
-    showNotification(`Simulando petición a ${endpoint}. Revisa la consola para ver el payload.`, 'info');
+    showNotification(`Simulando petición a ${endpoint} para la IP ${serverIp || '0.0.0.0'}. Revisa la consola.`, 'info');
   };
 
   const onSubmit = async (data: ExtendedCredentialInput) => {
