@@ -39,10 +39,15 @@ api.interceptors.response.use(
         } else {
             const status = error.response.status;
             const detail = error.response.data?.detail;
+            
+            // Sanitización del mensaje de error para evitar crasheos de React si es un objeto/array
+            const errorMessage = Array.isArray(detail)
+                ? detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ')
+                : (typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : null));
 
             switch (status) {
                 case 403:
-                    showNotification(detail || 'Acceso denegado: El sistema podría estar restringido', 'error');
+                    showNotification(errorMessage || 'Acceso denegado: El sistema podría estar restringido', 'error');
                     break;
                 case 429:
                     showNotification('Demasiadas peticiones: Por favor, intente más tarde', 'warning');
@@ -51,8 +56,6 @@ api.interceptors.response.use(
                     showNotification('Error en el servidor: Intente más tarde o contacte a soporte', 'error');
                     break;
                 default:
-                    // Errores 400 (como Email ya registrado) se manejan localmente en los componentes,
-                    // pero dejamos este log por si acaso.
                     console.error('API error:', detail || error.message);
             }
         }

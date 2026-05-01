@@ -84,12 +84,11 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
   const handleTestConnection = async () => {
     const values = getValues();
     
-    // Validación básica antes de intentar el test
     if (!serverIp) {
       showNotification('No se detectó la IP del servidor. Por favor, asegúrese de completar el paso anterior.', 'error');
       return;
     }
-    if (!values.usuario || !values.password_hash) {
+    if (!values.usuario || !values.password) {
       showNotification('Ingrese usuario y contraseña para realizar el test', 'warning');
       return;
     }
@@ -100,7 +99,7 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
         direccion_ip: serverIp,
         puerto: values.puerto || (values.id_tipo_acceso === 1 ? 22 : undefined),
         usuario: values.usuario,
-        password: values.password_hash
+        password: values.password
       };
 
       let response;
@@ -111,8 +110,7 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
           setTesting(false);
           return;
         }
-        // El backend espera el nombre del motor en la URL (mysql, postgresql, oracle, mongodb)
-        const motorKey = selectedDbms.nombre_dbms.toLowerCase().split(' ')[0]; // Simplificación para 'Oracle Database' -> 'oracle'
+        const motorKey = selectedDbms.nombre_dbms.toLowerCase().split(' ')[0];
         response = await testConnectionDb(motorKey, payload);
       } else {
         response = await testConnectionSsh(payload);
@@ -125,7 +123,10 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
       }
     } catch (error: any) {
       console.error('Error en Test Conexión:', error);
-      const message = error.response?.data?.detail || 'Error al intentar conectar con el servidor';
+      const detail = error.response?.data?.detail;
+      const message = Array.isArray(detail) 
+        ? detail.map((d: any) => d.msg).join(', ')
+        : (typeof detail === 'string' ? detail : 'Error al intentar conectar con el servidor');
       showNotification(message, 'error');
     } finally {
       setTesting(false);
@@ -142,7 +143,7 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
     try {
       const payload: CredentialCreateInput = {
         usuario: data.usuario,
-        password_hash: data.password_hash,
+        password: data.password,
         id_tipo_acceso: data.id_tipo_acceso,
         id_servidor: data.id_servidor,
         id_estado_credencial: data.id_estado_credencial,
@@ -153,7 +154,11 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
       if (onSuccess) onSuccess();
     } catch (error: any) {
       console.error('Error saving credentials:', error);
-      showNotification(error.response?.data?.detail || 'Error al guardar la credencial', 'error');
+      const detail = error.response?.data?.detail;
+      const message = Array.isArray(detail) 
+        ? detail.map((d: any) => `${d.loc?.[d.loc.length - 1] || 'Campo'}: ${d.msg}`).join(', ')
+        : (typeof detail === 'string' ? detail : 'Error al guardar la credencial');
+      showNotification(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -239,9 +244,9 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
           fullWidth
           label="Contraseña / Token / Secret Key"
           type={showPassword ? 'text' : 'password'}
-          {...register('password_hash')}
-          error={!!errors.password_hash}
-          helperText={errors.password_hash?.message}
+          {...register('password')}
+          error={!!errors.password}
+          helperText={errors.password?.message}
           slotProps={{
             input: {
               endAdornment: (

@@ -178,7 +178,7 @@ export type CredentialUpdateInput = z.infer<typeof CredentialUpdateSchema>;
 
 export const CredentialCreateSchema = z.object({
     usuario: z.string().min(1, 'El usuario es requerido'),
-    password_hash: z.string().min(1, 'La contraseña es requerida'),
+    password: z.string().min(1, 'La contraseña es requerida'),
     id_tipo_acceso: z.number().int().positive(),
     id_servidor: z.number().int().positive(),
     id_estado_credencial: z.number().int().positive().default(1),

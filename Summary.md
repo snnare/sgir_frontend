@@ -25,6 +25,9 @@ Este documento resume las implementaciones realizadas en la infraestructura del 
     - Actualización al endpoint `/servidores/import-bulk`.
     - Adaptación de la plantilla CSV (`infraestructura_template.csv`) y manual para soportar el registro de múltiples particiones e instancias de BD en una sola fila.
     - Actualización del kit de importación (.zip) con los nuevos estándares del backend.
+- **Correcciones y Estabilidad**:
+  - **Alineación de API**: Se corrigió el payload de creación de credenciales para usar la llave `password` requerida por el backend.
+  - **Manejo de Errores Robustos**: Se implementó una capa de sanitización en `client.ts` y componentes para transformar errores de validación complejos (objetos de Pydantic/FastAPI) en texto plano, evitando crasheos de la interfaz de usuario en React.
 - **Credenciales (`CredentialsPage`)**: Rediseñada al nuevo estándar, implementando filtros interactivos por Tipo de Acceso (SSH, DB, SFTP, API) y búsqueda en tiempo real.
 
 ## 3. Configuración del Servidor de Desarrollo
