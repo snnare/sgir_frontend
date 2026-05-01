@@ -6,7 +6,10 @@ Este documento resume las implementaciones realizadas en la infraestructura del 
 
 ## 1. Patrón de Diseño y UI/UX (Nuevo)
 - **Estandarización UI**: Implementación del nuevo patrón de diseño `UI_PATTERN.md` (Header, Métricas, Barra de Control, Listado) en `HomePage` y `CredentialsPage`.
-- **Dashboard (`HomePage`)**: Rediseño profesional eliminando saludos informales y estandarizando la terminología ("Panel de Control", "Inventario de Servidores").
+- **Dashboard (`HomePage`)**: 
+  - Rediseño profesional eliminando saludos informales y estandarizando la terminología.
+  - **Priorización de Activos**: Implementación de lógica de ordenamiento por nivel de criticidad (los servidores "Críticos" siempre aparecen al inicio).
+  - **Vista Flexible**: Se añadió un conmutador de vista para alternar entre listado detallado y una cuadrícula (grid) más compacta para gestionar grandes flotas.
 - **Sidebar Inteligente**:
   - Función de **Auto-hide** (expansión por hover) para maximizar el espacio de datos.
   - Función de **Anclaje (Pin)** con el icono `PushPin`.

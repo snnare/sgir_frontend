@@ -19,7 +19,7 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - Rutas protegidas y manejo de tokens JWT.
 
 ### 🏗️ Gestión de Inventario (Infraestructura)
-- **Dashboard Estandarizado**: Panel principal rediseñado con filtros en tiempo real y KPI de salud de flota.
+- **Dashboard Estandarizado**: Panel principal rediseñado con filtros en tiempo real, KPI de salud de flota, ordenamiento por criticidad y soporte para vista de lista o cuadrícula.
 - **Wizard de Registro de Servidores**: Asistente único paso a paso para dar de alta datos técnicos, alcance de monitoreo y credenciales sin salir del flujo.
 - **Gestión Completa**: Capacidad de editar y eliminar servidores directamente desde la interfaz con actualización en vivo.
 - **Importación Masiva**: Motor de carga vía CSV (endpoint `/servidores/import-bulk`) con soporte para:

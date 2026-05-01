@@ -14,6 +14,8 @@ import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { MetricCard } from '../components/MetricCard';
 import { ServerCard } from '../components/ServerCard';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
@@ -22,15 +24,17 @@ import { useNotificationStore } from '../components/GlobalNotification';
 
 export const HomePage = () => {
   const navigate = useNavigate();
-  const { servers, loading, fetchServers } = useInfrastructureStore();
+  const { servers, criticalities, loading, fetchServers, fetchCriticalities } = useInfrastructureStore();
   const { showNotification } = useNotificationStore();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'critical'>('all');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     fetchServers();
-  }, [fetchServers]);
+    fetchCriticalities();
+  }, [fetchServers, fetchCriticalities]);
 
   const handleEdit = (id: number) => {
     navigate(`/server/edit/${id}`);
@@ -55,19 +59,33 @@ export const HomePage = () => {
   const criticalServersCount = servers.filter(s => s.id_estado_servidor !== 1).length;
 
   const filteredServers = useMemo(() => {
-    return servers.filter(server => {
-      const matchesSearch = 
-        server.nombre_servidor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        server.direccion_ip.includes(searchTerm);
-      
-      const matchesStatus = 
-        statusFilter === 'all' || 
-        (statusFilter === 'online' && server.id_estado_servidor === 1) ||
-        (statusFilter === 'critical' && server.id_estado_servidor !== 1);
-      
-      return matchesSearch && matchesStatus;
-    });
-  }, [servers, searchTerm, statusFilter]);
+    const priorityMap: Record<string, number> = {
+      'Crítico': 0,
+      'Alto': 1,
+      'Medio': 2,
+      'Bajo': 3
+    };
+
+    const getPriority = (id: number) => {
+      const crit = criticalities.find(c => c.id_nivel_criticidad === id);
+      return crit ? (priorityMap[crit.nombre_nivel] ?? 99) : 99;
+    };
+
+    return [...servers]
+      .filter(server => {
+        const matchesSearch = 
+          server.nombre_servidor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          server.direccion_ip.includes(searchTerm);
+        
+        const matchesStatus = 
+          statusFilter === 'all' || 
+          (statusFilter === 'online' && server.id_estado_servidor === 1) ||
+          (statusFilter === 'critical' && server.id_estado_servidor !== 1);
+        
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => getPriority(a.id_nivel_criticidad) - getPriority(b.id_nivel_criticidad));
+  }, [servers, searchTerm, statusFilter, criticalities]);
 
   // Datos mock de métricas para visualización dinámica
   const getMockMetrics = (id: number) => ({
@@ -202,7 +220,7 @@ export const HomePage = () => {
 
         <Divider sx={{ borderStyle: 'dashed' }} />
 
-        {/* Fila Inferior: Filtros de Estado */}
+        {/* Fila Inferior: Filtros de Estado y Vista */}
         <Stack direction="row" spacing={1} alignItems="center">
           <FilterListIcon fontSize="small" color="action" sx={{ mr: 1 }} />
           <Chip 
@@ -228,6 +246,29 @@ export const HomePage = () => {
           />
           
           <Box sx={{ flexGrow: 1 }} />
+
+          <Stack direction="row" spacing={1} sx={{ mr: 2 }}>
+            <Tooltip title="Vista de Lista">
+              <IconButton 
+                size="small" 
+                onClick={() => setViewMode('list')}
+                color={viewMode === 'list' ? 'primary' : 'default'}
+                sx={{ bgcolor: viewMode === 'list' ? 'action.selected' : 'transparent' }}
+              >
+                <ViewListIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Vista de Cuadrícula">
+              <IconButton 
+                size="small" 
+                onClick={() => setViewMode('grid')}
+                color={viewMode === 'grid' ? 'primary' : 'default'}
+                sx={{ bgcolor: viewMode === 'grid' ? 'action.selected' : 'transparent' }}
+              >
+                <ViewModuleIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
           
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
             Mostrando {filteredServers.length} de {servers.length} activos
@@ -242,15 +283,27 @@ export const HomePage = () => {
             <TerminalIcon fontSize="small" color="primary" />
             Inventario de Servidores
           </Typography>
-          {filteredServers.map((server) => (
-            <ServerCard 
-              key={server.id_servidor} 
-              server={server} 
-              metrics={getMockMetrics(server.id_servidor)}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))}
+          
+          <Box sx={{ 
+            display: viewMode === 'grid' ? 'grid' : 'flex',
+            flexDirection: 'column',
+            gridTemplateColumns: { 
+              sm: 'repeat(1, 1fr)', 
+              md: 'repeat(2, 1fr)', 
+              lg: 'repeat(3, 1fr)' 
+            },
+            gap: 3
+          }}>
+            {filteredServers.map((server) => (
+              <ServerCard 
+                key={server.id_servidor} 
+                server={server} 
+                metrics={getMockMetrics(server.id_servidor)}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))}
+          </Box>
         </Stack>
       ) : (
         /* Vista de estado vacío / No resultados */
