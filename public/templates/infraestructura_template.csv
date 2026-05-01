@@ -1,4 +1,4 @@
-nombre_servidor,direccion_ip,es_legacy,nivel_criticidad,particiones,nombre_dbms,nombre_instancia,usuario,password
-DB-PROD-01,192.168.1.10,false,Crítico,"(/, /data, /backup)",Oracle Database,PROD,admin,secret123
-APP-WEB-02,192.168.1.20,false,Alto,/var/www,,,root,webpass2026
-SRV-OLD-05,10.0.0.50,true,Medio,/,,,,
+nombre_servidor,direccion_ip,es_legacy,nivel_criticidad,descripcion,estado,nombre_dbms,nombre_instancia,puerto_db,usuario,password,tipo_acceso,particiones
+DB-PROD-01,192.168.1.10,false,Crítico,Servidor Principal BD,Activo,Oracle Database,PROD,1521,admin,secret123,DB Native,"(/, /data, /backup)"
+APP-WEB-02,192.168.1.20,false,Alto,Frontend Web,Activo,,,,root,webpass2026,SSH,/var/www
+SRV-OLD-05,10.0.0.50,true,Medio,Sistema Legacy,Inactivo,,,,,,,SSH,/

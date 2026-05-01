@@ -1,16 +1,17 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   Box, TextField, Button, Stack, MenuItem, 
-  InputAdornment, IconButton, CircularProgress 
+  InputAdornment, IconButton, CircularProgress, Typography 
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import KeyIcon from '@mui/icons-material/Key';
 import DnsIcon from '@mui/icons-material/Dns'; 
-import { CredentialCreateSchema, type CredentialCreateInput } from '../api/types';
-import { createCredential } from '../api/infrastructureService';
+import StorageIcon from '@mui/icons-material/Storage';
+import { CredentialCreateSchema, type CredentialCreateInput, type Dbms } from '../api/types';
+import { createCredential, getDbms } from '../api/infrastructureService';
 import { useNotificationStore } from './GlobalNotification';
 
 interface CredentialFormProps {
@@ -18,26 +19,100 @@ interface CredentialFormProps {
   onSuccess?: () => void;
 }
 
+// Interfaz extendida temporalmente para incluir los campos visuales
+interface ExtendedCredentialInput extends CredentialCreateInput {
+  id_dbms?: number;
+  puerto?: number;
+}
+
 export const CredentialForm = ({ serverId, onSuccess }: CredentialFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dbmsList, setDbmsList] = useState<Dbms[]>([]);
   const { showNotification } = useNotificationStore();
 
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
+    getValues,
     formState: { errors },
-  } = useForm<CredentialCreateInput>({
-    resolver: zodResolver(CredentialCreateSchema),
+  } = useForm<ExtendedCredentialInput>({
+    resolver: zodResolver(CredentialCreateSchema), // Validará la parte de CredentialCreateInput
     defaultValues: {
       id_servidor: serverId,
       id_estado_credencial: 1,
     }
   });
 
+  const tipoAcceso = useWatch({ control, name: 'id_tipo_acceso' });
+  const isDbNative = tipoAcceso === 2; // Asumiendo que 2 es "DB Native"
+  const selectedDbmsId = useWatch({ control, name: 'id_dbms' });
+
+  useEffect(() => {
+    const fetchDbms = async () => {
+      try {
+        const data = await getDbms();
+        setDbmsList(data);
+      } catch (error) {
+        console.error("Error al cargar lista de DBMS:", error);
+      }
+    };
+    if (isDbNative && dbmsList.length === 0) {
+      fetchDbms();
+    }
+  }, [isDbNative, dbmsList.length]);
+
+  // Efecto para autocompletar el puerto basado en el motor seleccionado
+  useEffect(() => {
+    if (selectedDbmsId && dbmsList.length > 0) {
+      const selectedDbms = dbmsList.find(d => d.id_dbms === selectedDbmsId);
+      if (selectedDbms) {
+        const name = selectedDbms.nombre_dbms.toLowerCase();
+        if (name.includes('mysql')) setValue('puerto', 3306);
+        else if (name.includes('postgres')) setValue('puerto', 5432);
+        else if (name.includes('oracle')) setValue('puerto', 1521);
+        else if (name.includes('mongo')) setValue('puerto', 27017);
+        else if (name.includes('sql server') || name.includes('sqlserver')) setValue('puerto', 1433);
+      }
+    }
+  }, [selectedDbmsId, dbmsList, setValue]);
+
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
-  const onSubmit = async (data: CredentialCreateInput) => {
+  const handleTestConnection = () => {
+    const values = getValues();
+    let payload;
+    let endpoint = '';
+
+    if (values.id_tipo_acceso === 2) {
+      // Monitoreo DB
+      const selectedDbms = dbmsList.find(d => d.id_dbms === values.id_dbms);
+      const motor = selectedDbms?.nombre_dbms.toLowerCase() || 'desconocido';
+      
+      // Construimos el endpoint teórico
+      endpoint = `/conexion/test/db/${motor}`;
+      
+      payload = {
+        puerto: values.puerto,
+        usuario: values.usuario,
+        password: values.password_hash
+      };
+    } else {
+      // Monitoreo SSH (id_tipo_acceso === 1 u otros)
+      endpoint = `/conexion/test/ssh`;
+      payload = {
+        usuario: values.usuario,
+        password: values.password_hash
+      };
+    }
+
+    console.log(`Disparando a ${endpoint}`, payload);
+    showNotification(`Simulando petición a ${endpoint}. Revisa la consola para ver el payload.`, 'info');
+  };
+
+  const onSubmit = async (data: ExtendedCredentialInput) => {
     if (!data.id_servidor) {
       showNotification('Error: ID de servidor no encontrado', 'error');
       return;
@@ -45,7 +120,16 @@ export const CredentialForm = ({ serverId, onSuccess }: CredentialFormProps) => 
 
     setLoading(true);
     try {
-      await createCredential(data);
+      // Por ahora solo enviaremos la parte de la credencial como estaba antes.
+      const payload: CredentialCreateInput = {
+        usuario: data.usuario,
+        password_hash: data.password_hash,
+        id_tipo_acceso: data.id_tipo_acceso,
+        id_servidor: data.id_servidor,
+        id_estado_credencial: data.id_estado_credencial,
+      };
+
+      await createCredential(payload);
       showNotification('Credencial guardada correctamente', 'success');
       if (onSuccess) onSuccess();
     } catch (error: any) {
@@ -76,6 +160,49 @@ export const CredentialForm = ({ serverId, onSuccess }: CredentialFormProps) => 
           <MenuItem value={3}>SFTP</MenuItem>
           <MenuItem value={4}>API</MenuItem>
         </TextField>
+
+        {/* Campos Condicionales de Base de Datos */}
+        {isDbNative && (
+          <Box sx={{ bgcolor: 'action.hover', p: 3, borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
+            <Typography variant="subtitle2" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, color: 'text.secondary' }}>
+              <StorageIcon fontSize="small" /> Detalles de la Instancia DBMS
+            </Typography>
+            <Stack spacing={3}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Motor de Base de Datos (DBMS)"
+                  {...register('id_dbms', { valueAsNumber: true })}
+                  defaultValue=""
+                  required={isDbNative}
+                >
+                  {dbmsList.length === 0 ? (
+                    <MenuItem value="" disabled>Cargando motores...</MenuItem>
+                  ) : (
+                    dbmsList.map((dbms) => (
+                      <MenuItem key={dbms.id_dbms} value={dbms.id_dbms}>
+                        {dbms.nombre_dbms} {dbms.version && `(${dbms.version})`}
+                      </MenuItem>
+                    ))
+                  )}
+                </TextField>
+
+                <TextField
+                  fullWidth
+                  label="Puerto"
+                  type="number"
+                  placeholder="Ej. 1521, 3306, 5432"
+                  {...register('puerto', { valueAsNumber: true })}
+                  required={isDbNative}
+                  slotProps={{
+                    inputLabel: { shrink: true }
+                  }}
+                />
+              </Stack>
+            </Stack>
+          </Box>
+        )}
 
         {/* Usuario */}
         <TextField
@@ -131,6 +258,7 @@ export const CredentialForm = ({ serverId, onSuccess }: CredentialFormProps) => 
           <Button
             variant="outlined"
             fullWidth
+            onClick={handleTestConnection}
             startIcon={<DnsIcon fontSize="small" />}
             sx={{ 
               py: 1.5, 

@@ -14,12 +14,17 @@ Este documento resume las implementaciones realizadas en la infraestructura del 
 - **Toggle de Contraseñas**: Implementado globalmente (Login, Registro, Edición de Credenciales) usando el estándar `slotProps` de React 19/MUI 9.
 
 ## 2. Inventario e Infraestructura
-- **Wizard Único de Registro (`AddServerPage`)**: Se unificaron `AddServerPage` y el antiguo `PostRegisterWizard` en un único flujo continuo mediante un `Stepper` de 4 pasos (Datos Técnicos, Alcance, Credenciales, Finalizado).
+- **Wizard Único de Registro (`AddServerPage`)**: 
+  - Se unificaron `AddServerPage` y el antiguo `PostRegisterWizard` en un único flujo continuo mediante un `Stepper` de 4 pasos.
+  - **Mejora en Credenciales**: El formulario ahora detecta si se registra una base de datos y despliega campos para el motor (DBMS) y puerto.
+  - **Inteligencia de Datos**: Autocompletado automático del puerto estándar según el motor seleccionado (MySQL -> 3306, Oracle -> 1521, etc.).
+  - **Prueba de Conexión**: Implementación de lógica visual y funcional para el botón "Test Conexión" que apunta a endpoints dinámicos según el tipo de acceso.
 - **Gestión de Servidores**: Se añadieron acciones directas de **Edición** y **Eliminación** en las tarjetas (`ServerCard`).
   - Creación de `UpdateServerInfoPage.tsx` para modificar datos existentes enviando solo los campos requeridos (PUT parcial).
 - **Carga Masiva (`BulkUploadPage`)**: 
-    - Se adaptó la plantilla CSV y el manual para soportar el registro de **múltiples particiones** en un mismo servidor.
-    - Interfaz gráfica actualizada para reflejar esta nueva capacidad técnica.
+    - Actualización al endpoint `/servidores/import-bulk`.
+    - Adaptación de la plantilla CSV (`infraestructura_template.csv`) y manual para soportar el registro de múltiples particiones e instancias de BD en una sola fila.
+    - Actualización del kit de importación (.zip) con los nuevos estándares del backend.
 - **Credenciales (`CredentialsPage`)**: Rediseñada al nuevo estándar, implementando filtros interactivos por Tipo de Acceso (SSH, DB, SFTP, API) y búsqueda en tiempo real.
 
 ## 3. Configuración del Servidor de Desarrollo

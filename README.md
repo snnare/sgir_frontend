@@ -22,12 +22,12 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - **Dashboard Estandarizado**: Panel principal rediseñado con filtros en tiempo real y KPI de salud de flota.
 - **Wizard de Registro de Servidores**: Asistente único paso a paso para dar de alta datos técnicos, alcance de monitoreo y credenciales sin salir del flujo.
 - **Gestión Completa**: Capacidad de editar y eliminar servidores directamente desde la interfaz con actualización en vivo.
-- **Importación Masiva**: Motor de carga vía CSV con soporte para:
+- **Importación Masiva**: Motor de carga vía CSV (endpoint `/servidores/import-bulk`) con soporte para:
   - Definición de **múltiples particiones** por servidor.
-  - Consolidación por IP (Upsert).
-  - Traducción automática de catálogos.
-  - Cifrado de credenciales on-the-fly.
-  - **Diagnóstico avanzado**: Resumen detallado en UI y logs técnicos.
+  - Alta simultánea de **instancias de bases de datos** y credenciales.
+  - Consolidación por IP (Upsert automático).
+  - Traducción de catálogos y cifrado AES-256 de credenciales.
+  - **Diagnóstico avanzado**: Resumen detallado de filas procesadas y reporte de errores en UI.
 
 ### 🎨 Experiencia de Usuario (UI/UX)
 - Implementación de un patrón de diseño global (`UI_PATTERN.md`).
