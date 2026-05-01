@@ -236,6 +236,27 @@ export const BackupHistorySchema = z.object({
 export type BackupHistory = z.infer<typeof BackupHistorySchema>;
 
 // --- Monitoreo ---
+export const SchedulerStatusSchema = z.object({
+    status: z.enum(['running', 'paused']),
+    message: z.string().optional(),
+});
+
+export type SchedulerStatus = z.infer<typeof SchedulerStatusSchema>;
+
+export const LiveMetricsSchema = z.object({
+    monitoreo_id: z.number().optional(),
+    alerta: z.boolean().optional(),
+    live_data: z.object({
+        cpu: z.number(),
+        ram: z.number(),
+        disks: z.record(z.string(), z.number()),
+        uptime: z.number(),
+        last_update: z.string(),
+    })
+});
+
+export type LiveMetrics = z.infer<typeof LiveMetricsSchema>;
+
 export const AlertSchema = z.object({
     id_alerta: z.number(),
     descripcion: z.string(),

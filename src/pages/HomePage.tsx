@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { 
   Box, Typography, Button, Stack, Paper, CircularProgress, 
-  TextField, InputAdornment, Chip, Divider, IconButton, Tooltip 
+  TextField, InputAdornment, Chip, Divider, IconButton, Tooltip,
+  Alert, AlertTitle
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
@@ -16,25 +17,62 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import PauseCircleIcon from '@mui/icons-material/PauseCircle';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import { MetricCard } from '../components/MetricCard';
 import { ServerCard } from '../components/ServerCard';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
+import { useMonitoringStore } from '../store/useMonitoringStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { deleteServer } from '../api/infrastructureService';
 import { useNotificationStore } from '../components/GlobalNotification';
 
 export const HomePage = () => {
   const navigate = useNavigate();
   const { servers, criticalities, loading, fetchServers, fetchCriticalities } = useInfrastructureStore();
+  const { 
+    schedulerStatus, liveMetrics, fetchSchedulerStatus, 
+    pauseMonitoring, resumeMonitoring, fetchLiveMetrics 
+  } = useMonitoringStore();
+  const { user } = useAuthStore();
   const { showNotification } = useNotificationStore();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'critical'>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     fetchServers();
     fetchCriticalities();
-  }, [fetchServers, fetchCriticalities]);
+    fetchSchedulerStatus();
+  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus]);
+
+  // Polling para métricas en vivo
+  useEffect(() => {
+    const startPolling = () => {
+      // Limpiar polling anterior si existe
+      if (pollingRef.current) clearInterval(pollingRef.current);
+
+      // Polling cada 10 segundos
+      pollingRef.current = setInterval(() => {
+        if (servers.length > 0 && schedulerStatus?.status === 'running') {
+          servers.forEach(server => fetchLiveMetrics(server.id_servidor));
+        }
+      }, 10000);
+    };
+
+    if (servers.length > 0) {
+      // Carga inicial de métricas
+      servers.forEach(server => fetchLiveMetrics(server.id_servidor));
+      startPolling();
+    }
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [servers, schedulerStatus?.status, fetchLiveMetrics]);
 
   const handleEdit = (id: number) => {
     navigate(`/server/edit/${id}`);
@@ -48,13 +86,28 @@ export const HomePage = () => {
     try {
       await deleteServer(id);
       showNotification('Servidor eliminado correctamente', 'success');
-      fetchServers(); // Refresh the list
+      fetchServers();
     } catch (error: any) {
       console.error('Error deleting server:', error);
       showNotification(error.response?.data?.detail || 'Error al eliminar el servidor', 'error');
     }
   };
 
+  const handleToggleScheduler = async () => {
+    try {
+      if (schedulerStatus?.status === 'running') {
+        await pauseMonitoring();
+        showNotification('Monitoreo pausado exitosamente', 'info');
+      } else {
+        await resumeMonitoring();
+        showNotification('Monitoreo reanudado exitosamente', 'success');
+      }
+    } catch (error: any) {
+      showNotification('Error al cambiar el estado del scheduler', 'error');
+    }
+  };
+
+  const isAdmin = user?.id_rol === 1;
   const onlineServersCount = servers.filter(s => s.id_estado_servidor === 1).length;
   const criticalServersCount = servers.filter(s => s.id_estado_servidor !== 1).length;
 
@@ -87,13 +140,6 @@ export const HomePage = () => {
       .sort((a, b) => getPriority(a.id_nivel_criticidad) - getPriority(b.id_nivel_criticidad));
   }, [servers, searchTerm, statusFilter, criticalities]);
 
-  // Datos mock de métricas para visualización dinámica
-  const getMockMetrics = (id: number) => ({
-    cpu: Math.floor(((id * 7) % 50) + 15),
-    ram: Math.floor(((id * 13) % 40) + 30),
-    disk: Math.floor(((id * 3) % 20) + 10),
-  });
-
   if (loading && servers.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
@@ -104,15 +150,59 @@ export const HomePage = () => {
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
-      {/* --- SECCIÓN 1: ENCABEZADO (TÍTULO) --- */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
-          Panel de Control
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Estado global de activos y salud de servidores en tiempo real.
-        </Typography>
-      </Box>
+      {/* --- SECCIÓN 1: ENCABEZADO (TÍTULO) Y CONTROL SCHEDULER --- */}
+      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }} spacing={2}>
+        <Box>
+          <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
+            Panel de Control
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Estado global de activos y salud de servidores en tiempo real.
+          </Typography>
+        </Box>
+
+        {schedulerStatus && (
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              p: 1.5, 
+              borderRadius: 2, 
+              border: '1px solid', 
+              borderColor: schedulerStatus.status === 'running' ? 'success.light' : 'warning.light',
+              bgcolor: schedulerStatus.status === 'running' ? 'success.lighter' : 'warning.lighter',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2
+            }}
+          >
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1 }}>
+                SCHEDULER: {schedulerStatus.status.toUpperCase()}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {schedulerStatus.status === 'running' ? 'Ciclo de monitoreo activo' : 'Monitoreo detenido'}
+              </Typography>
+            </Box>
+            {isAdmin && (
+              <IconButton 
+                size="small" 
+                onClick={handleToggleScheduler}
+                color={schedulerStatus.status === 'running' ? 'warning' : 'success'}
+              >
+                {schedulerStatus.status === 'running' ? <PauseCircleIcon /> : <PlayCircleIcon />}
+              </IconButton>
+            )}
+          </Paper>
+        )}
+      </Stack>
+
+      {/* Alerta si el scheduler está pausado */}
+      {schedulerStatus?.status === 'paused' && (
+        <Alert severity="warning" sx={{ mb: 4, borderRadius: 3 }}>
+          <AlertTitle sx={{ fontWeight: 700 }}>Monitoreo Pausado</AlertTitle>
+          Las métricas mostradas en las tarjetas podrían no estar actualizadas.
+        </Alert>
+      )}
 
       {/* --- SECCIÓN 2: MÉTRICAS DE RESUMEN --- */}
       <Box 
@@ -298,7 +388,7 @@ export const HomePage = () => {
               <ServerCard 
                 key={server.id_servidor} 
                 server={server} 
-                metrics={getMockMetrics(server.id_servidor)}
+                liveMetrics={liveMetrics[server.id_servidor]}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />

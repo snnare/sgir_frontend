@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { 
     getAlertsByServer, getAlertLevels, getMonitoringSummary, 
-    getHostMetrics, getMySQLMetrics, getMongoDBMetrics 
+    getHostMetrics, getMySQLMetrics, getMongoDBMetrics,
+    getSchedulerStatus, pauseScheduler, resumeScheduler, getLiveMetrics
 } from '../api/monitoringService';
 import type { 
     Alert, AlertLevel, MonitoringSummary, 
-    HostMetrics, MySQLMetrics, MongoDBMetrics 
+    HostMetrics, MySQLMetrics, MongoDBMetrics,
+    SchedulerStatus, LiveMetrics
 } from '../api/types';
 
 interface MonitoringState {
@@ -15,6 +17,8 @@ interface MonitoringState {
     hostMetrics: HostMetrics | null;
     mysqlMetrics: MySQLMetrics | null;
     mongodbMetrics: MongoDBMetrics | null;
+    schedulerStatus: SchedulerStatus | null;
+    liveMetrics: Record<number, LiveMetrics>; // Store live metrics per server ID
     loading: boolean;
     error: string | null;
 
@@ -24,15 +28,25 @@ interface MonitoringState {
     fetchHostMetrics: (serverId: number, credId: number) => Promise<void>;
     fetchMySQLMetrics: (serverId: number, credId: number) => Promise<void>;
     fetchMongoDBMetrics: (serverId: number, credId: number) => Promise<void>;
+    
+    // Scheduler Actions
+    fetchSchedulerStatus: () => Promise<void>;
+    pauseMonitoring: () => Promise<void>;
+    resumeMonitoring: () => Promise<void>;
+    
+    // Live Metrics Actions
+    fetchLiveMetrics: (serverId: number) => Promise<void>;
 }
 
-export const useMonitoringStore = create<MonitoringState>((set) => ({
+export const useMonitoringStore = create<MonitoringState>((set, get) => ({
     alerts: [],
     alertLevels: [],
     summary: null,
     hostMetrics: null,
     mysqlMetrics: null,
     mongodbMetrics: null,
+    schedulerStatus: null,
+    liveMetrics: {},
     loading: false,
     error: null,
 
@@ -95,4 +109,47 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
             set({ error: err.message, loading: false });
         }
     },
+
+    fetchSchedulerStatus: async () => {
+        try {
+            const status = await getSchedulerStatus();
+            set({ schedulerStatus: status });
+        } catch (err: any) {
+            console.error('Error fetching scheduler status:', err);
+        }
+    },
+
+    pauseMonitoring: async () => {
+        set({ loading: true });
+        try {
+            const status = await pauseScheduler();
+            set({ schedulerStatus: status, loading: false });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+        }
+    },
+
+    resumeMonitoring: async () => {
+        set({ loading: true });
+        try {
+            const status = await resumeScheduler();
+            set({ schedulerStatus: status, loading: false });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+        }
+    },
+
+    fetchLiveMetrics: async (serverId: number) => {
+        try {
+            const data = await getLiveMetrics(serverId);
+            set((state) => ({
+                liveMetrics: {
+                    ...state.liveMetrics,
+                    [serverId]: data
+                }
+            }));
+        } catch (err: any) {
+            console.error(`Error fetching live metrics for server ${serverId}:`, err);
+        }
+    }
 }));

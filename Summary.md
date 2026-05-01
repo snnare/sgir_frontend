@@ -43,7 +43,12 @@ La arquitectura visual y de navegación ha sido completamente estandarizada. Los
 
 ### 🟡 ¿Qué falta por hacer?
 - **Módulo de Backups**: Las opciones del menú ya están preparadas ("Políticas" y "Rutas"), falta construir estas vistas bajo el nuevo `UI_PATTERN.md`.
-- **Monitoreo Real**: Conectar los indicadores mockeados de las tarjetas (`ServerCard`) con el endpoint de métricas reales de la API.
+- **Monitoreo Real-Time**: 
+  - Conexión con el motor de monitoreo SSH del backend.
+  - Implementación de **polling automático** cada 10 segundos en el Dashboard para refrescar métricas de CPU, RAM, Disco y Uptime sin recargar la página.
+  - **Live Cache Integration**: Las tarjetas consumen directamente la memoria del backend (`LIVE_METRICS_CACHE`) para una respuesta instantánea.
+  - **Control del Scheduler**: Los administradores pueden pausar y reanudar el ciclo de monitoreo global directamente desde el Panel de Control.
+  - **Indicadores de Alerta**: Visualización visual (puntos de pulso y etiquetas de texto) cuando un servidor supera los umbrales críticos de uso (>90%).
 - **Auditoría**: Interfaz de consulta para la bitácora de eventos.
 
 ---

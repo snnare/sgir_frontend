@@ -7,22 +7,18 @@ import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import { MetricCard } from './MetricCard';
-import { type Server } from '../api/types';
+import { type Server, type LiveMetrics } from '../api/types';
 
 interface ServerCardProps {
   server: Server;
-  metrics?: {
-    cpu: number;
-    ram: number;
-    disk: number;
-  };
+  liveMetrics?: LiveMetrics;
   onEdit?: (id: number) => void;
   onDelete?: (id: number, name: string) => void;
 }
 
 export const ServerCard = ({ 
   server, 
-  metrics = { cpu: 0, ram: 0, disk: 0 },
+  liveMetrics,
   onEdit,
   onDelete
 }: ServerCardProps) => {
@@ -42,6 +38,18 @@ export const ServerCard = ({
       default: return 'Desconectado';
     }
   };
+
+  // Extraer datos vivos o usar valores por defecto (0)
+  const metrics = liveMetrics?.live_data || {
+    cpu: 0,
+    ram: 0,
+    disks: { '/': 0 },
+    uptime: 0,
+    last_update: ''
+  };
+
+  // Calcular uso de disco principal (raíz /) o el primer disco disponible
+  const mainDiskUsage = metrics.disks['/'] ?? Object.values(metrics.disks)[0] ?? 0;
 
   return (
     <Paper 
@@ -70,7 +78,7 @@ export const ServerCard = ({
               {server.direccion_ip}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-              {server.nombre_servidor}
+              {server.nombre_servidor} {metrics.uptime > 0 && `(UP: ${metrics.uptime.toFixed(1)}d)`}
             </Typography>
           </Box>
         </Stack>
@@ -129,7 +137,7 @@ export const ServerCard = ({
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
             <TerminalIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
             <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase' }}>
-              Monitoreo por SSH
+              Monitoreo por SSH {liveMetrics?.alerta && <Typography component="span" variant="caption" color="error.main" sx={{ ml: 1, fontWeight: 900 }}>• ALERTA</Typography>}
             </Typography>
           </Stack>
           
@@ -154,9 +162,9 @@ export const ServerCard = ({
             />
             <MetricCard 
               title="DISCO" 
-              value={metrics.disk} 
+              value={mainDiskUsage} 
               unit="%" 
-              percent={metrics.disk} 
+              percent={mainDiskUsage} 
               icon={<StorageIcon sx={{ fontSize: 14 }} />} 
             />
           </Box>
@@ -191,6 +199,12 @@ export const ServerCard = ({
         </Box>
 
       </Stack>
+      
+      {metrics.last_update && (
+        <Typography variant="caption" color="text.disabled" sx={{ mt: 2, display: 'block', textAlign: 'right', fontStyle: 'italic' }}>
+          Última actualización: {new Date(metrics.last_update).toLocaleString()}
+        </Typography>
+      )}
     </Paper>
   );
 };
