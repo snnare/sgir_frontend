@@ -11,16 +11,15 @@ import KeyIcon from '@mui/icons-material/Key';
 import DnsIcon from '@mui/icons-material/Dns'; 
 import StorageIcon from '@mui/icons-material/Storage';
 import { CredentialCreateSchema, type CredentialCreateInput, type Dbms } from '../api/types';
-import { createCredential, getDbms } from '../api/infrastructureService';
+import { createCredential, getDbms, testConnectionDb, testConnectionSsh, type ConnectionTestRequest } from '../api/infrastructureService';
 import { useNotificationStore } from './GlobalNotification';
 
 interface CredentialFormProps {
   serverId?: number;
-  serverIp?: string; // Prop opcional para la IP
+  serverIp?: string;
   onSuccess?: () => void;
 }
 
-// Interfaz extendida temporalmente para incluir los campos visuales
 interface ExtendedCredentialInput extends CredentialCreateInput {
   id_dbms?: number;
   puerto?: number;
@@ -29,6 +28,7 @@ interface ExtendedCredentialInput extends CredentialCreateInput {
 export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [dbmsList, setDbmsList] = useState<Dbms[]>([]);
   const { showNotification } = useNotificationStore();
 
@@ -40,7 +40,7 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
     getValues,
     formState: { errors },
   } = useForm<ExtendedCredentialInput>({
-    resolver: zodResolver(CredentialCreateSchema), // Validará la parte de CredentialCreateInput
+    resolver: zodResolver(CredentialCreateSchema),
     defaultValues: {
       id_servidor: serverId,
       id_estado_credencial: 1,
@@ -48,7 +48,7 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
   });
 
   const tipoAcceso = useWatch({ control, name: 'id_tipo_acceso' });
-  const isDbNative = tipoAcceso === 2; // Asumiendo que 2 es "DB Native"
+  const isDbNative = tipoAcceso === 2;
   const selectedDbmsId = useWatch({ control, name: 'id_dbms' });
 
   useEffect(() => {
@@ -65,7 +65,6 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
     }
   }, [isDbNative, dbmsList.length]);
 
-  // Efecto para autocompletar el puerto basado en el motor seleccionado
   useEffect(() => {
     if (selectedDbmsId && dbmsList.length > 0) {
       const selectedDbms = dbmsList.find(d => d.id_dbms === selectedDbmsId);
@@ -82,37 +81,55 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
-  const handleTestConnection = () => {
+  const handleTestConnection = async () => {
     const values = getValues();
-    let payload;
-    let endpoint = '';
-
-    if (values.id_tipo_acceso === 2) {
-      // Monitoreo DB
-      const selectedDbms = dbmsList.find(d => d.id_dbms === values.id_dbms);
-      const motor = selectedDbms?.nombre_dbms.toLowerCase() || 'desconocido';
-      
-      // Construimos el endpoint teórico
-      endpoint = `/conexion/test/db/${motor}`;
-      
-      payload = {
-        direccion_ip: serverIp || '0.0.0.0', // Inyectamos la IP del servidor
-        puerto: values.puerto,
-        usuario: values.usuario,
-        password: values.password_hash
-      };
-    } else {
-      // Monitoreo SSH (id_tipo_acceso === 1 u otros)
-      endpoint = `/conexion/test/ssh`;
-      payload = {
-        direccion_ip: serverIp || '0.0.0.0', // Inyectamos la IP del servidor
-        usuario: values.usuario,
-        password: values.password_hash
-      };
+    
+    // Validación básica antes de intentar el test
+    if (!serverIp) {
+      showNotification('No se detectó la IP del servidor. Por favor, asegúrese de completar el paso anterior.', 'error');
+      return;
+    }
+    if (!values.usuario || !values.password_hash) {
+      showNotification('Ingrese usuario y contraseña para realizar el test', 'warning');
+      return;
     }
 
-    console.log(`Disparando a ${endpoint}`, payload);
-    showNotification(`Simulando petición a ${endpoint} para la IP ${serverIp || '0.0.0.0'}. Revisa la consola.`, 'info');
+    setTesting(true);
+    try {
+      const payload: ConnectionTestRequest = {
+        direccion_ip: serverIp,
+        puerto: values.puerto || (values.id_tipo_acceso === 1 ? 22 : undefined),
+        usuario: values.usuario,
+        password: values.password_hash
+      };
+
+      let response;
+      if (values.id_tipo_acceso === 2) {
+        const selectedDbms = dbmsList.find(d => d.id_dbms === values.id_dbms);
+        if (!selectedDbms) {
+          showNotification('Seleccione un motor de base de datos', 'warning');
+          setTesting(false);
+          return;
+        }
+        // El backend espera el nombre del motor en la URL (mysql, postgresql, oracle, mongodb)
+        const motorKey = selectedDbms.nombre_dbms.toLowerCase().split(' ')[0]; // Simplificación para 'Oracle Database' -> 'oracle'
+        response = await testConnectionDb(motorKey, payload);
+      } else {
+        response = await testConnectionSsh(payload);
+      }
+
+      if (response.status === 'success') {
+        showNotification(response.message, 'success');
+      } else {
+        showNotification(response.message || 'La conexión falló', 'error');
+      }
+    } catch (error: any) {
+      console.error('Error en Test Conexión:', error);
+      const message = error.response?.data?.detail || 'Error al intentar conectar con el servidor';
+      showNotification(message, 'error');
+    } finally {
+      setTesting(false);
+    }
   };
 
   const onSubmit = async (data: ExtendedCredentialInput) => {
@@ -123,7 +140,6 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
 
     setLoading(true);
     try {
-      // Por ahora solo enviaremos la parte de la credencial como estaba antes.
       const payload: CredentialCreateInput = {
         usuario: data.usuario,
         password_hash: data.password_hash,
@@ -262,7 +278,8 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
             variant="outlined"
             fullWidth
             onClick={handleTestConnection}
-            startIcon={<DnsIcon fontSize="small" />}
+            disabled={testing}
+            startIcon={testing ? <CircularProgress size={20} /> : <DnsIcon fontSize="small" />}
             sx={{ 
               py: 1.5, 
               fontWeight: 600,
@@ -276,7 +293,7 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
               }
             }}
           >
-            Test Conexión
+            {testing ? 'Probando...' : 'Test Conexión'}
           </Button>
 
           <Button

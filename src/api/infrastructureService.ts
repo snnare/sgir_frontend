@@ -93,6 +93,31 @@ export const getGeneralStatuses = async (): Promise<GeneralStatus[]> => {
     return z.array(GeneralStatusSchema).parse(data);
 };
 
+// --- Tests de Conexión ---
+
+export interface ConnectionTestRequest {
+    direccion_ip: string;
+    puerto?: number;
+    usuario: string;
+    password?: string;
+}
+
+export interface ConnectionTestResponse {
+    status: string;
+    message: string;
+    details?: any;
+}
+
+export const testConnectionDb = async (motor: string, testData: ConnectionTestRequest): Promise<ConnectionTestResponse> => {
+    const { data } = await api.post(`/conexion/test/db/${motor.toLowerCase()}`, testData);
+    return data;
+};
+
+export const testConnectionSsh = async (testData: ConnectionTestRequest): Promise<ConnectionTestResponse> => {
+    const { data } = await api.post('/conexion/test/ssh', testData);
+    return data;
+};
+
 export const importBulkServers = async (file: File): Promise<ImportSummary> => {
     const formData = new FormData();
     formData.append('file', file);
