@@ -1,4 +1,4 @@
-import { Box, Typography, Stack, Divider, IconButton, Collapse } from '@mui/material';
+import { Box, Typography, Stack, Divider, IconButton, Collapse, Switch, Tooltip, CircularProgress } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import BackupIcon from '@mui/icons-material/Backup';
@@ -15,7 +15,10 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import { useLocation } from 'react-router-dom';
 import { SidebarItem } from './SidebarItem';
 import { useThemeStore } from '../store/useThemeStore';
-import { useState } from 'react';
+import { useMonitoringStore } from '../store/useMonitoringStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { useNotificationStore } from './GlobalNotification';
+import { useState, useEffect } from 'react';
 
 interface SidebarProps {
   open: boolean; // Acts as "Pinned" state
@@ -25,17 +28,40 @@ interface SidebarProps {
 export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
   const location = useLocation();
   const { mode, toggleTheme } = useThemeStore();
+  const { schedulerStatus, fetchSchedulerStatus, pauseMonitoring, resumeMonitoring, loading: monitoringLoading } = useMonitoringStore();
+  const { user } = useAuthStore();
+  const { showNotification } = useNotificationStore();
   const [isHovered, setIsHovered] = useState(false);
   const [backupsExpanded, setBackupsExpanded] = useState(false);
 
   // The sidebar is visually "open" if it's either pinned or hovered
   const isExpanded = pinned || isHovered;
 
+  const isAdmin = user?.id_rol === 1;
+
+  useEffect(() => {
+    fetchSchedulerStatus();
+  }, [fetchSchedulerStatus]);
+
   const handleBackupsToggle = () => {
     if (!isExpanded) {
       onToggle();
     }
     setBackupsExpanded(!backupsExpanded);
+  };
+
+  const handleToggleScheduler = async () => {
+    try {
+      if (schedulerStatus?.status === 'running') {
+        await pauseMonitoring();
+        showNotification('Monitoreo pausado exitosamente', 'info');
+      } else {
+        await resumeMonitoring();
+        showNotification('Monitoreo reanudado exitosamente', 'success');
+      }
+    } catch (error: any) {
+      console.error('Error toggling scheduler:', error);
+    }
   };
 
   return (
@@ -92,8 +118,52 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
         </IconButton>
       </Stack>
 
+      {/* Control Global de Monitoreo (Admin Only) */}
+      {isAdmin && (
+        <Box sx={{ px: isExpanded ? 2 : 1.5, py: 1.5 }}>
+          <Box 
+            sx={{ 
+              p: isExpanded ? 2 : 1, 
+              borderRadius: 2, 
+              bgcolor: schedulerStatus?.status === 'running' ? 'success.lighter' : 'warning.lighter',
+              border: '1px solid',
+              borderColor: schedulerStatus?.status === 'running' ? 'success.light' : 'warning.light',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: isExpanded ? 'flex-start' : 'center',
+              gap: 1
+            }}
+          >
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
+              {isExpanded && (
+                <Typography variant="caption" sx={{ fontWeight: 800, color: schedulerStatus?.status === 'running' ? 'success.dark' : 'warning.dark' }}>
+                  MONITOREO
+                </Typography>
+              )}
+              {monitoringLoading ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <Tooltip title={schedulerStatus?.status === 'running' ? 'Pausar Monitoreo' : 'Activar Monitoreo'}>
+                  <Switch 
+                    size="small" 
+                    checked={schedulerStatus?.status === 'running'} 
+                    onChange={handleToggleScheduler}
+                    color="success"
+                  />
+                </Tooltip>
+              )}
+            </Stack>
+            {isExpanded && (
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>
+                Status: {schedulerStatus?.status.toUpperCase() || '...'}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      )}
+
       {/* Navigation Items */}
-      <Stack spacing={0.5} sx={{ px: isExpanded ? 2 : 1, mt: 2, flexGrow: 1 }}>
+      <Stack spacing={0.5} sx={{ px: isExpanded ? 2 : 1, mt: 1, flexGrow: 1 }}>
         <SidebarItem 
           icon={<HomeIcon fontSize="small" />} 
           label="Home" 
