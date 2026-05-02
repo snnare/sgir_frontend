@@ -257,6 +257,14 @@ export const LiveMetricsSchema = z.object({
 
 export type LiveMetrics = z.infer<typeof LiveMetricsSchema>;
 
+export const GlobalSummarySchema = z.object({
+    sanos: z.number(),
+    criticos: z.number(),
+    desactualizados: z.number(),
+});
+
+export type GlobalSummary = z.infer<typeof GlobalSummarySchema>;
+
 export const AlertSchema = z.object({
     id_alerta: z.number(),
     descripcion: z.string(),

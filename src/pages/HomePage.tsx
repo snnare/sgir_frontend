@@ -19,6 +19,7 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { MetricCard } from '../components/MetricCard';
 import { ServerCard } from '../components/ServerCard';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
@@ -31,7 +32,8 @@ export const HomePage = () => {
   const navigate = useNavigate();
   const { servers, criticalities, loading, fetchServers, fetchCriticalities } = useInfrastructureStore();
   const { 
-    schedulerStatus, liveMetrics, fetchSchedulerStatus, 
+    schedulerStatus, liveMetrics, globalSummary,
+    fetchSchedulerStatus, fetchGlobalSummary,
     pauseMonitoring, resumeMonitoring, fetchLiveMetrics 
   } = useMonitoringStore();
   const { user } = useAuthStore();
@@ -47,24 +49,23 @@ export const HomePage = () => {
     fetchServers();
     fetchCriticalities();
     fetchSchedulerStatus();
-  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus]);
+    fetchGlobalSummary();
+  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus, fetchGlobalSummary]);
 
-  // Polling para métricas en vivo
+  // Polling para métricas en vivo y resumen global
   useEffect(() => {
     const startPolling = () => {
-      // Limpiar polling anterior si existe
       if (pollingRef.current) clearInterval(pollingRef.current);
 
-      // Polling cada 10 segundos
       pollingRef.current = setInterval(() => {
         if (servers.length > 0 && schedulerStatus?.status === 'running') {
           servers.forEach(server => fetchLiveMetrics(server.id_servidor));
+          fetchGlobalSummary();
         }
-      }, 10000);
+      }, 15000); // Aumentado a 15s para ser menos agresivo
     };
 
     if (servers.length > 0) {
-      // Carga inicial de métricas
       servers.forEach(server => fetchLiveMetrics(server.id_servidor));
       startPolling();
     }
@@ -72,7 +73,7 @@ export const HomePage = () => {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [servers, schedulerStatus?.status, fetchLiveMetrics]);
+  }, [servers, schedulerStatus?.status, fetchLiveMetrics, fetchGlobalSummary]);
 
   const handleEdit = (id: number) => {
     navigate(`/server/edit/${id}`);
@@ -108,8 +109,6 @@ export const HomePage = () => {
   };
 
   const isAdmin = user?.id_rol === 1;
-  const onlineServersCount = servers.filter(s => s.id_estado_servidor === 1).length;
-  const criticalServersCount = servers.filter(s => s.id_estado_servidor !== 1).length;
 
   const filteredServers = useMemo(() => {
     const priorityMap: Record<string, number> = {
@@ -204,14 +203,14 @@ export const HomePage = () => {
         </Alert>
       )}
 
-      {/* --- SECCIÓN 2: MÉTRICAS DE RESUMEN --- */}
+      {/* --- SECCIÓN 2: MÉTRICAS DE RESUMEN (Global Summary) --- */}
       <Box 
         sx={{ 
           display: 'grid', 
           gridTemplateColumns: { 
             xs: '1fr', 
             sm: 'repeat(2, 1fr)', 
-            lg: 'repeat(3, 1fr)' 
+            lg: 'repeat(4, 1fr)' 
           }, 
           gap: 3,
           mb: 6
@@ -225,18 +224,25 @@ export const HomePage = () => {
           icon={<DnsIcon fontSize="small" />} 
         />
         <MetricCard 
-          title="Estado de Salud" 
-          value={onlineServersCount} 
+          title="Sanos" 
+          value={globalSummary?.sanos ?? 0} 
           unit="Online" 
-          percent={servers.length > 0 ? (onlineServersCount / servers.length) * 100 : 0} 
+          percent={servers.length > 0 ? ((globalSummary?.sanos ?? 0) / servers.length) * 100 : 0} 
           icon={<CheckCircleIcon fontSize="small" sx={{ color: '#22c55e' }} />} 
         />
         <MetricCard 
-          title="Alertas Activas" 
-          value={criticalServersCount} 
-          unit="Incidencias" 
-          percent={criticalServersCount > 0 ? (criticalServersCount / servers.length) * 100 : 0} 
-          icon={<ReportProblemIcon fontSize="small" sx={{ color: criticalServersCount > 0 ? '#ef4444' : 'text.secondary' }} />} 
+          title="Críticos" 
+          value={globalSummary?.criticos ?? 0} 
+          unit="Alertas" 
+          percent={servers.length > 0 ? ((globalSummary?.criticos ?? 0) / servers.length) * 100 : 0} 
+          icon={<ReportProblemIcon fontSize="small" sx={{ color: '#ef4444' }} />} 
+        />
+        <MetricCard 
+          title="Desactualizados" 
+          value={globalSummary?.desactualizados ?? 0} 
+          unit="Offline" 
+          percent={servers.length > 0 ? ((globalSummary?.desactualizados ?? 0) / servers.length) * 100 : 0} 
+          icon={<HelpOutlineIcon fontSize="small" sx={{ color: 'text.secondary' }} />} 
         />
       </Box>
 
@@ -278,7 +284,7 @@ export const HomePage = () => {
           
           <Stack direction="row" spacing={1.5}>
             <Tooltip title="Actualizar">
-              <IconButton onClick={() => fetchServers()} disabled={loading} size="medium">
+              <IconButton onClick={() => { fetchServers(); fetchGlobalSummary(); }} disabled={loading} size="medium">
                 <RefreshIcon fontSize="small" />
               </IconButton>
             </Tooltip>

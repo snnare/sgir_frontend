@@ -43,12 +43,16 @@ La arquitectura visual y de navegación ha sido completamente estandarizada. Los
 
 ### 🟡 ¿Qué falta por hacer?
 - **Módulo de Backups**: Las opciones del menú ya están preparadas ("Políticas" y "Rutas"), falta construir estas vistas bajo el nuevo `UI_PATTERN.md`.
-- **Monitoreo Real-Time**: 
+- **Monitoreo Real-Time (Arquitectura Live Cache)**: 
   - Conexión con el motor de monitoreo SSH del backend.
-  - Implementación de **polling automático** cada 10 segundos en el Dashboard para refrescar métricas de CPU, RAM, Disco y Uptime sin recargar la página.
-  - **Live Cache Integration**: Las tarjetas consumen directamente la memoria del backend (`LIVE_METRICS_CACHE`) para una respuesta instantánea.
-  - **Control del Scheduler**: Los administradores pueden pausar y reanudar el ciclo de monitoreo global directamente desde el Panel de Control.
-  - **Indicadores de Alerta**: Visualización visual (puntos de pulso y etiquetas de texto) cuando un servidor supera los umbrales críticos de uso (>90%).
+  - Implementación de **polling automático** cada 15 segundos en el Dashboard para refrescar métricas de CPU, RAM, Disco y Uptime.
+  - **Live Status Integration**: Las tarjetas consumen el endpoint `/monitoring/host/health-status/{id}` para una respuesta instantánea desde la RAM del backend.
+  - **Dashboard Consolidado**: Uso del endpoint `/monitoring/host/global-summary` para mostrar el conteo real de nodos Sanos, Críticos y Desactualizados.
+  - **Control Global del Scheduler**: Switch administrativo en la Sidebar y botones en Dashboard para pausar (`/pause`) o reanudar (`/resume`) el monitoreo.
+  - **Indicadores de Alerta**: Visualización de estados críticos cuando se superan los umbrales operativos (>90%).
+- **Correcciones de UI/UX**:
+  - Eliminación de advertencias de React en la Sidebar (sanitización de props en componentes DOM).
+  - Corrección de iconos de control de flujo (Pause/Play).
 - **Auditoría**: Interfaz de consulta para la bitácora de eventos.
 
 ---

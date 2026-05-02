@@ -134,7 +134,14 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
               gap: 1
             }}
           >
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: '100%' }}>
+            <Stack 
+              direction="row" 
+              sx={{ 
+                width: '100%',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
               {isExpanded && (
                 <Typography variant="caption" sx={{ fontWeight: 800, color: schedulerStatus?.status === 'running' ? 'success.dark' : 'warning.dark' }}>
                   MONITOREO

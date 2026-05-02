@@ -7,7 +7,8 @@ import {
     MySQLMetricsSchema, type MySQLMetrics, 
     MongoDBMetricsSchema, type MongoDBMetrics,
     SchedulerStatusSchema, type SchedulerStatus,
-    LiveMetricsSchema, type LiveMetrics
+    LiveMetricsSchema, type LiveMetrics,
+    GlobalSummarySchema, type GlobalSummary
 } from './types';
 import { z } from 'zod';
 
@@ -39,24 +40,29 @@ export const getHostMetrics = async (serverId: number, credId: number): Promise<
 // --- Control del Scheduler ---
 
 export const getSchedulerStatus = async (): Promise<SchedulerStatus> => {
-    const { data } = await api.get('/host-monitoring/scheduler/status');
+    const { data } = await api.get('/monitoring/host/scheduler/status');
     return SchedulerStatusSchema.parse(data);
 };
 
 export const pauseScheduler = async (): Promise<SchedulerStatus> => {
-    const { data } = await api.post('/host-monitoring/scheduler/pause');
+    const { data } = await api.post('/monitoring/host/scheduler/pause');
     return SchedulerStatusSchema.parse(data);
 };
 
 export const resumeScheduler = async (): Promise<SchedulerStatus> => {
-    const { data } = await api.post('/host-monitoring/scheduler/resume');
+    const { data } = await api.post('/monitoring/host/scheduler/resume');
     return SchedulerStatusSchema.parse(data);
 };
 
 // --- Métricas en Tiempo Real (Live Cache) ---
 
+export const getGlobalSummary = async (): Promise<GlobalSummary> => {
+    const { data } = await api.get('/monitoring/host/global-summary');
+    return GlobalSummarySchema.parse(data);
+};
+
 export const getLiveMetrics = async (serverId: number): Promise<LiveMetrics> => {
-    const { data } = await api.get(`/host-monitoring/live/${serverId}`);
+    const { data } = await api.get(`/monitoring/host/health-status/${serverId}`);
     return LiveMetricsSchema.parse(data);
 };
 

@@ -2,18 +2,20 @@ import { create } from 'zustand';
 import { 
     getAlertsByServer, getAlertLevels, getMonitoringSummary, 
     getHostMetrics, getMySQLMetrics, getMongoDBMetrics,
-    getSchedulerStatus, pauseScheduler, resumeScheduler, getLiveMetrics
+    getSchedulerStatus, pauseScheduler, resumeScheduler, getLiveMetrics,
+    getGlobalSummary
 } from '../api/monitoringService';
 import type { 
     Alert, AlertLevel, MonitoringSummary, 
     HostMetrics, MySQLMetrics, MongoDBMetrics,
-    SchedulerStatus, LiveMetrics
+    SchedulerStatus, LiveMetrics, GlobalSummary
 } from '../api/types';
 
 interface MonitoringState {
     alerts: Alert[];
     alertLevels: AlertLevel[];
     summary: MonitoringSummary | null;
+    globalSummary: GlobalSummary | null;
     hostMetrics: HostMetrics | null;
     mysqlMetrics: MySQLMetrics | null;
     mongodbMetrics: MongoDBMetrics | null;
@@ -25,6 +27,7 @@ interface MonitoringState {
     fetchAlertsByServer: (serverId: number) => Promise<void>;
     fetchAlertLevels: () => Promise<void>;
     fetchSummary: (serverId: number) => Promise<void>;
+    fetchGlobalSummary: () => Promise<void>;
     fetchHostMetrics: (serverId: number, credId: number) => Promise<void>;
     fetchMySQLMetrics: (serverId: number, credId: number) => Promise<void>;
     fetchMongoDBMetrics: (serverId: number, credId: number) => Promise<void>;
@@ -42,6 +45,7 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
     alerts: [],
     alertLevels: [],
     summary: null,
+    globalSummary: null,
     hostMetrics: null,
     mysqlMetrics: null,
     mongodbMetrics: null,
@@ -77,6 +81,15 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
             set({ summary, loading: false });
         } catch (err: any) {
             set({ error: err.message, loading: false });
+        }
+    },
+
+    fetchGlobalSummary: async () => {
+        try {
+            const globalSummary = await getGlobalSummary();
+            set({ globalSummary });
+        } catch (err: any) {
+            console.error('Error fetching global summary:', err);
         }
     },
 

@@ -18,6 +18,13 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - Flujo de registro y gestión de perfil de usuario.
 - Rutas protegidas y manejo de tokens JWT.
 
+### 📊 Monitoreo Real-Time (Live Cache)
+- **Arquitectura de Bajo Latencia**: El sistema consulta directamente la memoria RAM del backend (`LIVE_METRICS_CACHE`) para mostrar métricas instantáneas sin sobrecargar la base de datos PostgreSQL.
+- **Polling Inteligente**: Actualización automática de salud (CPU, RAM, Disco) cada 15 segundos.
+- **Global Summary**: Dashboard con indicadores consolidados de servidores Sanos, Críticos y Desactualizados.
+- **Control del Scheduler**: Los administradores pueden activar o pausar el motor de monitoreo SSH globalmente desde la Sidebar o el Dashboard.
+- **Alertas Visuales**: Notificación inmediata en UI si el uso de hardware supera el umbral crítico (>90%).
+
 ### 🏗️ Gestión de Inventario (Infraestructura)
 - **Dashboard Estandarizado**: Panel principal rediseñado con filtros en tiempo real, KPI de salud de flota, ordenamiento por criticidad y soporte para vista de lista o cuadrícula.
 - **Wizard de Registro de Servidores**: Asistente único paso a paso para dar de alta datos técnicos, alcance de monitoreo y credenciales sin salir del flujo.
