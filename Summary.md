@@ -16,9 +16,14 @@
 ## 3. UI/UX y Branding
 - **Modelo de Página Estandarizado**: Aplicación del esquema `[Titulo][Métricas][Acciones][Listas]` en los nuevos módulos para máxima consistencia.
 - **Identidad Visual**: Integración del logo corporativo en el portal de acceso y registro (ajuste de tamaños y sombreados para modo oscuro).
-- **Correcciones Técnicas**:
-  - Limpieza de advertencias de React 19/MUI 9 relacionadas con la sanitización de props en componentes `Stack` y `ListItemText`.
-  - Resolución de errores de referencia de componentes en `App.tsx` y `Sidebar.tsx`.
+- **Configuración de Red y CORS**:
+  - Habilitación de acceso por red local (`0.0.0.0`) y `allowedHosts`.
+  - Configuración de proxy en Vite para redireccionar `/api` al backend local, eliminando problemas de CORS.
+  - Actualización de variables de entorno para usar rutas relativas.
+
+## 4. Correcciones Técnicas
+- Limpieza de advertencias de React 19/MUI 9 relacionadas con la sanitización de props en componentes `Stack` y `ListItemText`.
+- Resolución de errores de referencia de componentes en `App.tsx` y `Sidebar.tsx`.
 
 ---
 

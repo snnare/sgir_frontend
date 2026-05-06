@@ -7,5 +7,13 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Escuchar en todas las interfaces de red
     allowedHosts: true, // Permitir conexiones desde cualquier IP/Host
+    cors: true, // Habilitar CORS para permitir peticiones desde la red
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   }
 })
