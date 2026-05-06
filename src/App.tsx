@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, Box, CircularProgress } from '@mui/material';
 import { getTheme } from './theme';
@@ -21,10 +21,13 @@ import { AddInstancePage } from './pages/AddInstancePage'
 import { AddDbmsPage } from './pages/AddDbmsPage'
 import { AddBackupPolicyPage } from './pages/AddBackupPolicyPage';
 import { AddBackupPathPage } from './pages/AddBackupPathPage';
+import { BackupPathsPage } from './pages/BackupPathsPage';
+import { EditBackupPathPage } from './pages/EditBackupPathPage';
+import { BackupDiscoveryPage } from './pages/BackupDiscoveryPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 
 // Componente para proteger rutas que requieren autenticación
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { status } = useAuthStore();
   const location = useLocation();
 
@@ -44,7 +47,7 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 };
 
 // Componente para rutas públicas (login/register) que no deben ser accesibles si ya estás logueado
-const PublicRoute = ({ children }: { children: JSX.Element }) => {
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { status } = useAuthStore();
 
   if (status === 'authenticated') {
@@ -104,6 +107,9 @@ function App() {
             <Route path="add-dbms" element={<AddDbmsPage />} />
             <Route path="add-policy" element={<AddBackupPolicyPage />} />
             <Route path="add-path" element={<AddBackupPathPage />} />
+            <Route path="backups/rutas" element={<BackupPathsPage />} />
+            <Route path="edit-path/:id" element={<EditBackupPathPage />} />
+            <Route path="backups/explorador" element={<BackupDiscoveryPage />} />
           </Route>
 
           {/* Redirección por defecto */}

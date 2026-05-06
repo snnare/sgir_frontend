@@ -218,8 +218,28 @@ export const BackupPathSchema = z.object({
     path: z.string(),
     id_tipo_almacenamiento: z.number(),
     id_estado_ruta: z.number(),
+    id_servidor: z.number().optional(),
 });
 export type BackupPath = z.infer<typeof BackupPathSchema>;
+
+export const BackupPathCreateSchema = z.object({
+    descripcion_ruta: z.string().min(1, 'La descripción es requerida'),
+    path: z.string().min(1, 'El path es requerido'),
+    id_tipo_almacenamiento: z.number().int().positive(),
+    id_estado_ruta: z.number().int().positive().default(1),
+    id_servidor: z.number().int().positive().optional(),
+});
+export type BackupPathCreateInput = z.infer<typeof BackupPathCreateSchema>;
+
+export const BackupDiscoveryResponseSchema = z.object({
+    status: z.string(),
+    servidor: z.string(),
+    ruta: z.string(),
+    archivos_fisicos_totales: z.number(),
+    peso: z.string(),
+    lista_archivos: z.array(z.string()),
+});
+export type BackupDiscoveryResponse = z.infer<typeof BackupDiscoveryResponseSchema>;
 
 export const BackupHistorySchema = z.object({
     id_respaldo: z.number(),
@@ -305,7 +325,7 @@ export const MySQLMetricsSchema = z.object({
 export type MySQLMetrics = z.infer<typeof MySQLMetricsSchema>;
 
 export const MongoDBMetricsSchema = z.object({
-    op_counters: z.record(z.any()),
+    op_counters: z.record(z.string(), z.any()),
     mem_usage: z.number(),
 });
 export type MongoDBMetrics = z.infer<typeof MongoDBMetricsSchema>;

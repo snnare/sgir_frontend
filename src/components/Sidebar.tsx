@@ -6,6 +6,7 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import SearchIcon from '@mui/icons-material/Search';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import FolderSpecialIcon from '@mui/icons-material/FolderSpecial';
+import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -209,8 +210,16 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
             <SidebarItem 
               icon={<FolderSpecialIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
               label="Rutas" 
-              to="/add-path" 
-              active={location.pathname === '/add-path'} 
+              to="/backups/rutas" 
+              active={location.pathname === '/backups/rutas'} 
+              open={isExpanded} 
+              isSubItem
+            />
+            <SidebarItem 
+              icon={<TravelExploreIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
+              label="Explorador RAW" 
+              to="/backups/explorador" 
+              active={location.pathname === '/backups/explorador'} 
               open={isExpanded} 
               isSubItem
             />

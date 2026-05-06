@@ -8,7 +8,8 @@ import {
     MongoDBMetricsSchema, type MongoDBMetrics,
     SchedulerStatusSchema, type SchedulerStatus,
     LiveMetricsSchema, type LiveMetrics,
-    GlobalSummarySchema, type GlobalSummary
+    GlobalSummarySchema, type GlobalSummary,
+    BackupDiscoveryResponseSchema, type BackupDiscoveryResponse
 } from './types';
 import { z } from 'zod';
 
@@ -74,4 +75,9 @@ export const getMySQLMetrics = async (serverId: number, credId: number): Promise
 export const getMongoDBMetrics = async (serverId: number, credId: number): Promise<MongoDBMetrics> => {
     const { data } = await api.get(`/monitoring/mongodb/${serverId}/${credId}`);
     return MongoDBMetricsSchema.parse(data);
+};
+
+export const discoverBackups = async (serverId: number, credId: number, pathId: number): Promise<BackupDiscoveryResponse> => {
+    const { data } = await api.post(`/monitoring/inventory/discover-backups-server/${serverId}/${credId}/${pathId}`);
+    return BackupDiscoveryResponseSchema.parse(data);
 };

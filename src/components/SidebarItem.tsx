@@ -56,8 +56,6 @@ export const SidebarItem = ({
       direction="row" 
       spacing={open ? 1.5 : 0} 
       onClick={handleClick}
-      alignItems="center"
-      justifyContent={open ? 'flex-start' : 'center'}
       sx={{ 
         p: 1.2, 
         pl: open && isSubItem ? 4 : 1.2, // Indentación si es sub-item y el sidebar está abierto
@@ -67,7 +65,9 @@ export const SidebarItem = ({
         color: active ? 'text.primary' : isLogout ? 'error.main' : 'text.secondary',
         bgcolor: active ? 'action.selected' : 'transparent',
         '&:hover': { bgcolor: 'action.hover' },
-        position: 'relative'
+        position: 'relative',
+        alignItems: 'center',
+        justifyContent: open ? 'flex-start' : 'center'
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
