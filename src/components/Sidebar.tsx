@@ -5,6 +5,8 @@ import BackupIcon from '@mui/icons-material/Backup';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import SearchIcon from '@mui/icons-material/Search';
 import AssignmentIcon from '@mui/icons-material/Assignment';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import FolderSpecialIcon from '@mui/icons-material/FolderSpecial';
 import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import PersonIcon from '@mui/icons-material/Person';
@@ -34,6 +36,7 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
   const { showNotification } = useNotificationStore();
   const [isHovered, setIsHovered] = useState(false);
   const [backupsExpanded, setBackupsExpanded] = useState(false);
+  const [monitoringExpanded, setMonitoringExpanded] = useState(false);
 
   // The sidebar is visually "open" if it's either pinned or hovered
   const isExpanded = pinned || isHovered;
@@ -49,6 +52,13 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
       onToggle();
     }
     setBackupsExpanded(!backupsExpanded);
+  };
+
+  const handleMonitoringToggle = () => {
+    if (!isExpanded) {
+      onToggle();
+    }
+    setMonitoringExpanded(!monitoringExpanded);
   };
 
   const handleToggleScheduler = async () => {
@@ -236,10 +246,32 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
         <SidebarItem 
           icon={<MonitorHeartIcon fontSize="small" />} 
           label="Monitoreo" 
-          to="/monitoreo" 
+          onClick={handleMonitoringToggle}
           active={location.pathname.startsWith('/monitoreo')} 
           open={isExpanded} 
+          hasChildren
+          expanded={monitoringExpanded}
         />
+        <Collapse in={isExpanded && monitoringExpanded} timeout="auto" unmountOnExit>
+          <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+            <SidebarItem 
+              icon={<ListAltIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
+              label="Logs" 
+              to="/monitoreo/logs" 
+              active={location.pathname === '/monitoreo/logs'} 
+              open={isExpanded} 
+              isSubItem
+            />
+            <SidebarItem 
+              icon={<NotificationsActiveIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
+              label="Alertas" 
+              to="/monitoreo/alertas" 
+              active={location.pathname === '/monitoreo/alertas'} 
+              open={isExpanded} 
+              isSubItem
+            />
+          </Stack>
+        </Collapse>
       </Stack>
 
       {/* Footer / User Profile & Logout */}

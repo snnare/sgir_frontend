@@ -25,6 +25,8 @@ import { AddBackupPathPage } from './pages/AddBackupPathPage';
 import { BackupPathsPage } from './pages/BackupPathsPage';
 import { EditBackupPathPage } from './pages/EditBackupPathPage';
 import { BackupDiscoveryPage } from './pages/BackupDiscoveryPage';
+import { MonitoringLogsPage } from './pages/MonitoringLogsPage';
+import { MonitoringAlertsPage } from './pages/MonitoringAlertsPage';
 import { DashboardLayout } from './layouts/DashboardLayout';
 
 // Componente para proteger rutas que requieren autenticación
@@ -112,6 +114,8 @@ function App() {
             <Route path="backups/rutas" element={<BackupPathsPage />} />
             <Route path="edit-path/:id" element={<EditBackupPathPage />} />
             <Route path="backups/explorador" element={<BackupDiscoveryPage />} />
+            <Route path="monitoreo/logs" element={<MonitoringLogsPage />} />
+            <Route path="monitoreo/alertas" element={<MonitoringAlertsPage />} />
           </Route>
 
           {/* Redirección por defecto */}

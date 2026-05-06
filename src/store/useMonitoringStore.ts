@@ -3,12 +3,14 @@ import {
     getAlertsByServer, getAlertLevels, getMonitoringSummary, 
     getHostMetrics, getMySQLMetrics, getMongoDBMetrics,
     getSchedulerStatus, pauseScheduler, resumeScheduler, getLiveMetrics,
-    getGlobalSummary
+    getGlobalSummary, getMonitoringSessions, getMonitoringStatus,
+    getAlerts
 } from '../api/monitoringService';
 import type { 
     Alert, AlertLevel, MonitoringSummary, 
     HostMetrics, MySQLMetrics, MongoDBMetrics,
-    SchedulerStatus, LiveMetrics, GlobalSummary
+    SchedulerStatus, LiveMetrics, GlobalSummary,
+    MonitoringSession, MonitoringSessionDetail
 } from '../api/types';
 
 interface MonitoringState {
@@ -21,16 +23,23 @@ interface MonitoringState {
     mongodbMetrics: MongoDBMetrics | null;
     schedulerStatus: SchedulerStatus | null;
     liveMetrics: Record<number, LiveMetrics>; // Store live metrics per server ID
+    sessions: MonitoringSession[];
+    sessionDetail: MonitoringSessionDetail | null;
     loading: boolean;
     error: string | null;
 
     fetchAlertsByServer: (serverId: number) => Promise<void>;
+    fetchAlerts: () => Promise<void>;
     fetchAlertLevels: () => Promise<void>;
     fetchSummary: (serverId: number) => Promise<void>;
     fetchGlobalSummary: () => Promise<void>;
     fetchHostMetrics: (serverId: number, credId: number) => Promise<void>;
     fetchMySQLMetrics: (serverId: number, credId: number) => Promise<void>;
     fetchMongoDBMetrics: (serverId: number, credId: number) => Promise<void>;
+    
+    // History Actions
+    fetchMonitoringSessions: () => Promise<void>;
+    fetchMonitoringDetail: (id: number) => Promise<void>;
     
     // Scheduler Actions
     fetchSchedulerStatus: () => Promise<void>;
@@ -51,6 +60,8 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
     mongodbMetrics: null,
     schedulerStatus: null,
     liveMetrics: {},
+    sessions: [],
+    sessionDetail: null,
     loading: false,
     error: null,
 
@@ -58,6 +69,16 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
         set({ loading: true, error: null });
         try {
             const alerts = await getAlertsByServer(serverId);
+            set({ alerts, loading: false });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+        }
+    },
+
+    fetchAlerts: async () => {
+        set({ loading: true, error: null });
+        try {
+            const alerts = await getAlerts();
             set({ alerts, loading: false });
         } catch (err: any) {
             set({ error: err.message, loading: false });
@@ -118,6 +139,26 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
         try {
             const mongodbMetrics = await getMongoDBMetrics(serverId, credId);
             set({ mongodbMetrics, loading: false });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+        }
+    },
+
+    fetchMonitoringSessions: async () => {
+        set({ loading: true, error: null });
+        try {
+            const sessions = await getMonitoringSessions();
+            set({ sessions, loading: false });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+        }
+    },
+
+    fetchMonitoringDetail: async (id: number) => {
+        set({ loading: true, error: null });
+        try {
+            const sessionDetail = await getMonitoringStatus(id);
+            set({ sessionDetail, loading: false });
         } catch (err: any) {
             set({ error: err.message, loading: false });
         }

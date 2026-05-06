@@ -340,6 +340,28 @@ export const MonitoringSessionSchema = z.object({
 });
 export type MonitoringSession = z.infer<typeof MonitoringSessionSchema>;
 
+export const MetricTypeSchema = z.object({
+    id_tipo_metrica: z.number(),
+    nombre_metrica: z.string(),
+    unidad_medida: z.string(),
+});
+export type MetricType = z.infer<typeof MetricTypeSchema>;
+
+export const MetricSchema = z.object({
+    id_metrica: z.number(),
+    valor: z.number(),
+    fecha_recoleccion: z.string(),
+    id_monitoreo: z.number(),
+    id_tipo_metrica: z.number(),
+    tipo: MetricTypeSchema.optional(),
+});
+export type Metric = z.infer<typeof MetricSchema>;
+
+export const MonitoringSessionDetailSchema = MonitoringSessionSchema.extend({
+    metrics: z.array(MetricSchema),
+});
+export type MonitoringSessionDetail = z.infer<typeof MonitoringSessionDetailSchema>;
+
 export const MonitoringCreateSchema = z.object({
     id_servidor: z.number().int().positive(),
     id_estado_monitoreo: z.number().int().positive().default(1),

@@ -13,14 +13,24 @@ import {
 } from './types';
 import { z } from 'zod';
 
+export const getAlerts = async (): Promise<Alert[]> => {
+    const { data } = await api.get('/alertas/');
+    return z.array(AlertSchema).parse(data);
+};
+
 export const getAlertsByServer = async (serverId: number): Promise<Alert[]> => {
     const { data } = await api.get(`/alertas/servidor/${serverId}`);
     return z.array(AlertSchema).parse(data);
 };
 
-export const getMonitoringStatus = async (id: number): Promise<any> => {
+export const getMonitoringStatus = async (id: number): Promise<MonitoringSessionDetail> => {
     const { data } = await api.get(`/monitoreo/${id}`);
-    return data;
+    return MonitoringSessionDetailSchema.parse(data);
+};
+
+export const getMonitoringSessions = async (): Promise<MonitoringSession[]> => {
+    const { data } = await api.get('/monitoreo/');
+    return z.array(MonitoringSessionSchema).parse(data);
 };
 
 export const createMonitoringSession = async (monitoringData: MonitoringCreateInput): Promise<MonitoringSession> => {
