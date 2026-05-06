@@ -24,16 +24,21 @@ export const RegisterPage = () => {
                         width: '100%',
                     }}
                 >
-                    {/* Icono minimalista con el color primary definido en el theme */}
-                    <Avatar sx={{ m: 1, bgcolor: 'text.primary', color: 'background.paper', width: 48, height: 48 }}>
-                        <AppRegistrationIcon />
-                    </Avatar>
+                    {/* Logo Oficial SGIR */}
+                    <Box 
+                        component="img"
+                        src="/sgir-logo.png"
+                        alt="SGIR Logo"
+                        sx={{ 
+                            width: 180, 
+                            height: 'auto', 
+                            mb: 3,
+                            filter: (theme) => theme.palette.mode === 'dark' ? 'drop-shadow(0 0 8px rgba(255,255,255,0.1))' : 'none'
+                        }}
+                    />
 
-                    <Typography component="h1" variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
-                        Registro SGIR
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
-                        Plataforma de Gestión de Infraestructura y Respaldos
+                    <Typography component="h1" variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
+                        Registro
                     </Typography>
 
                     <RegisterForm />

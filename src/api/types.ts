@@ -330,6 +330,22 @@ export const MongoDBMetricsSchema = z.object({
 });
 export type MongoDBMetrics = z.infer<typeof MongoDBMetricsSchema>;
 
+// --- Monitoreo CRUD ---
+export const MonitoringSessionSchema = z.object({
+    id_monitoreo: z.number(),
+    id_servidor: z.number(),
+    id_estado_monitoreo: z.number(),
+    fecha_inicio: z.string().optional(),
+    fecha_fin: z.string().nullable().optional(),
+});
+export type MonitoringSession = z.infer<typeof MonitoringSessionSchema>;
+
+export const MonitoringCreateSchema = z.object({
+    id_servidor: z.number().int().positive(),
+    id_estado_monitoreo: z.number().int().positive().default(1),
+});
+export type MonitoringCreateInput = z.infer<typeof MonitoringCreateSchema>;
+
 // --- Auditoría ---
 export const AuditLogSchema = z.object({
     id_bitacora: z.number(),

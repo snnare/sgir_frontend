@@ -32,8 +32,21 @@ export const AddServerPage = () => {
     setActiveStep(1);
   };
 
-  const handleScopeSelect = (selectedScope: MonitoringScope) => {
+  const handleScopeSelect = async (selectedScope: MonitoringScope) => {
     setScope(selectedScope);
+    
+    // Si elige cualquier tipo de monitoreo, creamos la sesión
+    if (serverId) {
+      try {
+        await createMonitoringSession({
+          id_servidor: serverId,
+          id_estado_monitoreo: 1 // Activo por defecto
+        });
+      } catch (error) {
+        console.error('Error creating monitoring session:', error);
+      }
+    }
+    
     setActiveStep(2);
   };
 

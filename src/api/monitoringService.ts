@@ -23,6 +23,11 @@ export const getMonitoringStatus = async (id: number): Promise<any> => {
     return data;
 };
 
+export const createMonitoringSession = async (monitoringData: MonitoringCreateInput): Promise<MonitoringSession> => {
+    const { data } = await api.post('/monitoreo/', monitoringData);
+    return MonitoringSessionSchema.parse(data);
+};
+
 export const getAlertLevels = async (): Promise<AlertLevel[]> => {
     const { data } = await api.get('/nivel-alerta/');
     return z.array(AlertLevelSchema).parse(data);

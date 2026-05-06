@@ -181,7 +181,7 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
         />
         <SidebarItem 
           icon={<SearchIcon fontSize="small" />} 
-          label="Activos" 
+          label="Buscar Activos" 
           to="/activos" 
           active={location.pathname.startsWith('/activos')} 
           open={isExpanded} 

@@ -23,18 +23,18 @@ export const LoginPage = () => {
             width: '100%',
           }}
         >
-          {/* Marcador de texto para el Icono de SGIR */}
-          <Typography 
-            variant="h4" 
+          {/* Logo Oficial SGIR */}
+          <Box 
+            component="img"
+            src="/sgir-logo.png"
+            alt="SGIR Logo"
             sx={{ 
-              fontWeight: 800, 
-              mb: 3, 
-              letterSpacing: '-0.05em',
-              color: 'text.primary'
+              width: 200, 
+              height: 'auto', 
+              mb: 3,
+              filter: (theme) => theme.palette.mode === 'dark' ? 'drop-shadow(0 0 8px rgba(255,255,255,0.1))' : 'none'
             }}
-          >
-            SGIR
-          </Typography>
+          />
 
           <Typography component="h1" variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
             Bienvenido

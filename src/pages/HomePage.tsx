@@ -20,6 +20,7 @@ import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutlined';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import { MetricCard } from '../components/MetricCard';
 import { ServerCard } from '../components/ServerCard';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
@@ -109,6 +110,10 @@ export const HomePage = () => {
   };
 
   const isAdmin = user?.id_rol === 1;
+
+  const totalAlerts = useMemo(() => {
+    return Object.values(liveMetrics).filter(m => m.alerta).length;
+  }, [liveMetrics]);
 
   const filteredServers = useMemo(() => {
     const priorityMap: Record<string, number> = {
@@ -233,16 +238,16 @@ export const HomePage = () => {
         <MetricCard 
           title="Críticos" 
           value={globalSummary?.criticos ?? 0} 
-          unit="Alertas" 
+          unit="Nodos" 
           percent={servers.length > 0 ? ((globalSummary?.criticos ?? 0) / servers.length) * 100 : 0} 
           icon={<ReportProblemIcon fontSize="small" sx={{ color: '#ef4444' }} />} 
         />
         <MetricCard 
-          title="Desactualizados" 
-          value={globalSummary?.desactualizados ?? 0} 
-          unit="Offline" 
-          percent={servers.length > 0 ? ((globalSummary?.desactualizados ?? 0) / servers.length) * 100 : 0} 
-          icon={<HelpOutlineIcon fontSize="small" sx={{ color: 'text.secondary' }} />} 
+          title="Alertas" 
+          value={totalAlerts} 
+          unit="Activas" 
+          percent={servers.length > 0 ? (totalAlerts / servers.length) * 100 : 0} 
+          icon={<ReportProblemIcon fontSize="small" sx={{ color: '#f59e0b' }} />} 
         />
       </Box>
 
@@ -309,7 +314,7 @@ export const HomePage = () => {
                 '&:hover': { bgcolor: 'grey.800' }
               }}
             >
-              Nuevo Activo
+              Agregar Servidor
             </Button>
           </Stack>
         </Stack>
