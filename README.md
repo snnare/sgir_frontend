@@ -18,27 +18,23 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - Flujo de registro y gestión de perfil de usuario.
 - Rutas protegidas y manejo de tokens JWT.
 
-### 📊 Monitoreo Real-Time (Live Cache)
-- **Arquitectura de Bajo Latencia**: El sistema consulta directamente la memoria RAM del backend (`LIVE_METRICS_CACHE`) para mostrar métricas instantáneas sin sobrecargar la base de datos PostgreSQL.
-- **Polling Inteligente**: Actualización automática de salud (CPU, RAM, Disco) cada 15 segundos.
-- **Global Summary**: Dashboard con indicadores consolidados de servidores Sanos, Críticos y Desactualizados.
-- **Control del Scheduler**: Los administradores pueden activar o pausar el motor de monitoreo SSH globalmente desde la Sidebar o el Dashboard.
-- **Alertas Visuales**: Notificación inmediata en UI si el uso de hardware supera el umbral crítico (>90%).
+### 📊 Monitoreo Real-Time e Histórico
+- **Arquitectura de Bajo Latencia**: Consulta directa a la RAM del backend para métricas instantáneas.
+- **Global Summary**: Dashboard con indicadores de servidores Sanos, Críticos y Alertas Activas.
+- **Explorador de Logs**: Historial de sesiones de monitoreo con detalle de métricas que superaron el umbral crítico (>90%).
+- **Centro de Alertas**: Panel centralizado de incidencias con clasificación por severidad (Crítico a Bajo) y seguimiento de estado.
+- **Control del Scheduler**: Gestión global del motor de monitoreo SSH desde la Sidebar.
 
-### 🏗️ Gestión de Inventario (Infraestructura)
-- **Dashboard Estandarizado**: Panel principal rediseñado con filtros en tiempo real, KPI de salud de flota, ordenamiento por criticidad y soporte para vista de lista o cuadrícula.
-- **Wizard de Registro de Servidores**: Asistente único paso a paso para dar de alta datos técnicos, alcance de monitoreo y credenciales sin salir del flujo.
-- **Gestión Completa**: Capacidad de editar y eliminar servidores directamente desde la interfaz con actualización en vivo.
-- **Importación Masiva**: Motor de carga vía CSV (endpoint `/servidores/import-bulk`) con soporte para:
-  - Definición de **múltiples particiones** por servidor.
-  - Alta simultánea de **instancias de bases de datos** y credenciales.
-  - Consolidación por IP (Upsert automático).
-  - Traducción de catálogos y cifrado AES-256 de credenciales.
-  - **Diagnóstico avanzado**: Resumen detallado de filas procesadas y reporte de errores en UI.
+### 🏗️ Gestión de Inventario y Activos
+- **Buscador de Activos**: Herramienta de localización rápida de instancias de bases de datos con filtros por motor (MySQL, Oracle, MongoDB).
+- **Gestión de Rutas**: Módulo completo (CRUD) para administrar destinos de respaldo vinculados a servidores específicos.
+- **Wizard de Registro**: Asistente de 4 pasos que integra datos técnicos, alcance, credenciales y activación automática de monitoreo.
+- **Importación Masiva**: Motor de carga vía CSV con soporte multi-partición e instancias.
 
 ### 🎨 Experiencia de Usuario (UI/UX)
-- Implementación de un patrón de diseño global (`UI_PATTERN.md`).
-- **Sidebar Inteligente** con auto-hide (hover para expandir) y submenús colapsables para mantener una interfaz limpia.
+- **Modelo de Diseño Estandarizado**: Estructura de páginas consistente: `[Título] > [Métricas] > [Acciones] > [Listados]`.
+- **Branding Oficial**: Integración de identidad visual corporativa en Login, Registro y Navegación.
+- **Sidebar Inteligente**: Menús colapsables para Backups y Monitoreo con auto-hide.
 
 ## 📥 Kit de Importación
 El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que contiene la plantilla técnica oficial y el manual de instrucciones para asegurar la integridad de los datos importados.
