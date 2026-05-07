@@ -16,25 +16,27 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - Login con persistencia extendida ("Recuérdame").
 - **Toggle de visibilidad de contraseña** en Login y Registro.
 - Flujo de registro y gestión de perfil de usuario.
-- Rutas protegidas y manejo de tokens JWT.
+- Rutas protegidas con inyección automática de tokens JWT.
+- Manejo proactivo de sesiones expiradas (Auto-logout en 401).
 
 ### 📊 Monitoreo Real-Time e Histórico
-- **Arquitectura de Bajo Latencia (Live Cache)**: Consulta masiva a la memoria RAM del backend (`/live-cache`) para obtener métricas instantáneas de todos los servidores en una sola petición.
-- **Global Summary (Cálculo Local)**: KPIs de salud (Sanos, Críticos, Alertas) calculados dinámicamente en el cliente para máxima velocidad.
+- **Arquitectura de Bajo Latencia (Live Cache)**: Consulta masiva a la memoria RAM del backend (`/live-cache`) con soporte para formatos comprimidos de métricas para alto rendimiento.
+- **Normalización de Salud (Health Status)**: Clasificación de estados unificada (Sano, Crítico, Desactualizado, Desconocido).
 - **Explorador de Logs**: Historial de sesiones de monitoreo con detalle de métricas que superaron el umbral crítico (>90%).
-- **Centro de Alertas**: Panel centralizado de incidencias con clasificación por severidad (Crítico a Bajo) y seguimiento de estado.
-- **Control del Scheduler**: Gestión global del motor de monitoreo SSH desde la Sidebar.
+- **Centro de Alertas**: Panel centralizado de incidencias con clasificación por severidad y seguimiento de estado.
+- **Control del Scheduler**: Gestión global del motor de monitoreo SSH con estados de ejecución en tiempo real (Running, Paused, Stopped).
 
 ### 🏗️ Gestión de Inventario y Activos
-- **Buscador de Activos**: Herramienta de localización rápida de instancias de bases de datos con filtros por motor (MySQL, Oracle, MongoDB).
-- **Diagnóstico Rápido (Quick Ping)**: Validación ICMP integrada en la búsqueda y registro para verificar la alcanzabilidad de los activos.
-- **Gestión de Rutas**: Módulo completo (CRUD) para administrar destinos de respaldo vinculados a servidores específicos.
-- **Wizard de Registro con Validación Dual**: Asistente de 4 pasos que integra validación administrativa (DB) y técnica (Ping) antes del registro.
+- **Buscador de Activos**: Herramienta de localización rápida de instancias de bases de datos con filtros por motor.
+- **Diagnóstico Rápido (Quick Ping)**: Validación ICMP integrada para verificar alcanzabilidad de red y latencia.
+- **Módulo de Políticas**: Gestión completa (CRUD) de reglas de respaldo automatizado (Frecuencia, Retención, Tipo).
+- **Gestión de Rutas**: Administración de destinos de respaldo vinculados a servidores específicos.
+- **Wizard de Registro**: Asistente de 4 pasos para el alta técnica y administrativa de nuevos servidores.
 
 ### 🎨 Experiencia de Usuario (UI/UX)
-- **Modelo de Diseño Estandarizado**: Estructura de páginas consistente: `[Título] > [Métricas] > [Acciones] > [Listados]`.
-- **Branding Oficial**: Integración de identidad visual corporativa en Login, Registro y Navegación.
-- **Sidebar Inteligente**: Menús colapsables para Backups y Monitoreo con auto-hide.
+- **Dashboard Dinámico**: Visualización de KPIs globales y tarjetas de servidor con métricas de hardware (CPU, RAM, Disco) en tiempo real.
+- **Branding Oficial**: Integración de identidad visual corporativa en todo el portal.
+- **Sidebar Inteligente**: Menús colapsables y control global del monitoreo integrado.
 
 ## 📥 Kit de Importación
 El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que contiene la plantilla técnica oficial y el manual de instrucciones para asegurar la integridad de los datos importados.
@@ -54,7 +56,3 @@ El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que c
 
 ---
 Diseñado para la eficiencia operativa y la seguridad de datos.
-
-│    ↳ main                          59     2,818,084     1,806,672        30,641                                                                                                      │
-│  To resume this session: gemini --resume 4cea2629-3d01-466c-8773-172265310bdf                                                                                                        │
-╰────────────────────────────────────────────────────────────────────────────────────────────

@@ -1,45 +1,38 @@
 # Resumen de Cambios - Proyecto SGIR Frontend
 
-**ID de Sesión para Continuar:** `SGIR-SESSION-2026-05-05-MONITORING-REFACTOR`
+**ID de Sesión:** `SGIR-SESSION-2026-05-07-MONITORING-POLICIES-REFACTOR`
 
-## 1. Módulos de Monitoreo y Auditoría (Nuevo)
-- **Centro de Alertas**: Implementación de la vista global de alertas (`MonitoringAlertsPage`) con clasificación por severidad (Triángulo Rojo/Amarillo) y estado (Pendiente/Resuelta).
-- **Explorador de Logs**: Nueva interfaz de historial (`MonitoringLogsPage`) que permite consultar sesiones de monitoreo pasadas y visualizar métricas críticas persistidas (CPU/RAM/Disco > 90%).
-- **Optimización Live Cache**: 
-  - Se reemplazó el polling individual por servidor por una consulta masiva a `/monitoring/host/live-cache`.
-  - Los KPIs del Dashboard (Sanos, Críticos, Alertas) ahora se calculan localmente en el frontend para reducir la carga del backend.
-  - Eliminación de dependencia del endpoint `global-summary`.
-- **Auto-Activación**: Integración de creación automática de sesiones de monitoreo al finalizar el paso de "Alcance" en el Wizard de registro.
+## 1. Módulos de Monitoreo y Salud (Actualizado)
+- **Refactorización Live Cache**: 
+  - Implementación de un parser inteligente en el frontend para manejar el formato comprimido del backend (`status|last_check|is_stale|cpu|ram|disks|uptime|timestamp`).
+  - Normalización automática de datos: el sistema acepta ahora múltiples formatos (JSON estructurado, String comprimido, Métricas directas) garantizando la estabilidad de la UI.
+  - Los KPIs del Dashboard ahora se calculan en base al inventario cargado vs el caché de salud real.
+- **Sincronización de Estados**: Integración de los estados `healthy`, `critical`, `stale` y `unknown` en las tarjetas de servidor (`ServerCard`).
+- **Control del Scheduler**: Actualización de los endpoints de gestión del motor SSH (`/pause`, `/resume`, `/status`) con soporte para el nuevo estado `stopped`.
 
-## 2. Inventario y Backups
-- **Buscador de Activos**: Creación del módulo `SearchAssetsPage` para localizar instancias de BD con filtros rápidos por motor (Oracle, MySQL, MongoDB).
-- **CRUD de Rutas**: Refactorización completa de la gestión de rutas de respaldo a un formato de tabla profesional agrupada por IP de servidor, incluyendo acciones de Editar y Eliminar.
-- **Explorador RAW**: Implementación de la herramienta de descubrimiento SSH para archivos físicos en el servidor remoto.
+## 2. Inventario y Backups (Nuevo Módulo)
+- **Gestión de Políticas de Respaldo**: 
+  - Creación del módulo completo CRUD para políticas de respaldo.
+  - Interfaz de listado (`BackupPoliciesPage`) con métricas de frecuencia y retención promedio.
+  - Formulario estandarizado (`BackupPolicyForm`) con validación Zod y `react-hook-form`.
+- **Diagnóstico Quick Ping**: Actualización del servicio de ping para manejar la respuesta booleana del backend y mostrar el estado de alcanzabilidad en el Dashboard y Wizard de Registro.
 
-## 3. UI/UX y Branding
-- **Modelo de Página Estandarizado**: Aplicación del esquema `[Titulo][Métricas][Acciones][Listas]` en los nuevos módulos para máxima consistencia.
-- **Identidad Visual**: Integración del logo corporativo en el portal de acceso y registro (ajuste de tamaños y sombreados para modo oscuro).
-- **Configuración de Red y CORS**:
-  - Habilitación de acceso por red local (`0.0.0.0`) y `allowedHosts`.
-  - Configuración de proxy en Vite para redireccionar `/api` al backend local, eliminando problemas de CORS.
-  - Actualización de variables de entorno para usar rutas relativas.
-- **Validación Dual de Activos (Nuevo)**:
-  - Integración de botón "Check" en el Dashboard y en el **Wizard de Registro**.
-  - Realiza dos validaciones simultáneas: disponibilidad administrativa (DB) y conectividad técnica (ICMP Ping).
-  - Proporciona feedback diferenciado si el servidor está disponible pero es inalcanzable.
+## 3. Seguridad y API Client
+- **Interceptor de Autenticación**: Refactorización de `client.ts` para obtener el token dinámicamente del store de Zustand.
+- **Manejo de Sesiones**: Implementación de auto-logout proactivo ante errores 401 (Token expirado/inválido).
+- **Silent Errors**: Se silenciaron los logs de consola para errores 404 controlados (como la verificación de IP disponible) para mantener una consola limpia.
 
-## 4. Correcciones Técnicas y Optimización
-- **Optimización Live Cache**: Se implementó una lógica de polling masivo con **Fallback Automático**. Si el caché global está vacío, el sistema consulta métricas individuales para garantizar la visibilidad de datos.
-- **Validación ICMP**: Implementación de `pingServer` para diagnósticos rápidos de red.
-- **Proxy Vite**: Configuración de red local y bypass de CORS para acceso multi-dispositivo.
-- **Debug Logs**: Inclusión de trazas en consola para monitorear el flujo de métricas en tiempo real.
+## 4. Mejoras UI/UX
+- **Visualización de Métricas**: Las tarjetas de servidor ahora muestran barras de progreso reales para CPU, RAM y Disco obtenidas del `live-cache`.
+- **Tooltip Fixes**: Se corrigieron advertencias de MUI sobre Tooltips aplicados a elementos deshabilitados mediante el uso de wrappers `Box`.
+- **Dashboard Cleanup**: Eliminación de logs redundantes de consola en producción simulada.
 
 ---
 
 ### 🟢 ¿Dónde nos quedamos?
-La arquitectura de monitoreo ha sido optimizada para alto rendimiento mediante **Live Cache** y cuenta con herramientas de diagnóstico rápidas (**Quick Ping**). El sistema ya es accesible desde la red local y los KPIs del Dashboard son totalmente dinámicos.
+La arquitectura de monitoreo es ahora totalmente compatible con el backend optimizado de bajo consumo. El módulo de políticas de respaldo está 100% funcional y la comunicación con la API es más segura y robusta.
 
 ### 🟡 ¿Qué falta por hacer?
-- **Módulo de Políticas**: Construir la vista de gestión de políticas de respaldo bajo el nuevo estándar de tabla.
-- **Detalle de Servidor**: Ampliar la vista individual de servidor para incluir gráficas históricas de las métricas persistidas en la base de datos.
-- **Reportes**: Generación de reportes PDF/CSV basados en los logs de monitoreo y efectividad de respaldos.
+- **Módulo de Expiración**: Implementar la lógica para gestionar el ciclo de vida de los respaldos y la purga de archivos antiguos.
+- **Detalle de Servidor**: Ampliar la vista individual con gráficas históricas de las métricas persistidas.
+- **Reportes**: Generación de informes PDF/CSV basados en salud y efectividad de respaldos.
