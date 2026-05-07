@@ -7,9 +7,12 @@ import {
     MySQLMetricsSchema, type MySQLMetrics, 
     MongoDBMetricsSchema, type MongoDBMetrics,
     SchedulerStatusSchema, type SchedulerStatus,
-    LiveMetricsSchema, type LiveMetrics,
+    HealthStatusSchema, type HealthStatus,
     GlobalSummarySchema, type GlobalSummary,
-    BackupDiscoveryResponseSchema, type BackupDiscoveryResponse
+    BackupDiscoveryResponseSchema, type BackupDiscoveryResponse,
+    MonitoringSessionSchema, type MonitoringSession,
+    MonitoringSessionDetailSchema, type MonitoringSessionDetail,
+    type MonitoringCreateInput
 } from './types';
 import { z } from 'zod';
 
@@ -77,9 +80,14 @@ export const getGlobalSummary = async (): Promise<GlobalSummary> => {
     return GlobalSummarySchema.parse(data);
 };
 
-export const getLiveMetrics = async (serverId: number): Promise<LiveMetrics> => {
+export const getHealthStatus = async (serverId: number): Promise<HealthStatus> => {
     const { data } = await api.get(`/monitoring/host/health-status/${serverId}`);
-    return LiveMetricsSchema.parse(data);
+    return HealthStatusSchema.parse(data);
+};
+
+export const getLiveCache = async (): Promise<Record<number, HealthStatus>> => {
+    const { data } = await api.get('/monitoring/host/live-cache');
+    return data;
 };
 
 export const getMySQLMetrics = async (serverId: number, credId: number): Promise<MySQLMetrics> => {

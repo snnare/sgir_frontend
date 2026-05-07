@@ -9,7 +9,7 @@ import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useNavigate } from 'react-router-dom';
 import { ServerCreateSchema, type ServerCreateInput } from '../api/types';
-import { createServer, checkServerByIp } from '../api/infrastructureService';
+import { createServer, checkServerByIp, pingServer } from '../api/infrastructureService';
 import { useNotificationStore } from './GlobalNotification';
 import { CriticalitySelect } from './CriticalitySelect';
 import { StatusSelect } from './StatusSelect';
@@ -49,17 +49,35 @@ export const ServerForm = ({ onSuccess }: ServerFormProps) => {
 
     setChecking(true);
     try {
-      const response = await checkServerByIp(ipValue);
-      showNotification(`${response.message}: ${response.server?.nombre_servidor || 'Ya registrado'}`, 'info');
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        showNotification('La IP está disponible para registro', 'success');
-      } else if (error.response?.status === 200 || !error.response) {
-        showNotification('Esta IP ya se encuentra registrada en el sistema', 'info');
-      } else {
-        console.error('Error checking IP:', error);
-        showNotification('Error al verificar la IP', 'error');
+      // 1. Validación de Registro (DB)
+      let isRegistered = false;
+      try {
+        await checkServerByIp(ipValue);
+        isRegistered = true;
+      } catch (error: any) {
+        if (error.response?.status !== 404) {
+          throw error;
+        }
       }
+
+      if (isRegistered) {
+        showNotification('Esta IP ya se encuentra registrada en el sistema', 'error');
+        setChecking(false);
+        return;
+      }
+
+      // 2. Validación de Conectividad (Ping)
+      const isReachable = await pingServer(ipValue);
+
+      if (isReachable) {
+        showNotification('IP disponible y alcanzable (Responde al Ping)', 'success');
+      } else {
+        showNotification('IP disponible para registro, pero el servidor NO responde al ping', 'warning');
+      }
+
+    } catch (error: any) {
+      console.error('Error checking IP/Ping:', error);
+      showNotification('Error al verificar la IP o conectividad', 'error');
     } finally {
       setChecking(false);
     }

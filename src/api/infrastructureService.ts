@@ -44,6 +44,11 @@ export const checkServerByIp = async (ip: string): Promise<ServerCheckResponse> 
     return ServerCheckResponseSchema.parse(data);
 };
 
+export const pingServer = async (ip: string): Promise<boolean> => {
+    const { data } = await api.get(`/servidores/ping/${ip}`);
+    return data as boolean;
+};
+
 export const getInstancesByServer = async (serverId: number): Promise<Instance[]> => {
     const { data } = await api.get(`/instancias/servidor/${serverId}`);
     return z.array(InstanceSchema).parse(data);

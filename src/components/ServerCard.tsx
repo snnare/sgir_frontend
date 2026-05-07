@@ -6,47 +6,52 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { MetricCard } from './MetricCard';
-import { type Server, type LiveMetrics } from '../api/types';
+import { type Server, type HealthStatus } from '../api/types';
 
 interface ServerCardProps {
   server: Server;
-  liveMetrics?: LiveMetrics;
+  healthStatus?: HealthStatus;
   onEdit?: (id: number) => void;
   onDelete?: (id: number, name: string) => void;
 }
 
 export const ServerCard = ({ 
   server, 
-  liveMetrics,
+  healthStatus,
   onEdit,
   onDelete
 }: ServerCardProps) => {
-  // Mapeo de estados técnicos
-  const getStatusColor = (id: number) => {
-    switch (id) {
-      case 1: return '#22c55e'; // Online - Verde
-      case 2: return '#f59e0b'; // Warning - Ámbar
-      default: return '#ef4444'; // Offline - Rojo
+  // Mapeo de estados técnicos del backend
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'healthy': return '#22c55e'; // Verde
+      case 'critical': return '#ef4444'; // Rojo
+      case 'stale': return '#f59e0b'; // Ámbar
+      default: return '#64748b'; // Unknown - Gris
     }
   };
 
-  const getStatusLabel = (id: number) => {
-    switch (id) {
-      case 1: return 'En línea';
-      case 2: return 'Advertencia';
-      default: return 'Desconectado';
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'healthy': return 'Sano';
+      case 'critical': return 'Crítico';
+      case 'stale': return 'Desactualizado';
+      default: return 'Desconocido';
     }
   };
 
   // Extraer datos vivos o usar valores por defecto (0)
-  const metrics = liveMetrics?.live_data || {
+  const metrics = healthStatus?.live_metrics || {
     cpu: 0,
     ram: 0,
     disks: { '/': 0 },
     uptime: 0,
-    last_update: ''
+    timestamp: 0
   };
+
+  const status = healthStatus?.status || 'unknown';
 
   // Calcular uso de disco principal (raíz /) o el primer disco disponible
   const mainDiskUsage = metrics.disks['/'] ?? Object.values(metrics.disks)[0] ?? 0;
@@ -85,19 +90,19 @@ export const ServerCard = ({
 
         <Stack direction="row" alignItems="center" spacing={2}>
           {/* Status Indicator */}
-          <Tooltip title={getStatusLabel(server.id_estado_servidor)}>
+          <Tooltip title={getStatusLabel(status)}>
             <Box 
               sx={{ 
                 width: 12, 
                 height: 12, 
                 borderRadius: '50%', 
-                bgcolor: getStatusColor(server.id_estado_servidor),
-                boxShadow: `0 0 10px ${getStatusColor(server.id_estado_servidor)}80`,
-                animation: server.id_estado_servidor === 1 ? 'pulse 2s infinite' : 'none',
+                bgcolor: getStatusColor(status),
+                boxShadow: `0 0 10px ${getStatusColor(status)}80`,
+                animation: status === 'healthy' ? 'pulse 2s infinite' : 'none',
                 '@keyframes pulse': {
-                  '0%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.7)' },
-                  '70%': { transform: 'scale(1)', boxShadow: '0 0 0 6px rgba(34, 197, 94, 0)' },
-                  '100%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(34, 197, 94, 0)' },
+                  '0%': { transform: 'scale(0.95)', boxShadow: `0 0 0 0 ${getStatusColor(status)}b3` },
+                  '70%': { transform: 'scale(1)', boxShadow: `0 0 0 6px ${getStatusColor(status)}00` },
+                  '100%': { transform: 'scale(0.95)', boxShadow: `0 0 0 0 ${getStatusColor(status)}00` },
                 }
               }} 
             />
@@ -137,7 +142,7 @@ export const ServerCard = ({
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
             <TerminalIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
             <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase' }}>
-              Monitoreo por SSH {liveMetrics?.alerta && <Typography component="span" variant="caption" color="error.main" sx={{ ml: 1, fontWeight: 900 }}>• ALERTA</Typography>}
+              Monitoreo por SSH {status === 'critical' && <Typography component="span" variant="caption" color="error.main" sx={{ ml: 1, fontWeight: 900 }}>• ALERTA</Typography>}
             </Typography>
           </Stack>
           
@@ -200,10 +205,17 @@ export const ServerCard = ({
 
       </Stack>
       
-      {metrics.last_update && (
-        <Typography variant="caption" color="text.disabled" sx={{ mt: 2, display: 'block', textAlign: 'right', fontStyle: 'italic' }}>
-          Última actualización: {new Date(metrics.last_update).toLocaleString()}
-        </Typography>
+      {healthStatus?.last_check && (
+        <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end" sx={{ mt: 2 }}>
+          {healthStatus.is_stale && (
+            <Tooltip title="Datos desactualizados (el servidor no responde)">
+              <WarningAmberIcon sx={{ fontSize: 14, color: 'warning.main' }} />
+            </Tooltip>
+          )}
+          <Typography variant="caption" color="text.disabled" sx={{ fontStyle: 'italic' }}>
+            Visto: {new Date(healthStatus.last_check).toLocaleString()}
+          </Typography>
+        </Stack>
       )}
     </Paper>
   );

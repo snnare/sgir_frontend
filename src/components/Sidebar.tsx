@@ -162,12 +162,14 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
                 <CircularProgress size={16} color="inherit" />
               ) : (
                 <Tooltip title={schedulerStatus?.status === 'running' ? 'Pausar Monitoreo' : 'Activar Monitoreo'}>
-                  <Switch 
-                    size="small" 
-                    checked={schedulerStatus?.status === 'running'} 
-                    onChange={handleToggleScheduler}
-                    color="success"
-                  />
+                  <Box component="span" sx={{ display: 'inline-flex' }}>
+                    <Switch 
+                      size="small" 
+                      checked={schedulerStatus?.status === 'running'} 
+                      onChange={handleToggleScheduler}
+                      color="success"
+                    />
+                  </Box>
                 </Tooltip>
               )}
             </Stack>
@@ -212,8 +214,8 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
             <SidebarItem 
               icon={<AssignmentIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
               label="Políticas" 
-              to="/add-policy" 
-              active={location.pathname === '/add-policy'} 
+              to="/backups/politicas" 
+              active={location.pathname === '/backups/politicas'} 
               open={isExpanded} 
               isSubItem
             />

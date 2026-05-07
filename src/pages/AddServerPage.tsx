@@ -14,6 +14,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { ServerForm } from '../components/ServerForm';
 import { CredentialForm } from '../components/CredentialForm';
 import { BackButton } from '../components/BackButton';
+import { createMonitoringSession } from '../api/monitoringService';
 
 type MonitoringScope = 'basic' | 'database' | 'both';
 

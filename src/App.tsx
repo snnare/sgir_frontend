@@ -21,6 +21,8 @@ import { AddCredentialPage } from './pages/AddCredentialPage'
 import { AddInstancePage } from './pages/AddInstancePage'
 import { AddDbmsPage } from './pages/AddDbmsPage'
 import { AddBackupPolicyPage } from './pages/AddBackupPolicyPage';
+import { BackupPoliciesPage } from './pages/BackupPoliciesPage';
+import { EditBackupPolicyPage } from './pages/EditBackupPolicyPage';
 import { AddBackupPathPage } from './pages/AddBackupPathPage';
 import { BackupPathsPage } from './pages/BackupPathsPage';
 import { EditBackupPathPage } from './pages/EditBackupPathPage';
@@ -109,7 +111,9 @@ function App() {
             <Route path="credenciales/editar/:id" element={<EditCredentialPage />} />
             <Route path="add-instance" element={<AddInstancePage />} />
             <Route path="add-dbms" element={<AddDbmsPage />} />
+            <Route path="backups/politicas" element={<BackupPoliciesPage />} />
             <Route path="add-policy" element={<AddBackupPolicyPage />} />
+            <Route path="edit-policy/:id" element={<EditBackupPolicyPage />} />
             <Route path="add-path" element={<AddBackupPathPage />} />
             <Route path="backups/rutas" element={<BackupPathsPage />} />
             <Route path="edit-path/:id" element={<EditBackupPathPage />} />

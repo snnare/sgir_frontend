@@ -19,17 +19,17 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - Rutas protegidas y manejo de tokens JWT.
 
 ### 📊 Monitoreo Real-Time e Histórico
-- **Arquitectura de Bajo Latencia**: Consulta directa a la RAM del backend para métricas instantáneas.
-- **Global Summary**: Dashboard con indicadores de servidores Sanos, Críticos y Alertas Activas.
+- **Arquitectura de Bajo Latencia (Live Cache)**: Consulta masiva a la memoria RAM del backend (`/live-cache`) para obtener métricas instantáneas de todos los servidores en una sola petición.
+- **Global Summary (Cálculo Local)**: KPIs de salud (Sanos, Críticos, Alertas) calculados dinámicamente en el cliente para máxima velocidad.
 - **Explorador de Logs**: Historial de sesiones de monitoreo con detalle de métricas que superaron el umbral crítico (>90%).
 - **Centro de Alertas**: Panel centralizado de incidencias con clasificación por severidad (Crítico a Bajo) y seguimiento de estado.
 - **Control del Scheduler**: Gestión global del motor de monitoreo SSH desde la Sidebar.
 
 ### 🏗️ Gestión de Inventario y Activos
 - **Buscador de Activos**: Herramienta de localización rápida de instancias de bases de datos con filtros por motor (MySQL, Oracle, MongoDB).
+- **Diagnóstico Rápido (Quick Ping)**: Validación ICMP integrada en la búsqueda y registro para verificar la alcanzabilidad de los activos.
 - **Gestión de Rutas**: Módulo completo (CRUD) para administrar destinos de respaldo vinculados a servidores específicos.
-- **Wizard de Registro**: Asistente de 4 pasos que integra datos técnicos, alcance, credenciales y activación automática de monitoreo.
-- **Importación Masiva**: Motor de carga vía CSV con soporte multi-partición e instancias.
+- **Wizard de Registro con Validación Dual**: Asistente de 4 pasos que integra validación administrativa (DB) y técnica (Ping) antes del registro.
 
 ### 🎨 Experiencia de Usuario (UI/UX)
 - **Modelo de Diseño Estandarizado**: Estructura de páginas consistente: `[Título] > [Métricas] > [Acciones] > [Listados]`.
@@ -54,3 +54,7 @@ El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que c
 
 ---
 Diseñado para la eficiencia operativa y la seguridad de datos.
+
+│    ↳ main                          59     2,818,084     1,806,672        30,641                                                                                                      │
+│  To resume this session: gemini --resume 4cea2629-3d01-466c-8773-172265310bdf                                                                                                        │
+╰────────────────────────────────────────────────────────────────────────────────────────────

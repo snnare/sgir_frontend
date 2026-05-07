@@ -1,11 +1,5 @@
 import {z} from 'zod'
 
-export interface PingResponse { 
-    status: string;
-    message?: string;
-    timestamp?: string
-}
-
 // Esquema para el formulario de Login (Frontend)
 export const LoginSchema = z.object({
     email: z.string().email('Email inválido').min(1, 'El email es requerido'),
@@ -204,13 +198,23 @@ export type GeneralStatus = z.infer<typeof GeneralStatusSchema>;
 export const BackupPolicySchema = z.object({
     id_politica: z.number(),
     nombre_politica: z.string(),
-    descripcion: z.string().optional(),
+    descripcion: z.string().nullable().optional(),
     frecuencia_horas: z.number(),
     retencion_dias: z.number(),
     id_tipo_respaldo: z.number(),
     id_estado_politica: z.number(),
 });
 export type BackupPolicy = z.infer<typeof BackupPolicySchema>;
+
+export const BackupPolicyCreateSchema = z.object({
+    nombre_politica: z.string().min(1, 'El nombre es requerido'),
+    descripcion: z.string().optional(),
+    frecuencia_horas: z.coerce.number().int().positive('Debe ser mayor a 0'),
+    retencion_dias: z.coerce.number().int().positive('Debe ser mayor a 0'),
+    id_tipo_respaldo: z.number().int().positive(),
+    id_estado_politica: z.number().int().positive().default(1),
+});
+export type BackupPolicyCreateInput = z.infer<typeof BackupPolicyCreateSchema>;
 
 export const BackupPathSchema = z.object({
     id_ruta: z.number(),
@@ -257,25 +261,26 @@ export type BackupHistory = z.infer<typeof BackupHistorySchema>;
 
 // --- Monitoreo ---
 export const SchedulerStatusSchema = z.object({
-    status: z.enum(['running', 'paused']),
+    status: z.enum(['running', 'paused', 'stopped']),
     message: z.string().optional(),
 });
 
 export type SchedulerStatus = z.infer<typeof SchedulerStatusSchema>;
 
-export const LiveMetricsSchema = z.object({
-    monitoreo_id: z.number().optional(),
-    alerta: z.boolean().optional(),
-    live_data: z.object({
+export const HealthStatusSchema = z.object({
+    status: z.enum(['healthy', 'critical', 'stale', 'unknown']),
+    last_check: z.string(),
+    is_stale: z.boolean(),
+    live_metrics: z.object({
         cpu: z.number(),
         ram: z.number(),
         disks: z.record(z.string(), z.number()),
         uptime: z.number(),
-        last_update: z.string(),
+        timestamp: z.number(),
     })
 });
 
-export type LiveMetrics = z.infer<typeof LiveMetricsSchema>;
+export type HealthStatus = z.infer<typeof HealthStatusSchema>;
 
 export const GlobalSummarySchema = z.object({
     sanos: z.number(),

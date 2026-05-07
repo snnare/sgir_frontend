@@ -19,23 +19,22 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutlined';
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
 import { MetricCard } from '../components/MetricCard';
 import { ServerCard } from '../components/ServerCard';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
 import { useMonitoringStore } from '../store/useMonitoringStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { deleteServer } from '../api/infrastructureService';
+import { deleteServer, pingServer } from '../api/infrastructureService';
 import { useNotificationStore } from '../components/GlobalNotification';
 
 export const HomePage = () => {
   const navigate = useNavigate();
   const { servers, criticalities, loading, fetchServers, fetchCriticalities } = useInfrastructureStore();
   const { 
-    schedulerStatus, liveMetrics, globalSummary,
-    fetchSchedulerStatus, fetchGlobalSummary,
-    pauseMonitoring, resumeMonitoring, fetchLiveMetrics 
+    schedulerStatus, liveMetrics: healthCache,
+    fetchSchedulerStatus,
+    pauseMonitoring, resumeMonitoring, fetchLiveCache 
   } = useMonitoringStore();
   const { user } = useAuthStore();
   const { showNotification } = useNotificationStore();
@@ -43,38 +42,44 @@ export const HomePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'critical'>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [pinging, setPinging] = useState(false);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // console.log('[HomePage] Initializing dashboard data...');
     fetchServers();
     fetchCriticalities();
     fetchSchedulerStatus();
-    fetchGlobalSummary();
-  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus, fetchGlobalSummary]);
+    fetchLiveCache();
+  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus, fetchLiveCache]);
 
-  // Polling para métricas en vivo y resumen global
+  // Polling para métricas en vivo (Live Cache)
   useEffect(() => {
+    // console.log(`[HomePage] Polling setup: ${servers.length} servers, Scheduler: ${schedulerStatus?.status}`);
+    
     const startPolling = () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
 
       pollingRef.current = setInterval(() => {
         if (servers.length > 0 && schedulerStatus?.status === 'running') {
-          servers.forEach(server => fetchLiveMetrics(server.id_servidor));
-          fetchGlobalSummary();
+          // console.log('[HomePage] Polling cycle: fetching live cache...');
+          fetchLiveCache();
+        } else {
+          // console.log('[HomePage] Polling cycle skipped:', { servers: servers.length, status: schedulerStatus?.status });
         }
-      }, 15000); // Aumentado a 15s para ser menos agresivo
+      }, 15000); 
     };
 
     if (servers.length > 0) {
-      servers.forEach(server => fetchLiveMetrics(server.id_servidor));
+      fetchLiveCache();
       startPolling();
     }
 
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [servers, schedulerStatus?.status, fetchLiveMetrics, fetchGlobalSummary]);
+  }, [servers, schedulerStatus?.status, fetchLiveCache]);
 
   const handleEdit = (id: number) => {
     navigate(`/server/edit/${id}`);
@@ -109,40 +114,62 @@ export const HomePage = () => {
     }
   };
 
+  const handlePing = async () => {
+    if (!searchTerm) {
+      showNotification('Ingrese una IP o Host para realizar el ping', 'warning');
+      return;
+    }
+
+    setPinging(true);
+    try {
+      const isReachable = await pingServer(searchTerm);
+      if (isReachable) {
+        showNotification(`El servidor ${searchTerm} respondió correctamente (UP)`, 'success');
+      } else {
+        showNotification(`El servidor ${searchTerm} no responde o es inalcanzable (DOWN)`, 'error');
+      }
+    } catch (error: any) {
+      showNotification('Error al realizar el ping. Verifique el formato de la IP/Host.', 'error');
+    } finally {
+      setPinging(false);
+    }
+  };
+
   const isAdmin = user?.id_rol === 1;
 
-  const totalAlerts = useMemo(() => {
-    return Object.values(liveMetrics).filter(m => m.alerta).length;
-  }, [liveMetrics]);
+  // Calculamos el resumen global desde healthCache, filtrando por los servidores actualmente cargados
+  const stats = useMemo(() => {
+    let sanos = 0;
+    let criticos = 0;
+    let desactualizados = 0;
+
+    servers.forEach(server => {
+      const health = healthCache[server.id_servidor];
+      if (!health) return;
+      
+      if (health.status === 'healthy') sanos++;
+      else if (health.status === 'critical') criticos++;
+      else if (health.status === 'stale') desactualizados++;
+    });
+
+    return { sanos, criticos, desactualizados };
+  }, [servers, healthCache]);
 
   const filteredServers = useMemo(() => {
-    const priorityMap: Record<string, number> = {
-      'Crítico': 0,
-      'Alto': 1,
-      'Medio': 2,
-      'Bajo': 3
-    };
+    return servers.filter(server => {
+      const matchesSearch = 
+        server.nombre_servidor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        server.direccion_ip.includes(searchTerm);
+      
+      const health = healthCache[server.id_servidor];
+      const matchesStatus = 
+        statusFilter === 'all' ||
+        (statusFilter === 'online' && health?.status === 'healthy') ||
+        (statusFilter === 'critical' && health?.status === 'critical');
 
-    const getPriority = (id: number) => {
-      const crit = criticalities.find(c => c.id_nivel_criticidad === id);
-      return crit ? (priorityMap[crit.nombre_nivel] ?? 99) : 99;
-    };
-
-    return [...servers]
-      .filter(server => {
-        const matchesSearch = 
-          server.nombre_servidor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          server.direccion_ip.includes(searchTerm);
-        
-        const matchesStatus = 
-          statusFilter === 'all' || 
-          (statusFilter === 'online' && server.id_estado_servidor === 1) ||
-          (statusFilter === 'critical' && server.id_estado_servidor !== 1);
-        
-        return matchesSearch && matchesStatus;
-      })
-      .sort((a, b) => getPriority(a.id_nivel_criticidad) - getPriority(b.id_nivel_criticidad));
-  }, [servers, searchTerm, statusFilter, criticalities]);
+      return matchesSearch && matchesStatus;
+    });
+  }, [servers, searchTerm, statusFilter, healthCache]);
 
   if (loading && servers.length === 0) {
     return (
@@ -154,75 +181,78 @@ export const HomePage = () => {
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
-      {/* --- SECCIÓN 1: ENCABEZADO (TÍTULO) Y CONTROL SCHEDULER --- */}
-      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }} spacing={2}>
+      {/* --- 1. TITULO Y SCHEDULER CONTROL --- */}
+      <Stack 
+        direction={{ xs: 'column', md: 'row' }} 
+        justifyContent="space-between" 
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        sx={{ mb: 4, gap: 2 }}
+      >
         <Box>
           <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
-            Panel de Control
+            Dashboard Principal
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Estado global de activos y salud de servidores en tiempo real.
+            Resumen de salud y control global de infraestructura.
           </Typography>
         </Box>
 
-        {schedulerStatus && (
+        {isAdmin && (
           <Paper 
             elevation={0} 
             sx={{ 
               p: 1.5, 
-              borderRadius: 2, 
-              border: '1px solid', 
-              borderColor: schedulerStatus.status === 'running' ? 'success.light' : 'warning.light',
-              bgcolor: schedulerStatus.status === 'running' ? 'success.lighter' : 'warning.lighter',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2, 
+              bgcolor: schedulerStatus?.status === 'running' ? 'success.lighter' : 'warning.lighter',
+              border: '1px solid',
+              borderColor: schedulerStatus?.status === 'running' ? 'success.light' : 'warning.light',
+              borderRadius: 3
             }}
           >
-            <Box>
-              <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', lineHeight: 1 }}>
-                SCHEDULER: {schedulerStatus.status.toUpperCase()}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {schedulerStatus.status === 'running' ? 'Ciclo de monitoreo activo' : 'Monitoreo detenido'}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {schedulerStatus?.status === 'running' ? (
+                <MonitorHeartIcon color="success" sx={{ animation: 'pulse 2s infinite' }} />
+              ) : (
+                <PauseCircleIcon color="warning" />
+              )}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: schedulerStatus?.status === 'running' ? 'success.dark' : 'warning.dark' }}>
+                MONITOREO: {schedulerStatus?.status.toUpperCase() || '...'}
               </Typography>
             </Box>
-            {isAdmin && (
-              <IconButton 
-                size="small" 
-                onClick={handleToggleScheduler}
-                color={schedulerStatus.status === 'running' ? 'warning' : 'success'}
-              >
-                {schedulerStatus.status === 'running' ? <PauseCircleIcon /> : <PlayCircleIcon />}
-              </IconButton>
-            )}
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={schedulerStatus?.status === 'running' ? <PauseCircleIcon /> : <PlayCircleIcon />}
+              onClick={handleToggleScheduler}
+              sx={{ 
+                bgcolor: schedulerStatus?.status === 'running' ? 'success.dark' : 'warning.dark',
+                color: 'white',
+                '&:hover': { bgcolor: schedulerStatus?.status === 'running' ? 'success.main' : 'warning.main' }
+              }}
+            >
+              {schedulerStatus?.status === 'running' ? 'Pausar' : 'Reanudar'}
+            </Button>
           </Paper>
         )}
       </Stack>
 
-      {/* Alerta si el scheduler está pausado */}
-      {schedulerStatus?.status === 'paused' && (
-        <Alert severity="warning" sx={{ mb: 4, borderRadius: 3 }}>
-          <AlertTitle sx={{ fontWeight: 700 }}>Monitoreo Pausado</AlertTitle>
-          Las métricas mostradas en las tarjetas podrían no estar actualizadas.
-        </Alert>
-      )}
-
-      {/* --- SECCIÓN 2: MÉTRICAS DE RESUMEN (Global Summary) --- */}
+      {/* --- 2. KPI CARDS --- */}
       <Box 
         sx={{ 
           display: 'grid', 
           gridTemplateColumns: { 
             xs: '1fr', 
             sm: 'repeat(2, 1fr)', 
-            lg: 'repeat(4, 1fr)' 
+            md: 'repeat(4, 1fr)' 
           }, 
           gap: 3,
-          mb: 6
+          mb: 4
         }}
       >
         <MetricCard 
-          title="Total Servidores" 
+          title="Servidores Totales" 
           value={servers.length} 
           unit="Nodos" 
           percent={100} 
@@ -230,238 +260,193 @@ export const HomePage = () => {
         />
         <MetricCard 
           title="Sanos" 
-          value={globalSummary?.sanos ?? 0} 
-          unit="Online" 
-          percent={servers.length > 0 ? ((globalSummary?.sanos ?? 0) / servers.length) * 100 : 0} 
-          icon={<CheckCircleIcon fontSize="small" sx={{ color: '#22c55e' }} />} 
+          value={stats.sanos} 
+          unit="UP" 
+          percent={servers.length > 0 ? (stats.sanos / servers.length) * 100 : 0} 
+          color="#22c55e"
+          icon={<CheckCircleIcon fontSize="small" />} 
         />
         <MetricCard 
           title="Críticos" 
-          value={globalSummary?.criticos ?? 0} 
-          unit="Nodos" 
-          percent={servers.length > 0 ? ((globalSummary?.criticos ?? 0) / servers.length) * 100 : 0} 
-          icon={<ReportProblemIcon fontSize="small" sx={{ color: '#ef4444' }} />} 
+          value={stats.criticos} 
+          unit="ERR" 
+          percent={servers.length > 0 ? (stats.criticos / servers.length) * 100 : 0} 
+          color="#ef4444"
+          icon={<ReportProblemIcon fontSize="small" />} 
         />
         <MetricCard 
-          title="Alertas" 
-          value={totalAlerts} 
-          unit="Activas" 
-          percent={servers.length > 0 ? (totalAlerts / servers.length) * 100 : 0} 
-          icon={<ReportProblemIcon fontSize="small" sx={{ color: '#f59e0b' }} />} 
+          title="Desactualizados" 
+          value={stats.desactualizados} 
+          unit="STALE" 
+          percent={servers.length > 0 ? (stats.desactualizados / servers.length) * 100 : 0} 
+          color="#f59e0b"
+          icon={<SignalCellularAltIcon fontSize="small" />} 
         />
       </Box>
 
-      {/* --- SECCIÓN 3: ÁREA DEDICADA PARA BOTONES Y FILTROS --- */}
+      {/* --- 3. BARRA DE BUSQUEDA Y FILTROS --- */}
       <Paper 
         elevation={0} 
         sx={{ 
-          p: 2.5, 
-          mb: 5, 
-          borderRadius: 3,
-          bgcolor: 'background.paper',
-          border: '1px solid',
+          p: 2, 
+          mb: 4, 
+          borderRadius: 4, 
+          border: '1px solid', 
           borderColor: 'divider',
           display: 'flex',
-          flexDirection: 'column',
-          gap: 2.5
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: 2,
+          alignItems: 'center'
         }}
       >
-        {/* Fila Superior: Búsqueda y Acciones */}
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
-          <TextField
-            placeholder="Buscar por nombre o IP..."
-            size="small"
-            fullWidth
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ flexGrow: 1 }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-                sx: { borderRadius: 2, bgcolor: 'action.hover', border: 'none', '& fieldset': { border: 'none' } }
-              }
-            }}
-          />
-          
-          <Stack direction="row" spacing={1.5}>
-            <Tooltip title="Actualizar">
-              <IconButton onClick={() => { fetchServers(); fetchGlobalSummary(); }} disabled={loading} size="medium">
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Button
-              variant="outlined"
-              startIcon={<CloudUploadIcon />}
-              onClick={() => navigate('/bulk-upload')}
-              sx={{ borderRadius: 2, fontWeight: 600, px: 2 }}
-            >
-              Carga Masiva
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/add-server')}
-              sx={{ 
-                bgcolor: 'text.primary', 
-                color: 'background.paper',
-                borderRadius: 2,
-                px: 3,
-                fontWeight: 700,
-                '&:hover': { bgcolor: 'grey.800' }
-              }}
-            >
-              Agregar Servidor
-            </Button>
-          </Stack>
-        </Stack>
+        <TextField
+          placeholder="Buscar por IP o nombre..."
+          fullWidth
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" color="action" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ maxWidth: { md: 400 } }}
+        />
 
-        <Divider sx={{ borderStyle: 'dashed' }} />
-
-        {/* Fila Inferior: Filtros de Estado y Vista */}
-        <Stack direction="row" spacing={1} alignItems="center">
-          <FilterListIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+        <Stack direction="row" spacing={1} sx={{ flexGrow: 1, justifyContent: { xs: 'center', md: 'flex-start' } }}>
           <Chip 
-            label={`Todos (${servers.length})`} 
+            label="Todos" 
+            variant={statusFilter === 'all' ? 'filled' : 'outlined'} 
             onClick={() => setStatusFilter('all')}
-            color={statusFilter === 'all' ? 'primary' : 'default'}
-            variant={statusFilter === 'all' ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
+            sx={{ fontWeight: 700 }}
           />
           <Chip 
-            label="En Línea" 
+            label="Sanos" 
+            color="success"
+            variant={statusFilter === 'online' ? 'filled' : 'outlined'} 
             onClick={() => setStatusFilter('online')}
-            color={statusFilter === 'online' ? 'success' : 'default'}
-            variant={statusFilter === 'online' ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
+            sx={{ fontWeight: 700 }}
           />
           <Chip 
             label="Críticos" 
+            color="error"
+            variant={statusFilter === 'critical' ? 'filled' : 'outlined'} 
             onClick={() => setStatusFilter('critical')}
-            color={statusFilter === 'critical' ? 'error' : 'default'}
-            variant={statusFilter === 'critical' ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
+            sx={{ fontWeight: 700 }}
           />
-          
-          <Box sx={{ flexGrow: 1 }} />
+        </Stack>
 
-          <Stack direction="row" spacing={1} sx={{ mr: 2 }}>
-            <Tooltip title="Vista de Lista">
-              <IconButton 
-                size="small" 
-                onClick={() => setViewMode('list')}
-                color={viewMode === 'list' ? 'primary' : 'default'}
-                sx={{ bgcolor: viewMode === 'list' ? 'action.selected' : 'transparent' }}
+        <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />
+
+        <Stack direction="row" spacing={1}>
+          <Tooltip title="Vista de Lista">
+            <IconButton 
+              size="small" 
+              color={viewMode === 'list' ? 'primary' : 'default'}
+              onClick={() => setViewMode('list')}
+            >
+              <ViewListIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Vista de Cuadrícula">
+            <IconButton 
+              size="small" 
+              color={viewMode === 'grid' ? 'primary' : 'default'}
+              onClick={() => setViewMode('grid')}
+            >
+              <ViewModuleIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Realizar Ping">
+            <Box component="span">
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={pinging ? <CircularProgress size={16} /> : <TerminalIcon />}
+                onClick={handlePing}
+                disabled={pinging || !searchTerm}
+                sx={{ borderRadius: 2, fontWeight: 700 }}
               >
-                <ViewListIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Vista de Cuadrícula">
-              <IconButton 
-                size="small" 
-                onClick={() => setViewMode('grid')}
-                color={viewMode === 'grid' ? 'primary' : 'default'}
-                sx={{ bgcolor: viewMode === 'grid' ? 'action.selected' : 'transparent' }}
-              >
-                <ViewModuleIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-          
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-            Mostrando {filteredServers.length} de {servers.length} activos
-          </Typography>
+                Ping
+              </Button>
+            </Box>
+          </Tooltip>
         </Stack>
       </Paper>
 
-      {/* --- SECCIÓN 4: LISTADO DE SERVIDORES --- */}
-      {filteredServers.length > 0 ? (
-        <Stack spacing={3}>
-          <Typography variant="h6" sx={{ fontWeight: 800, mb: -1, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TerminalIcon fontSize="small" color="primary" />
-            Inventario de Servidores
+      {/* --- 4. LISTADO DE SERVIDORES --- */}
+      {filteredServers.length === 0 ? (
+        <Box sx={{ py: 10, textAlign: 'center' }}>
+          <Typography variant="h6" color="text.secondary">
+            No se encontraron servidores con los criterios de búsqueda.
           </Typography>
-          
-          <Box sx={{ 
-            display: viewMode === 'grid' ? 'grid' : 'flex',
-            flexDirection: 'column',
-            gridTemplateColumns: { 
-              sm: 'repeat(1, 1fr)', 
-              md: 'repeat(2, 1fr)', 
-              lg: 'repeat(3, 1fr)' 
-            },
-            gap: 3
-          }}>
-            {filteredServers.map((server) => (
-              <ServerCard 
-                key={server.id_servidor} 
-                server={server} 
-                liveMetrics={liveMetrics[server.id_servidor]}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-          </Box>
-        </Stack>
+          <Button 
+            variant="text" 
+            onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}
+            sx={{ mt: 2, fontWeight: 700 }}
+          >
+            Limpiar Filtros
+          </Button>
+        </Box>
       ) : (
-        /* Vista de estado vacío / No resultados */
-        <Paper 
-          elevation={0} 
+        <Box 
           sx={{ 
-            p: 8, 
-            textAlign: 'center', 
-            border: '2px dashed', 
-            borderColor: 'divider',
-            bgcolor: 'transparent',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            borderRadius: 4
+            display: 'grid', 
+            gridTemplateColumns: viewMode === 'grid' 
+              ? { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' } 
+              : '1fr', 
+            gap: 3 
           }}
         >
-          {searchTerm || statusFilter !== 'all' ? (
-            <>
-              <SearchIcon sx={{ fontSize: 48, color: 'divider', mb: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                No se encontraron resultados
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Ajusta los filtros o el término de búsqueda para encontrar lo que buscas.
-              </Typography>
-              <Button onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}>
-                Limpiar filtros
-              </Button>
-            </>
-          ) : (
-            <>
-              <MonitorHeartIcon sx={{ fontSize: 48, color: 'divider', mb: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                Sin servidores registrados
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400, mb: 4 }}>
-                Comienza registrando tu primer activo para iniciar el monitoreo de infraestructura.
-              </Typography>
-              <Button
-                variant="contained"
-                onClick={() => navigate('/add-server')}
-                sx={{ 
-                  bgcolor: 'text.primary', 
-                  color: 'background.paper',
-                  borderRadius: 2,
-                  px: 4,
-                  py: 1.2,
-                  fontWeight: 700
-                }}
-              >
-                Registrar Primer Activo
-              </Button>
-            </>
-          )}
-        </Paper>
+          {filteredServers.map((server) => (
+            <ServerCard 
+              key={server.id_servidor} 
+              server={server} 
+              healthStatus={healthCache[server.id_servidor]}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          ))}
+        </Box>
       )}
+
+      {/* --- 5. ACCIONES FLOTANTES (Opcional) --- */}
+      <Box sx={{ position: 'fixed', bottom: 32, right: 32, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Tooltip title="Carga Masiva" placement="left">
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={() => navigate('/bulk-upload')}
+            sx={{ 
+              borderRadius: '50%', 
+              width: 56, 
+              height: 56, 
+              minWidth: 0,
+              boxShadow: 3
+            }}
+          >
+            <CloudUploadIcon />
+          </Button>
+        </Tooltip>
+        <Tooltip title="Agregar Servidor" placement="left">
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => navigate('/add-server')}
+            sx={{ 
+              borderRadius: '50%', 
+              width: 56, 
+              height: 56, 
+              minWidth: 0,
+              boxShadow: 3
+            }}
+          >
+            <AddIcon />
+          </Button>
+        </Tooltip>
+      </Box>
     </Box>
   );
 };

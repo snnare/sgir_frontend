@@ -5,7 +5,10 @@
 ## 1. Módulos de Monitoreo y Auditoría (Nuevo)
 - **Centro de Alertas**: Implementación de la vista global de alertas (`MonitoringAlertsPage`) con clasificación por severidad (Triángulo Rojo/Amarillo) y estado (Pendiente/Resuelta).
 - **Explorador de Logs**: Nueva interfaz de historial (`MonitoringLogsPage`) que permite consultar sesiones de monitoreo pasadas y visualizar métricas críticas persistidas (CPU/RAM/Disco > 90%).
-- **Optimización de KPIs**: Se reemplazó "Desactualizados" por **"Alertas Activas"** en el dashboard principal para una respuesta operativa más rápida.
+- **Optimización Live Cache**: 
+  - Se reemplazó el polling individual por servidor por una consulta masiva a `/monitoring/host/live-cache`.
+  - Los KPIs del Dashboard (Sanos, Críticos, Alertas) ahora se calculan localmente en el frontend para reducir la carga del backend.
+  - Eliminación de dependencia del endpoint `global-summary`.
 - **Auto-Activación**: Integración de creación automática de sesiones de monitoreo al finalizar el paso de "Alcance" en el Wizard de registro.
 
 ## 2. Inventario y Backups
@@ -20,15 +23,21 @@
   - Habilitación de acceso por red local (`0.0.0.0`) y `allowedHosts`.
   - Configuración de proxy en Vite para redireccionar `/api` al backend local, eliminando problemas de CORS.
   - Actualización de variables de entorno para usar rutas relativas.
+- **Validación Dual de Activos (Nuevo)**:
+  - Integración de botón "Check" en el Dashboard y en el **Wizard de Registro**.
+  - Realiza dos validaciones simultáneas: disponibilidad administrativa (DB) y conectividad técnica (ICMP Ping).
+  - Proporciona feedback diferenciado si el servidor está disponible pero es inalcanzable.
 
-## 4. Correcciones Técnicas
-- Limpieza de advertencias de React 19/MUI 9 relacionadas con la sanitización de props en componentes `Stack` y `ListItemText`.
-- Resolución de errores de referencia de componentes en `App.tsx` y `Sidebar.tsx`.
+## 4. Correcciones Técnicas y Optimización
+- **Optimización Live Cache**: Se implementó una lógica de polling masivo con **Fallback Automático**. Si el caché global está vacío, el sistema consulta métricas individuales para garantizar la visibilidad de datos.
+- **Validación ICMP**: Implementación de `pingServer` para diagnósticos rápidos de red.
+- **Proxy Vite**: Configuración de red local y bypass de CORS para acceso multi-dispositivo.
+- **Debug Logs**: Inclusión de trazas en consola para monitorear el flujo de métricas en tiempo real.
 
 ---
 
 ### 🟢 ¿Dónde nos quedamos?
-La infraestructura de monitoreo (viva e histórica) y el catálogo de activos están plenamente operativos. El sistema ya cuenta con una lógica de alertas clara y un explorador de logs detallado.
+La arquitectura de monitoreo ha sido optimizada para alto rendimiento mediante **Live Cache** y cuenta con herramientas de diagnóstico rápidas (**Quick Ping**). El sistema ya es accesible desde la red local y los KPIs del Dashboard son totalmente dinámicos.
 
 ### 🟡 ¿Qué falta por hacer?
 - **Módulo de Políticas**: Construir la vista de gestión de políticas de respaldo bajo el nuevo estándar de tabla.
