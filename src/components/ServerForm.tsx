@@ -54,17 +54,11 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
     setChecking(true);
     try {
       // 1. Validación de Registro (DB)
-      let isRegistered = false;
-      try {
-        await checkServerByIp(ipValue);
-        isRegistered = true;
-      } catch (error: any) {
-        if (error.response?.status !== 404) {
-          throw error;
-        }
-      }
-
-      if (isRegistered) {
+      const checkData = await checkServerByIp(ipValue);
+      
+      // Si el backend devuelve el servidor (200), significa que ya existe.
+      // Si devuelve 404, checkData suele tener un campo 'detail'.
+      if (checkData && !checkData.detail) {
         showNotification('Esta IP ya se encuentra registrada en el sistema', 'error');
         setChecking(false);
         return;

@@ -23,16 +23,16 @@ export const CompactMetric = ({
 }: CompactMetricProps) => {
   // Lógica de color inspirada en severidad técnica (PRTG Style)
   const getColors = (val: number) => {
-    if (disabled) return { bg: '#f8fafc', text: '#94a3b8', border: '#e2e8f0' };
-    if (val > 90) return { bg: '#fee2e2', text: '#ef4444', border: '#fca5a5' }; // Critical
-    if (val > 75) return { bg: '#fef3c7', text: '#d97706', border: '#fcd34d' }; // Warning
-    return { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' }; // Normal
+    if (disabled) return { bg: 'transparent', text: '#94a3b8', border: '#e2e8f0', borderStyle: 'dashed' };
+    if (val > 90) return { bg: '#fee2e2', text: '#ef4444', border: '#fca5a5', borderStyle: 'solid' }; // Critical
+    if (val > 75) return { bg: '#fef3c7', text: '#d97706', border: '#fcd34d', borderStyle: 'solid' }; // Warning
+    return { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1', borderStyle: 'solid' }; // Normal
   };
 
   const colors = getColors(value);
 
   return (
-    <Tooltip title={disabled ? `${label}: Deshabilitado` : `${label}: ${value}${unit}`}>
+    <Tooltip title={disabled ? `${label}: No configurado` : `${label}: ${value}${unit}`}>
       <Box 
         sx={{ 
           flex: 1,
@@ -43,10 +43,11 @@ export const CompactMetric = ({
           px: 1,
           borderRadius: 1.5,
           bgcolor: colors.bg,
-          border: '1px solid',
+          border: '1px',
+          borderStyle: colors.borderStyle,
           borderColor: colors.border,
           transition: 'all 0.15s ease',
-          opacity: disabled ? 0.6 : 1,
+          opacity: disabled ? 0.5 : 1,
           position: 'relative',
           overflow: 'hidden',
           '&:hover': {

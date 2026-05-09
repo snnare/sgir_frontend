@@ -17,7 +17,7 @@ import { useNotificationStore } from './GlobalNotification';
 interface CredentialFormProps {
   serverId?: number;
   serverIp?: string;
-  onSuccess?: () => void;
+  onSuccess?: (typeId: number) => void;
 }
 
 interface ExtendedCredentialInput extends CredentialCreateInput {
@@ -151,7 +151,7 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
 
       await createCredential(payload);
       showNotification('Credencial guardada correctamente', 'success');
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess(payload.id_tipo_acceso);
     } catch (error: any) {
       console.error('Error saving credentials:', error);
       const detail = error.response?.data?.detail;

@@ -39,9 +39,11 @@ export const deleteServer = async (id: number): Promise<void> => {
     await api.delete(`/servidores/${id}`);
 };
 
-export const checkServerByIp = async (ip: string): Promise<ServerCheckResponse> => {
-    const { data } = await api.get(`/servidores/ip/${ip}`);
-    return ServerCheckResponseSchema.parse(data);
+export const checkServerByIp = async (ip: string): Promise<any> => {
+    const { data } = await api.get(`/servidores/ip/${ip}`, {
+        validateStatus: (status) => status === 200 || status === 404
+    });
+    return data;
 };
 
 export const pingServer = async (ip: string): Promise<boolean> => {

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { 
   Container, Box, Typography, Stack, Paper, 
   Button, Stepper, Step, StepLabel, Alert, 
-  AlertTitle, Card, CardActionArea, CardContent 
+  AlertTitle, Card, CardActionArea, CardContent, Chip,
+  Tooltip
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import TerminalIcon from '@mui/icons-material/Terminal';
@@ -11,9 +12,11 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import HomeIcon from '@mui/icons-material/Home';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import IconButton from '@mui/material/IconButton';
 import { ServerForm } from '../components/ServerForm';
 import { CredentialForm } from '../components/CredentialForm';
-import { BackButton } from '../components/BackButton';
 import { createMonitoringSession } from '../api/monitoringService';
 
 type MonitoringScope = 'basic' | 'database' | 'both';
@@ -24,6 +27,7 @@ export const AddServerPage = () => {
   const [serverId, setServerId] = useState<number | null>(null);
   const [serverIp, setServerIp] = useState<string>(''); // Nuevo estado para la IP
   const [scope, setScope] = useState<MonitoringScope | null>(null);
+  const [registeredTypes, setRegisteredTypes] = useState<number[]>([]);
 
   const steps = ['Alcance', 'Datos Técnicos', 'Credenciales', 'Finalizado'];
 
@@ -49,21 +53,69 @@ export const AddServerPage = () => {
     setActiveStep(2);
   };
 
-  const handleCredentialSuccess = () => {
-    setActiveStep(3);
+  const handleCredentialSuccess = (typeId: number) => {
+    setRegisteredTypes(prev => [...prev, typeId]);
+    
+    // Si el alcance es simple, o si ya registramos ambos en scope 'both', podemos terminar
+    const needsBoth = scope === 'both';
+    const hasSsh = [...registeredTypes, typeId].includes(1);
+    const hasDb = [...registeredTypes, typeId].includes(2);
+
+    if (!needsBoth) {
+        setActiveStep(3);
+    } else if (hasSsh && hasDb) {
+        setActiveStep(3);
+    }
+    // Si falta alguno, nos quedamos en el paso 2 para que registre el otro
+  };
+
+  const isStepComplete = () => {
+    if (scope === 'basic') return registeredTypes.includes(1);
+    if (scope === 'database') return registeredTypes.includes(2);
+    if (scope === 'both') return registeredTypes.includes(1) && registeredTypes.includes(2);
+    return false;
   };
 
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
       {/* Encabezado Principal */}
-      <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-        <BackButton to="/" label="Volver al Panel de Control" />
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em', mt: 0.5, lineHeight: 1.2 }}>
-          Alta de Nuevo Servidor
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Asistente de configuración para registro y monitoreo de activos.
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Tooltip title="Ir al Panel de Control">
+          <IconButton 
+            onClick={() => navigate('/')}
+            sx={{ 
+              bgcolor: 'action.hover', 
+              borderRadius: 2,
+              '&:hover': { bgcolor: 'action.selected' }
+            }}
+          >
+            <HomeIcon fontSize="small" color="action" />
+          </IconButton>
+        </Tooltip>
+
+        {activeStep > 0 && activeStep < 3 && (
+          <Tooltip title="Paso anterior">
+            <IconButton 
+              onClick={() => setActiveStep(prev => prev - 1)}
+              sx={{ 
+                bgcolor: 'action.hover', 
+                borderRadius: 2,
+                '&:hover': { bgcolor: 'action.selected' }
+              }}
+            >
+              <ArrowBackIosNewIcon sx={{ fontSize: 16 }} color="action" />
+            </IconButton>
+          </Tooltip>
+        )}
+
+        <Box sx={{ ml: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.2 }}>
+            Alta de Nuevo Servidor
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Asistente de configuración para registro y monitoreo de activos.
+          </Typography>
+        </Box>
       </Box>
 
       {/* Stepper Superior */}
@@ -133,13 +185,6 @@ export const AddServerPage = () => {
                 monitoreoDb={scope === 'database' || scope === 'both'}
               />
             </Paper>
-            <Button 
-              onClick={() => setActiveStep(0)} 
-              sx={{ mt: 2 }}
-              color="inherit"
-            >
-              Atrás: Cambiar Alcance
-            </Button>
           </Box>
         )}
 
@@ -148,8 +193,12 @@ export const AddServerPage = () => {
           <Box>
             {scope === 'database' || scope === 'both' ? (
               <Alert severity="info" icon={<InfoOutlinedIcon />} sx={{ mb: 4, borderRadius: 2, border: '1px solid', borderColor: 'info.light' }}>
-                <AlertTitle sx={{ fontWeight: 700 }}>Recomendación de Seguridad</AlertTitle>
-                Asegúrate de haber creado un usuario de monitoreo (ej. <code>sgir_monitor</code>) con permisos de lectura.
+                <AlertTitle sx={{ fontWeight: 700 }}>Configuración de Seguridad</AlertTitle>
+                {scope === 'both' ? (
+                    'Este servidor requiere credenciales SSH (Hardware) y Credenciales de BD (Motor).'
+                ) : (
+                    'Asegúrate de haber creado un usuario de monitoreo (ej. sgir_monitor) con permisos de lectura.'
+                )}
               </Alert>
             ) : (
               <Alert severity="info" icon={<TerminalIcon />} sx={{ mb: 4, borderRadius: 2 }}>
@@ -158,12 +207,31 @@ export const AddServerPage = () => {
               </Alert>
             )}
 
+            {registeredTypes.length > 0 && (
+                <Stack spacing={1} sx={{ mb: 3 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, px: 1 }}>
+                        Credenciales Registradas:
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                        {registeredTypes.includes(1) && (
+                            <Chip icon={<TerminalIcon />} label="SSH Registrada" color="success" variant="outlined" />
+                        )}
+                        {registeredTypes.includes(2) && (
+                            <Chip icon={<StorageIcon />} label="DB Registrada" color="success" variant="outlined" />
+                        )}
+                    </Stack>
+                </Stack>
+            )}
+
             <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
-                  Registro de Credenciales
+                  {scope === 'both' && !registeredTypes.includes(1) ? 'Paso A: Credenciales SSH' : 
+                   scope === 'both' && !registeredTypes.includes(2) ? 'Paso B: Credenciales de BD' : 
+                   'Registro de Credenciales'}
                </Typography>
                {serverId && (
                  <CredentialForm 
+                    key={registeredTypes.length} // Forzar re-render del formulario al registrar una
                     serverId={serverId} 
                     serverIp={serverIp}
                     onSuccess={handleCredentialSuccess} 
@@ -172,13 +240,16 @@ export const AddServerPage = () => {
             </Paper>
 
             <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
-              <Button onClick={() => setActiveStep(1)} variant="outlined" sx={{ borderRadius: 2 }}>
-                Atrás
-              </Button>
               <Box sx={{ flexGrow: 1 }} />
-              <Button onClick={() => navigate('/')} color="inherit">
-                Saltar este paso
-              </Button>
+              {isStepComplete() ? (
+                  <Button onClick={() => setActiveStep(3)} variant="contained" color="primary" sx={{ px: 4, py: 1, fontWeight: 700 }}>
+                      Finalizar Configuración
+                  </Button>
+              ) : (
+                <Button onClick={() => navigate('/')} color="inherit">
+                    Saltar este paso
+                </Button>
+              )}
             </Stack>
           </Box>
         )}
