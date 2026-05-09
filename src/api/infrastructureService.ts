@@ -11,7 +11,9 @@ import {
     CredentialUpdateSchema, type CredentialUpdateInput,
     CriticalitySchema, type Criticality,
     GeneralStatusSchema, type GeneralStatus,
-    ImportSummarySchema, type ImportSummary
+    ImportSummarySchema, type ImportSummary,
+    AssetSchema, type Asset,
+    DiscoveryResponseSchema, type DiscoveryResponse
 } from './types';
 import { z } from 'zod';
 
@@ -136,4 +138,14 @@ export const importBulkServers = async (file: File): Promise<ImportSummary> => {
     });
 
     return ImportSummarySchema.parse(data);
+};
+
+export const getAssets = async (): Promise<Asset[]> => {
+    const { data } = await api.get('/monitoring/inventory/assets');
+    return z.array(AssetSchema).parse(data);
+};
+
+export const discoverInventory = async (instanceId: number, credentialId: number): Promise<DiscoveryResponse> => {
+    const { data } = await api.post(`/monitoring/inventory/discover/${instanceId}/${credentialId}`);
+    return DiscoveryResponseSchema.parse(data);
 };

@@ -27,14 +27,16 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - **Control del Scheduler**: Gestión global del motor de monitoreo SSH con estados de ejecución en tiempo real (Running, Paused, Stopped).
 
 ### 🏗️ Gestión de Inventario y Activos
-- **Buscador de Activos**: Herramienta de localización rápida de instancias de bases de datos con filtros por motor.
+- **Inventario CMDB Real**: Búsqueda global enriquecida (`/inventory/assets`) que cruza Servidor -> Instancia -> Bases de Datos en una vista centralizada.
+- **Alcance de Monitoreo Selectivo**: Configuración granular por servidor para activar/desactivar monitoreo de Host (CPU/RAM/Disk) y Base de Datos independientemente.
+- **Wizard de Registro Inteligente**: Asistente dinámico que solicita credenciales múltiples (SSH/DB) según el alcance elegido.
 - **Diagnóstico Rápido (Quick Ping)**: Validación ICMP integrada para verificar alcanzabilidad de red y latencia.
-- **Módulo de Políticas**: Gestión completa (CRUD) de reglas de respaldo automatizado (Frecuencia, Retención, Tipo).
-- **Gestión de Rutas**: Administración de destinos de respaldo vinculados a servidores específicos.
-- **Wizard de Registro**: Asistente de 4 pasos para el alta técnica y administrativa de nuevos servidores.
+- **Módulo de Políticas**: Gestión completa (CRUD) de reglas de respaldo automatizado.
 
 ### 🎨 Experiencia de Usuario (UI/UX)
-- **Dashboard Dinámico**: Visualización de KPIs globales y tarjetas de servidor con métricas de hardware (CPU, RAM, Disco) en tiempo real.
+- **Dashboard de Alta Densidad**: Tarjetas de servidor con diseño de "Sensores en Fila" (estilo PRTG) optimizadas para monitorear 30+ activos simultáneamente.
+- **Sensores Ghost**: Visualización de capas de monitoreo no configuradas mediante estados atenuados para mantener la consistencia de la cuadrícula.
+- **Navegación Contextual**: Acceso directo a la gestión de almacenamiento desde las métricas de disco de cada servidor.
 - **Branding Oficial**: Integración de identidad visual corporativa en todo el portal.
 - **Sidebar Inteligente**: Menús colapsables y control global del monitoreo integrado.
 

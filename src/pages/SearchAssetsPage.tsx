@@ -1,92 +1,77 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   Box, Typography, Stack, Paper, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, IconButton, Tooltip, Divider
+  Chip, IconButton, Tooltip, Divider, CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import StorageIcon from '@mui/icons-material/Storage';
-
-// Datos de muestra según los headers solicitados
-const SAMPLE_DATA = [
-  { 
-    id_base_datos: 1, 
-    nombre_base: "db_ventas_prod", 
-    ip_servidor: "192.168.10.50", 
-    nombre_servidor: "SRV-ORACLE-01", 
-    tipo_dbms: "Oracle Database", 
-    version_dbms: "19c", 
-    estado_bd: "Activo" 
-  },
-  { 
-    id_base_datos: 2, 
-    nombre_base: "app_catalog_test", 
-    ip_servidor: "10.0.0.15", 
-    nombre_servidor: "SRV-MYSQL-TEST", 
-    tipo_dbms: "MySQL", 
-    version_dbms: "8.0", 
-    estado_bd: "Activo" 
-  },
-  { 
-    id_base_datos: 3, 
-    nombre_base: "reporting_dw", 
-    ip_servidor: "172.16.5.20", 
-    nombre_servidor: "SRV-POSTGRES-DW", 
-    tipo_dbms: "PostgreSQL", 
-    version_dbms: "15.2", 
-    estado_bd: "Inactivo" 
-  },
-  { 
-    id_base_datos: 4, 
-    nombre_base: "auth_service_db", 
-    ip_servidor: "192.168.10.51", 
-    nombre_servidor: "SRV-MONGO-AUTH", 
-    tipo_dbms: "MongoDB", 
-    version_dbms: "6.0", 
-    estado_bd: "Activo" 
-  },
-];
+import { getAssets } from '../api/infrastructureService';
+import { type Asset } from '../api/types';
+import { useNotificationStore } from '../components/GlobalNotification';
 
 export const SearchAssetsPage = () => {
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dbmsFilter, setDbmsFilter] = useState<string>('all');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { showNotification } = useNotificationStore();
 
-  const handleRefresh = async () => {
+  const fetchAllAssets = useCallback(async () => {
     setLoading(true);
-    // Simulación de carga de datos
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setLoading(false);
+    try {
+      const data = await getAssets();
+      setAssets(data);
+    } catch (error) {
+      console.error('Error fetching assets:', error);
+      showNotification('Error al cargar la lista de activos', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification]);
+
+  useEffect(() => {
+    fetchAllAssets();
+  }, [fetchAllAssets]);
+
+  const handleRefresh = () => {
+    fetchAllAssets();
   };
 
+  // Generar lista de motores únicos para los filtros
+  const uniqueMotors = useMemo(() => {
+    const motors = new Set(assets.map(a => a.motor));
+    return Array.from(motors);
+  }, [assets]);
+
   const filteredData = useMemo(() => {
-    return SAMPLE_DATA.filter(item => {
+    return assets.filter(item => {
+      const searchStr = searchTerm.toLowerCase();
       const matchesSearch = 
-        item.nombre_base.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.ip_servidor.includes(searchTerm) ||
-        item.tipo_dbms.toLowerCase().includes(searchTerm.toLowerCase());
+        (item.base_datos?.toLowerCase() || '').includes(searchStr) ||
+        item.ip.includes(searchStr) ||
+        item.motor.toLowerCase().includes(searchStr) ||
+        item.servidor.toLowerCase().includes(searchStr) ||
+        item.instancia.toLowerCase().includes(searchStr);
       
       const matchesDbms = 
-        dbmsFilter === 'all' || 
-        (dbmsFilter === 'MySQL' && item.tipo_dbms === 'MySQL') ||
-        (dbmsFilter === 'Oracle' && item.tipo_dbms === 'Oracle Database') ||
-        (dbmsFilter === 'MongoDB' && item.tipo_dbms === 'MongoDB');
+        dbmsFilter === 'all' || item.motor === dbmsFilter;
       
       return matchesSearch && matchesDbms;
     });
-  }, [searchTerm, dbmsFilter]);
+  }, [assets, searchTerm, dbmsFilter]);
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
       {/* --- 1. TITULO --- */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
-          Buscar Activos
+          Inventario de Activos
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Localiza instancias de bases de datos y servicios en toda la infraestructura.
+          Búsqueda global y control centralizado de bases de datos y servidores.
         </Typography>
       </Box>
 
@@ -104,7 +89,7 @@ export const SearchAssetsPage = () => {
       >
         <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
           <TextField
-            placeholder="Buscar por nombre de base, IP o motor..."
+            placeholder="Buscar por base, IP, motor o servidor..."
             size="small"
             fullWidth
             value={searchTerm}
@@ -124,7 +109,7 @@ export const SearchAssetsPage = () => {
 
         <Divider sx={{ my: 2, borderStyle: 'dashed' }} />
 
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
           <FilterListIcon fontSize="small" color="action" sx={{ mr: 1 }} />
           <Chip 
             label="Todos" 
@@ -133,27 +118,16 @@ export const SearchAssetsPage = () => {
             variant={dbmsFilter === 'all' ? 'filled' : 'outlined'}
             sx={{ fontWeight: 600, borderRadius: 1.5 }}
           />
-          <Chip 
-            label="MySQL" 
-            onClick={() => setDbmsFilter('MySQL')}
-            color={dbmsFilter === 'MySQL' ? 'primary' : 'default'}
-            variant={dbmsFilter === 'MySQL' ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-          />
-          <Chip 
-            label="Oracle" 
-            onClick={() => setDbmsFilter('Oracle')}
-            color={dbmsFilter === 'Oracle' ? 'primary' : 'default'}
-            variant={dbmsFilter === 'Oracle' ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-          />
-          <Chip 
-            label="MongoDB" 
-            onClick={() => setDbmsFilter('MongoDB')}
-            color={dbmsFilter === 'MongoDB' ? 'primary' : 'default'}
-            variant={dbmsFilter === 'MongoDB' ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-          />
+          {uniqueMotors.map(motor => (
+            <Chip 
+              key={motor}
+              label={motor} 
+              onClick={() => setDbmsFilter(motor)}
+              color={dbmsFilter === motor ? 'primary' : 'default'}
+              variant={dbmsFilter === motor ? 'filled' : 'outlined'}
+              sx={{ fontWeight: 600, borderRadius: 1.5 }}
+            />
+          ))}
           <Box sx={{ flexGrow: 1 }} />
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
             {filteredData.length} activos encontrados
@@ -162,18 +136,23 @@ export const SearchAssetsPage = () => {
       </Paper>
 
       {/* --- 4. LISTAS (Tabla) --- */}
-      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', minHeight: 400 }}>
+        {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 20 }}>
+                <CircularProgress />
+            </Box>
+        ) : (
         <Table>
           <TableHead sx={{ bgcolor: 'action.hover' }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 800 }}>Nombre de Base</TableCell>
-              <TableCell sx={{ fontWeight: 800 }}>IP Servidor</TableCell>
-              <TableCell sx={{ fontWeight: 800 }}>Motor DBMS</TableCell>
-              <TableCell sx={{ fontWeight: 800 }}>Versión</TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Base de Datos</TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Instancia / Motor</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 800 }}>Criticidad</TableCell>
               <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
-              <TableCell align="center" sx={{ width: 50 }}>
+              <TableCell align="right" sx={{ width: 50 }}>
                 <Tooltip title="Actualizar Tabla">
-                  <IconButton onClick={handleRefresh} size="small" disabled={loading}>
+                  <IconButton onClick={handleRefresh} size="small">
                     <RefreshIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -183,29 +162,45 @@ export const SearchAssetsPage = () => {
           <TableBody>
             {filteredData.length > 0 ? (
               filteredData.map((row) => (
-                <TableRow key={row.id_base_datos} hover>
+                <TableRow key={row.id_asset} hover>
                   <TableCell>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                       <StorageIcon fontSize="small" color="primary" />
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.nombre_base}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.base_datos}</Typography>
                     </Stack>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 500 }}>
-                      {row.ip_servidor}
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.servidor}</Typography>
+                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+                      {row.ip}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">{row.tipo_dbms}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">{row.version_dbms}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.instancia}</Typography>
+                    <Typography variant="caption" color="primary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                      {row.motor}
+                    </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Chip 
-                      label={row.estado_bd} 
+                        label={row.criticidad}
+                        size="small"
+                        sx={{ 
+                            fontWeight: 700, 
+                            borderRadius: 1.5, 
+                            fontSize: '0.6rem',
+                            bgcolor: row.criticidad === 'Alta' ? 'error.lighter' : row.criticidad === 'Media' ? 'warning.lighter' : 'success.lighter',
+                            color: row.criticidad === 'Alta' ? 'error.dark' : row.criticidad === 'Media' ? 'warning.dark' : 'success.dark',
+                            border: '1px solid',
+                            borderColor: 'currentColor'
+                        }}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      label={row.estado} 
                       size="small" 
-                      color={row.estado_bd === 'Activo' ? 'success' : 'default'}
+                      color={row.estado === 'Activo' ? 'success' : 'default'}
                       variant="outlined"
                       sx={{ fontWeight: 700, borderRadius: 1.5, fontSize: '0.65rem' }}
                     />
@@ -224,6 +219,7 @@ export const SearchAssetsPage = () => {
             )}
           </TableBody>
         </Table>
+        )}
       </TableContainer>
     </Box>
   );

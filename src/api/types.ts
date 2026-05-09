@@ -397,6 +397,28 @@ export const AuditEventTypeSchema = z.object({
 });
 export type AuditEventType = z.infer<typeof AuditEventTypeSchema>;
 
+// --- Inventario y Activos ---
+export const AssetSchema = z.object({
+    id_asset: z.string(),
+    servidor: z.string(),
+    ip: z.string(),
+    motor: z.string(),
+    instancia: z.string(),
+    base_datos: z.string().nullable(),
+    estado: z.string(),
+    criticidad: z.string(),
+});
+export type Asset = z.infer<typeof AssetSchema>;
+
+export const DiscoveryResponseSchema = z.object({
+    instancia: z.string(),
+    total_encontradas: z.number(),
+    creadas: z.number(),
+    actualizadas: z.number(),
+    desactivadas: z.number(),
+});
+export type DiscoveryResponse = z.infer<typeof DiscoveryResponseSchema>;
+
 // --- Importación Masiva ---
 export const ImportErrorSchema = z.object({
     fila: z.number(),
