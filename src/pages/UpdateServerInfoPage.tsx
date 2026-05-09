@@ -42,6 +42,8 @@ export const UpdateServerInfoPage = () => {
           nombre_servidor: serverData.nombre_servidor,
           direccion_ip: serverData.direccion_ip,
           es_legacy: serverData.es_legacy,
+          monitoreo_host: serverData.monitoreo_host,
+          monitoreo_db: serverData.monitoreo_db,
           id_nivel_criticidad: serverData.id_nivel_criticidad,
           id_estado_servidor: serverData.id_estado_servidor,
           descripcion: serverData.descripcion || "",
@@ -142,6 +144,41 @@ export const UpdateServerInfoPage = () => {
                 <InfoOutlinedIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+          </Stack>
+
+          <Stack direction="row" spacing={2}>
+            <Controller
+              name="monitoreo_host"
+              control={control}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Switch 
+                      checked={field.value} 
+                      onChange={(e) => field.onChange(e.target.checked)} 
+                      color="primary" 
+                    />
+                  }
+                  label="Monitoreo Host"
+                />
+              )}
+            />
+            <Controller
+              name="monitoreo_db"
+              control={control}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Switch 
+                      checked={field.value} 
+                      onChange={(e) => field.onChange(e.target.checked)} 
+                      color="primary" 
+                    />
+                  }
+                  label="Monitoreo DB"
+                />
+              )}
+            />
           </Stack>
 
           <CriticalitySelect name="id_nivel_criticidad" control={control} />

@@ -71,6 +71,8 @@ export const ServerCreateSchema = z.object({
     id_nivel_criticidad: z.number().int().positive(),
     id_estado_servidor: z.number().int().positive(),
     es_legacy: z.boolean().default(false).optional(),
+    monitoreo_host: z.boolean().default(false).optional(),
+    monitoreo_db: z.boolean().default(false).optional(),
 });
 
 export type ServerCreateInput = z.infer<typeof ServerCreateSchema>;
@@ -82,6 +84,8 @@ export const ServerUpdateSchema = z.object({
     id_nivel_criticidad: z.number().int().positive().optional(),
     id_estado_servidor: z.number().int().positive().optional(),
     es_legacy: z.boolean().optional(),
+    monitoreo_host: z.boolean().optional(),
+    monitoreo_db: z.boolean().optional(),
 });
 
 export type ServerUpdateInput = z.infer<typeof ServerUpdateSchema>;
@@ -91,6 +95,8 @@ export const ServerSchema = z.object({
     nombre_servidor: z.string(),
     direccion_ip: z.string(),
     es_legacy: z.boolean().default(false),
+    monitoreo_host: z.boolean().default(false),
+    monitoreo_db: z.boolean().default(false),
     descripcion: z.string().nullable().optional(),
     id_nivel_criticidad: z.number(),
     id_estado_servidor: z.number(),

@@ -25,27 +25,25 @@ export const AddServerPage = () => {
   const [serverIp, setServerIp] = useState<string>(''); // Nuevo estado para la IP
   const [scope, setScope] = useState<MonitoringScope | null>(null);
 
-  const steps = ['Datos Técnicos', 'Alcance', 'Credenciales', 'Finalizado'];
+  const steps = ['Alcance', 'Datos Técnicos', 'Credenciales', 'Finalizado'];
 
-  const handleServerSuccess = (newServerId: number, ip: string) => {
-    setServerId(newServerId);
-    setServerIp(ip); // Guardamos la IP cuando el servidor se crea con éxito
+  const handleScopeSelect = (selectedScope: MonitoringScope) => {
+    setScope(selectedScope);
     setActiveStep(1);
   };
 
-  const handleScopeSelect = async (selectedScope: MonitoringScope) => {
-    setScope(selectedScope);
+  const handleServerSuccess = async (newServerId: number, ip: string) => {
+    setServerId(newServerId);
+    setServerIp(ip); // Guardamos la IP cuando el servidor se crea con éxito
     
-    // Si elige cualquier tipo de monitoreo, creamos la sesión
-    if (serverId) {
-      try {
-        await createMonitoringSession({
-          id_servidor: serverId,
-          id_estado_monitoreo: 1 // Activo por defecto
-        });
-      } catch (error) {
-        console.error('Error creating monitoring session:', error);
-      }
+    // Si se registró el servidor, creamos la sesión de monitoreo automáticamente
+    try {
+      await createMonitoringSession({
+        id_servidor: newServerId,
+        id_estado_monitoreo: 1 // Activo por defecto
+      });
+    } catch (error) {
+      console.error('Error creating monitoring session:', error);
     }
     
     setActiveStep(2);
@@ -82,18 +80,8 @@ export const AddServerPage = () => {
       {/* Contenido de los Pasos */}
       <Box sx={{ animation: 'fadeIn 0.5s' }}>
         
-        {/* PASO 0: DATOS TÉCNICOS */}
+        {/* PASO 0: ALCANCE DE MONITOREO */}
         {activeStep === 0 && (
-          <Paper sx={{ p: { xs: 3, sm: 5 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
-              Información del Activo
-            </Typography>
-            <ServerForm onSuccess={handleServerSuccess} />
-          </Paper>
-        )}
-
-        {/* PASO 1: ALCANCE DE MONITOREO */}
-        {activeStep === 1 && (
           <Stack spacing={3}>
             <Typography variant="h6" align="center" sx={{ fontWeight: 700, mb: 2 }}>
               ¿Qué deseas monitorear en este activo?
@@ -127,9 +115,32 @@ export const AddServerPage = () => {
               onClick={() => navigate('/')}
               sx={{ mt: 2, color: 'text.secondary' }}
             >
-              Configurar credenciales más tarde
+              Cancelar y volver
             </Button>
           </Stack>
+        )}
+
+        {/* PASO 1: DATOS TÉCNICOS */}
+        {activeStep === 1 && (
+          <Box>
+            <Paper sx={{ p: { xs: 3, sm: 5 }, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
+                Información del Activo
+              </Typography>
+              <ServerForm 
+                onSuccess={handleServerSuccess} 
+                monitoreoHost={scope === 'basic' || scope === 'both'}
+                monitoreoDb={scope === 'database' || scope === 'both'}
+              />
+            </Paper>
+            <Button 
+              onClick={() => setActiveStep(0)} 
+              sx={{ mt: 2 }}
+              color="inherit"
+            >
+              Atrás: Cambiar Alcance
+            </Button>
+          </Box>
         )}
 
         {/* PASO 2: SEGURIDAD Y CREDENCIALES */}

@@ -16,9 +16,11 @@ import { StatusSelect } from './StatusSelect';
 
 interface ServerFormProps {
   onSuccess?: (serverId: number, ip: string) => void;
+  monitoreoHost?: boolean;
+  monitoreoDb?: boolean;
 }
 
-export const ServerForm = ({ onSuccess }: ServerFormProps) => {
+export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = false }: ServerFormProps) => {
   const navigate = useNavigate();
   const { showNotification } = useNotificationStore();
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,8 @@ export const ServerForm = ({ onSuccess }: ServerFormProps) => {
       id_nivel_criticidad: 1, 
       id_estado_servidor: 1, 
       es_legacy: false,
+      monitoreo_host: monitoreoHost,
+      monitoreo_db: monitoreoDb,
     }
   });
 
@@ -91,6 +95,8 @@ export const ServerForm = ({ onSuccess }: ServerFormProps) => {
       id_nivel_criticidad: data.id_nivel_criticidad,
       id_estado_servidor: data.id_estado_servidor,
       descripcion: data.descripcion || "",
+      monitoreo_host: monitoreoHost,
+      monitoreo_db: monitoreoDb,
     };
     
     console.log('Enviando payload al backend:', JSON.stringify(payload, null, 2));
