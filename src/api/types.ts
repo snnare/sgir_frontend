@@ -419,6 +419,32 @@ export const DiscoveryResponseSchema = z.object({
 });
 export type DiscoveryResponse = z.infer<typeof DiscoveryResponseSchema>;
 
+// --- Monitoreo Host y Particiones ---
+export const FilesystemSchema = z.object({
+    source: z.string(),
+    size: z.string(),
+    used: z.string(),
+    avail: z.string(),
+    usage_pct: z.string(),
+    mount_point: z.string(),
+});
+export type Filesystem = z.infer<typeof FilesystemSchema>;
+
+export const FilesystemDiscoveryResponseSchema = z.object({
+    id_server: z.number(),
+    ip_server: z.string(),
+    legacy: z.boolean(),
+    filesystems: z.array(FilesystemSchema),
+});
+export type FilesystemDiscoveryResponse = z.infer<typeof FilesystemDiscoveryResponseSchema>;
+
+export const PartitionUpsertSchema = z.object({
+    id_servidor: z.number(),
+    path: z.string(),
+    etiqueta: z.string().optional(),
+});
+export type PartitionUpsertInput = z.infer<typeof PartitionUpsertSchema>;
+
 // --- Importación Masiva ---
 export const ImportErrorSchema = z.object({
     fila: z.number(),

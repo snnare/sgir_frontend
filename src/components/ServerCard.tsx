@@ -135,7 +135,7 @@ export const ServerCard = ({
           disabled={!server.monitoreo_host}
           onAction={(e) => {
             e.stopPropagation();
-            navigate(`/backups/rutas?serverId=${server.id_servidor}`);
+            navigate(`/server/edit/${server.id_servidor}?tab=storage`);
           }}
         />
       </Box>

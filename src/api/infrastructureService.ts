@@ -13,7 +13,9 @@ import {
     GeneralStatusSchema, type GeneralStatus,
     ImportSummarySchema, type ImportSummary,
     AssetSchema, type Asset,
-    DiscoveryResponseSchema, type DiscoveryResponse
+    DiscoveryResponseSchema, type DiscoveryResponse,
+    FilesystemDiscoveryResponseSchema, type FilesystemDiscoveryResponse,
+    PartitionUpsertSchema, type PartitionUpsertInput
 } from './types';
 import { z } from 'zod';
 
@@ -148,4 +150,14 @@ export const getAssets = async (): Promise<Asset[]> => {
 export const discoverInventory = async (instanceId: number, credentialId: number): Promise<DiscoveryResponse> => {
     const { data } = await api.post(`/monitoring/inventory/discover/${instanceId}/${credentialId}`);
     return DiscoveryResponseSchema.parse(data);
+};
+
+export const discoverFilesystems = async (serverId: number): Promise<FilesystemDiscoveryResponse> => {
+    const { data } = await api.get(`/monitoring/host/discover-filesystems/${serverId}`);
+    return FilesystemDiscoveryResponseSchema.parse(data);
+};
+
+export const upsertPartition = async (partitionData: PartitionUpsertInput): Promise<any> => {
+    const { data } = await api.post('/particiones/register-upsert', partitionData);
+    return data;
 };

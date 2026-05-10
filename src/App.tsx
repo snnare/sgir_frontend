@@ -24,7 +24,6 @@ import { AddBackupPolicyPage } from './pages/AddBackupPolicyPage';
 import { BackupPoliciesPage } from './pages/BackupPoliciesPage';
 import { EditBackupPolicyPage } from './pages/EditBackupPolicyPage';
 import { AddBackupPathPage } from './pages/AddBackupPathPage';
-import { BackupPathsPage } from './pages/BackupPathsPage';
 import { EditBackupPathPage } from './pages/EditBackupPathPage';
 import { BackupDiscoveryPage } from './pages/BackupDiscoveryPage';
 import { MonitoringLogsPage } from './pages/MonitoringLogsPage';
@@ -115,7 +114,6 @@ function App() {
             <Route path="add-policy" element={<AddBackupPolicyPage />} />
             <Route path="edit-policy/:id" element={<EditBackupPolicyPage />} />
             <Route path="add-path" element={<AddBackupPathPage />} />
-            <Route path="backups/rutas" element={<BackupPathsPage />} />
             <Route path="edit-path/:id" element={<EditBackupPathPage />} />
             <Route path="backups/explorador" element={<BackupDiscoveryPage />} />
             <Route path="monitoreo/logs" element={<MonitoringLogsPage />} />

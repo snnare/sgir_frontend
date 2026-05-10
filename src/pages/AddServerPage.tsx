@@ -263,14 +263,25 @@ export const AddServerPage = () => {
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
               El servidor ha sido registrado y cuenta con credenciales para iniciar el monitoreo.
+              <br/><br/>
+              Por defecto, el sistema ya está monitoreando la partición raíz (/).
             </Typography>
-            <Button 
-              variant="contained" 
-              onClick={() => navigate('/')}
-              sx={{ bgcolor: 'text.primary', color: 'background.paper', borderRadius: 2, px: 6, py: 1.5, fontWeight: 700 }}
-            >
-              Ir al Panel de Control
-            </Button>
+            <Stack direction="row" spacing={2} justifyContent="center">
+              <Button 
+                variant="outlined" 
+                onClick={() => navigate(`/server/edit/${serverId}?tab=storage`)}
+                sx={{ borderRadius: 2, px: 4, py: 1.5, fontWeight: 700 }}
+              >
+                Configurar Discos Adicionales
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={() => navigate('/')}
+                sx={{ bgcolor: 'text.primary', color: 'background.paper', borderRadius: 2, px: 6, py: 1.5, fontWeight: 700 }}
+              >
+                Ir al Panel de Control
+              </Button>
+            </Stack>
           </Paper>
         )}
       </Box>

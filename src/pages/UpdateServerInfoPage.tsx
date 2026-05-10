@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Container, Box, Typography, Button, TextField, Stack, 
-  CircularProgress, Paper, FormControlLabel, Switch, Tooltip, IconButton
+  CircularProgress, Paper, FormControlLabel, Switch, Tooltip, IconButton, Tabs, Tab
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -14,13 +14,16 @@ import { useNotificationStore } from '../components/GlobalNotification';
 import { CriticalitySelect } from '../components/CriticalitySelect';
 import { StatusSelect } from '../components/StatusSelect';
 import { BackButton } from '../components/BackButton';
+import { DiskManager } from '../components/DiskManager';
 
 export const UpdateServerInfoPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { showNotification } = useNotificationStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tabValue, setTabValue] = useState(searchParams.get('tab') === 'storage' ? 1 : 0);
 
   const {
     register,
@@ -31,6 +34,10 @@ export const UpdateServerInfoPage = () => {
   } = useForm<ServerUpdateInput>({
     resolver: zodResolver(ServerUpdateSchema),
   });
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
 
   useEffect(() => {
     const fetchServer = async () => {
@@ -89,127 +96,140 @@ export const UpdateServerInfoPage = () => {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: 8 }}>
+    <Container maxWidth="md" sx={{ py: 6 }}>
       <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
         <BackButton to="/" label="Volver al Panel de Control" />
         
         <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.04em', mt: 0.5, lineHeight: 1.2 }}>
-          Editar Servidor
+          Administrar Servidor
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Modifica la información técnica y de red del activo.
+          Modifica la información técnica, red y almacenamiento del activo.
         </Typography>
       </Box>
 
-      <Paper component="form" onSubmit={handleSubmit(onSubmit)} sx={{ p: 4, borderRadius: 2 }}>
-        <Stack spacing={3}>
-          <TextField
-            required
-            fullWidth
-            label="Dirección IP del Servidor"
-            {...register('direccion_ip')}
-            error={!!errors.direccion_ip}
-            helperText={errors.direccion_ip?.message}
-          />
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={tabValue} onChange={handleTabChange}>
+          <Tab label="Detalles Generales" sx={{ fontWeight: 700 }} />
+          <Tab label="Almacenamiento y Discos" sx={{ fontWeight: 700 }} />
+        </Tabs>
+      </Box>
 
-          <TextField
-            required
-            fullWidth
-            label="Nombre del Servidor"
-            {...register('nombre_servidor')}
-            error={!!errors.nombre_servidor}
-            helperText={errors.nombre_servidor?.message}
-          />
-
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Controller
-              name="es_legacy"
-              control={control}
-              render={({ field }) => (
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={field.value} 
-                      onChange={(e) => field.onChange(e.target.checked)} 
-                      color="primary" 
-                    />
-                  }
-                  label="Servidor Legacy"
-                  sx={{ mr: 0 }}
-                />
-              )}
+      {tabValue === 0 && (
+        <Paper component="form" onSubmit={handleSubmit(onSubmit)} sx={{ p: 4, borderRadius: 2 }}>
+          <Stack spacing={3}>
+            <TextField
+              required
+              fullWidth
+              label="Dirección IP del Servidor"
+              {...register('direccion_ip')}
+              error={!!errors.direccion_ip}
+              helperText={errors.direccion_ip?.message}
             />
-            <Tooltip title="Los servidores legacy utilizan protocolos de conexión antiguos">
-              <IconButton size="small">
-                <InfoOutlinedIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+
+            <TextField
+              required
+              fullWidth
+              label="Nombre del Servidor"
+              {...register('nombre_servidor')}
+              error={!!errors.nombre_servidor}
+              helperText={errors.nombre_servidor?.message}
+            />
+
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <Controller
+                name="es_legacy"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={
+                      <Switch 
+                        checked={field.value} 
+                        onChange={(e) => field.onChange(e.target.checked)} 
+                        color="primary" 
+                      />
+                    }
+                    label="Servidor Legacy"
+                    sx={{ mr: 0 }}
+                  />
+                )}
+              />
+              <Tooltip title="Los servidores legacy utilizan protocolos de conexión antiguos">
+                <IconButton size="small">
+                  <InfoOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+
+            <Stack direction="row" spacing={2}>
+              <Controller
+                name="monitoreo_host"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={
+                      <Switch 
+                        checked={field.value} 
+                        onChange={(e) => field.onChange(e.target.checked)} 
+                        color="primary" 
+                      />
+                    }
+                    label="Monitoreo Host"
+                  />
+                )}
+              />
+              <Controller
+                name="monitoreo_db"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={
+                      <Switch 
+                        checked={field.value} 
+                        onChange={(e) => field.onChange(e.target.checked)} 
+                        color="primary" 
+                      />
+                    }
+                    label="Monitoreo DB"
+                  />
+                )}
+              />
+            </Stack>
+
+            <CriticalitySelect name="id_nivel_criticidad" control={control} />
+
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Descripción del Activo"
+              {...register('descripcion')}
+            />
+
+            <StatusSelect 
+              name="id_estado_servidor" 
+              control={control} 
+              label="Estado del Servidor"
+              filterIds={[1, 2, 3]} // Asumiendo que 3 es Offline/Mantenimiento
+            />
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={saving}
+              startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+              sx={{ py: 1.5, fontWeight: 700, mt: 2 }}
+            >
+              {saving ? 'Guardando Cambios...' : 'Guardar Cambios'}
+            </Button>
           </Stack>
+        </Paper>
+      )}
 
-          <Stack direction="row" spacing={2}>
-            <Controller
-              name="monitoreo_host"
-              control={control}
-              render={({ field }) => (
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={field.value} 
-                      onChange={(e) => field.onChange(e.target.checked)} 
-                      color="primary" 
-                    />
-                  }
-                  label="Monitoreo Host"
-                />
-              )}
-            />
-            <Controller
-              name="monitoreo_db"
-              control={control}
-              render={({ field }) => (
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={field.value} 
-                      onChange={(e) => field.onChange(e.target.checked)} 
-                      color="primary" 
-                    />
-                  }
-                  label="Monitoreo DB"
-                />
-              )}
-            />
-          </Stack>
-
-          <CriticalitySelect name="id_nivel_criticidad" control={control} />
-
-          <TextField
-            fullWidth
-            multiline
-            rows={3}
-            label="Descripción del Activo"
-            {...register('descripcion')}
-          />
-
-          <StatusSelect 
-            name="id_estado_servidor" 
-            control={control} 
-            label="Estado del Servidor"
-            filterIds={[1, 2, 3]} // Asumiendo que 3 es Offline/Mantenimiento
-          />
-
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
-            sx={{ py: 1.5, fontWeight: 700, mt: 2 }}
-          >
-            {saving ? 'Guardando Cambios...' : 'Guardar Cambios'}
-          </Button>
-        </Stack>
-      </Paper>
+      {tabValue === 1 && id && (
+         <DiskManager serverId={Number(id)} />
+      )}
     </Container>
   );
 };
