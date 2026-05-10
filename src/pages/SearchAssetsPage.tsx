@@ -2,21 +2,25 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   Box, Typography, Stack, Paper, TextField, InputAdornment,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, IconButton, Tooltip, Divider, CircularProgress
+  Chip, IconButton, Tooltip, Divider, CircularProgress,
+  Button
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import StorageIcon from '@mui/icons-material/Storage';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { getAssets } from '../api/infrastructureService';
 import { type Asset } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
+import { DiscoveryWizard } from '../components/DiscoveryWizard';
 
 export const SearchAssetsPage = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dbmsFilter, setDbmsFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const { showNotification } = useNotificationStore();
 
   const fetchAllAssets = useCallback(async () => {
@@ -67,13 +71,19 @@ export const SearchAssetsPage = () => {
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
       {/* --- 1. TITULO --- */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
+          <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
           Inventario de Activos
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
           Búsqueda global y control centralizado de bases de datos y servidores.
-        </Typography>
+          </Typography>
       </Box>
+
+      <DiscoveryWizard 
+        open={wizardOpen} 
+        onClose={() => setWizardOpen(false)} 
+        onSuccess={handleRefresh} 
+      />
 
       {/* --- 2. GENERAL (Buscador y Filtros) --- */}
       <Paper 
@@ -105,6 +115,21 @@ export const SearchAssetsPage = () => {
               }
             }}
           />
+          <Button 
+              variant="contained" 
+              startIcon={<AutoAwesomeIcon />}
+              onClick={() => setWizardOpen(true)}
+              sx={{ 
+                  borderRadius: 2, 
+                  px: 4, 
+                  height: 40,
+                  whiteSpace: 'nowrap',
+                  fontWeight: 700,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              }}
+          >
+              Sincronizar
+          </Button>
         </Stack>
 
         <Divider sx={{ my: 2, borderStyle: 'dashed' }} />

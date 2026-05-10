@@ -3,15 +3,16 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   Box, TextField, Button, Stack, MenuItem, 
-  InputAdornment, IconButton, CircularProgress, Typography 
+  InputAdornment, IconButton, CircularProgress, Typography, Divider 
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import KeyIcon from '@mui/icons-material/Key';
 import DnsIcon from '@mui/icons-material/Dns'; 
 import StorageIcon from '@mui/icons-material/Storage';
-import { CredentialCreateSchema, type CredentialCreateInput, type Dbms } from '../api/types';
-import { createCredential, getDbms, testConnectionDb, testConnectionSsh, type ConnectionTestRequest } from '../api/infrastructureService';
+import ComputerIcon from '@mui/icons-material/Computer';
+import { CredentialCreateSchema, type CredentialCreateInput, type Dbms, type Server } from '../api/types';
+import { createCredential, getDbms, testConnectionDb, testConnectionSsh, getServers, type ConnectionTestRequest } from '../api/infrastructureService';
 import { useNotificationStore } from './GlobalNotification';
 
 interface CredentialFormProps {
@@ -25,11 +26,13 @@ interface ExtendedCredentialInput extends CredentialCreateInput {
   puerto?: number;
 }
 
-export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialFormProps) => {
+export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: CredentialFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [dbmsList, setDbmsList] = useState<Dbms[]>([]);
+  const [servers, setServers] = useState<Server[]>([]);
+  const [currentIp, setCurrentIp] = useState<string | undefined>(initialIp);
   const { showNotification } = useNotificationStore();
 
   const {
@@ -50,6 +53,32 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
   const tipoAcceso = useWatch({ control, name: 'id_tipo_acceso' });
   const isDbNative = tipoAcceso === 2;
   const selectedDbmsId = useWatch({ control, name: 'id_dbms' });
+  const watchServerId = useWatch({ control, name: 'id_servidor' });
+
+  // 1. Cargar servidores si estamos en modo "Standalone"
+  useEffect(() => {
+    if (!serverId) {
+      const fetchServers = async () => {
+        try {
+          const data = await getServers();
+          setServers(data);
+        } catch (error) {
+          console.error("Error al cargar lista de servidores:", error);
+        }
+      };
+      fetchServers();
+    }
+  }, [serverId]);
+
+  // 2. Sincronizar IP cuando cambia el servidor seleccionado (modo Standalone)
+  useEffect(() => {
+    if (!serverId && watchServerId && servers.length > 0) {
+      const selectedServer = servers.find(s => s.id_servidor === watchServerId);
+      if (selectedServer) {
+        setCurrentIp(selectedServer.direccion_ip);
+      }
+    }
+  }, [watchServerId, servers, serverId]);
 
   useEffect(() => {
     const fetchDbms = async () => {
@@ -84,8 +113,8 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
   const handleTestConnection = async () => {
     const values = getValues();
     
-    if (!serverIp) {
-      showNotification('No se detectó la IP del servidor. Por favor, asegúrese de completar el paso anterior.', 'error');
+    if (!currentIp) {
+      showNotification('Seleccione un servidor o IP válida para realizar el test', 'error');
       return;
     }
     if (!values.usuario || !values.password) {
@@ -96,7 +125,7 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
     setTesting(true);
     try {
       const payload: ConnectionTestRequest = {
-        direccion_ip: serverIp,
+        direccion_ip: currentIp,
         puerto: values.puerto || (values.id_tipo_acceso === 1 ? 22 : undefined),
         usuario: values.usuario,
         password: values.password
@@ -135,7 +164,7 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
 
   const onSubmit = async (data: ExtendedCredentialInput) => {
     if (!data.id_servidor) {
-      showNotification('Error: ID de servidor no encontrado', 'error');
+      showNotification('Error: Debe seleccionar un servidor destino', 'error');
       return;
     }
 
@@ -167,6 +196,38 @@ export const CredentialForm = ({ serverId, serverIp, onSuccess }: CredentialForm
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ width: '100%' }}>
       <Stack spacing={3}>
+        
+        {/* Selector de Servidor (Solo en modo Standalone) */}
+        {!serverId && (
+          <>
+            <TextField
+              select
+              fullWidth
+              label="Servidor Destino"
+              {...register('id_servidor', { valueAsNumber: true })}
+              error={!!errors.id_servidor}
+              helperText={errors.id_servidor?.message || 'Seleccione el activo al que pertenece esta credencial'}
+              defaultValue=""
+              required
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <ComputerIcon fontSize="small" color="action" sx={{ mr: 1 }} />
+                    </InputAdornment>
+                  ),
+                }
+              }}
+            >
+              {servers.map((s) => (
+                <MenuItem key={s.id_servidor} value={s.id_servidor}>
+                  {s.nombre_servidor} ({s.direccion_ip})
+                </MenuItem>
+              ))}
+            </TextField>
+            <Divider sx={{ borderStyle: 'dashed' }} />
+          </>
+        )}
 
         {/* Tipo de Acceso */}
         <TextField

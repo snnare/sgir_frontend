@@ -87,9 +87,9 @@ export const deleteCredential = async (id: number): Promise<void> => {
     await api.delete(`/credenciales/${id}`);
 };
 
-export const getCredentialsByServer = async (serverId: number): Promise<Credential[]> => {
+export const getCredentialsByServer = async (serverId: number): Promise<CredentialEnriched[]> => {
     const { data } = await api.get(`/credenciales/servidor/${serverId}`);
-    return z.array(CredentialSchema).parse(data);
+    return z.array(CredentialEnrichedSchema).parse(data);
 };
 
 export const getCriticalities = async (): Promise<Criticality[]> => {
