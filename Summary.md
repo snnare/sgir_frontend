@@ -2,34 +2,32 @@
 
 **ID de Sesión:** `SGIR-SESSION-2026-05-08-SELECTIVE-MONITORING-CMDB`
 
-## 1. Monitoreo Selectivo y Registro (Actualizado)
+## 1. Monitoreo Selectivo y Registro
 - **Alcance por Servidor**: Integración de los flags `monitoreo_host` y `monitoreo_db` en el modelo de Servidor.
-- **Wizard Multi-Paso**: 
+- **Wizard Multi-Paso Mejorado**: 
     - Se invirtió el flujo para elegir el alcance antes de los datos técnicos.
     - Soporte para registro de múltiples credenciales (SSH + DB) en un mismo flujo.
     - Navegación mejorada con botones Home y Flecha de paso anterior en el encabezado.
-- **Validación de IP**: Optimización del endpoint de verificación para manejar estados 404 (Disponible) de forma silenciosa y fluida.
+- **Formulario de Credenciales Híbrido**: `CredentialForm` ahora soporta modo standalone con selección manual de servidor y auto-sincronización de IP para test de conexión.
 
-## 2. Inventario CMDB y Búsqueda Real
-- **Conexión al Backend**: Sustitución de datos de prueba en `/activos` por datos reales del endpoint `/monitoring/inventory/assets`.
-- **Vista Enriquecida**: Tabla de búsqueda global que muestra la relación Servidor -> IP -> Instancia -> Base de Datos con niveles de criticidad reales.
-- **Filtros Dinámicos**: Los filtros de motores de base de datos se generan automáticamente basándose en el inventario actual.
-- **Data Safety**: Manejo proactivo de valores nulos y errores de tipado (Zod) en la respuesta del backend.
+## 2. Inventario CMDB y Auto-Descubrimiento
+- **Vista Enriquecida**: Tabla de búsqueda global (`/activos`) conectada a datos reales del backend con filtros de motores dinámicos.
+- **Discovery Wizard (Bases de Datos)**: Asistente modal para sincronizar automáticamente el inventario de bases de datos resolviendo las dependencias (Servidor -> Instancia -> Credencial).
+- **Disk Manager (FileSystems)**: Componente centralizado en la edición del servidor que descubre particiones vía SSH y permite registrar discos específicos (Upsert) para el monitoreo, protegiendo la partición raíz (`/`).
 
 ## 3. UI de Alta Densidad (PRTG Style)
-- **Componente CompactMetric**: Visualización horizontal densa con códigos de color de severidad (Rojo > 90%, Ámbar > 75%).
+- **Componente CompactMetric**: Visualización horizontal densa con códigos de color de severidad.
 - **ServerCard Refactorizada**: 
     - Diseño de dos filas fijas (Hardware vs RDBMS) para soportar dashboards de 30+ servidores.
     - Implementación de **Sensores Ghost** (atenuados y con borde punteado) para capas de monitoreo no configuradas.
-- **Interactividad Contextual**: Botón de edición directa en el sensor de disco para configurar rutas de almacenamiento.
+- **Integración Fluida**: Enlaces directos desde la ServerCard y el final del Wizard de Registro hacia el administrador de almacenamiento.
 
 ---
 
 ### 🟢 ¿Dónde nos quedamos?
-El frontend es ahora una herramienta de grado industrial capaz de manejar grandes volúmenes de activos con una visualización clara y técnica. El inventario ya refleja la realidad de la base de datos y el flujo de registro asegura que los servidores nazcan con toda la configuración necesaria.
+El frontend ha consolidado su arquitectura de grado SRE. Se implementó el auto-descubrimiento tanto para motores de base de datos como para particiones físicas (SSH), integrando ambos en flujos de usuario lógicos y protegidos.
 
 ### 🟡 ¿Qué falta por hacer?
-- **Auto-Descubrimiento**: Implementar el disparador de descubrimiento automático desde la interfaz de activos.
 - **Módulo de Expiración**: Lógica para purga de respaldos antiguos.
 - **Gráficas de Rendimiento**: Vistas de detalle con historial de métricas.
 - **Reportes Dinámicos**: Exportación de PDF/CSV del inventario y salud.

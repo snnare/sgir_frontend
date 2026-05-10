@@ -28,6 +28,8 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 
 ### 🏗️ Gestión de Inventario y Activos
 - **Inventario CMDB Real**: Búsqueda global enriquecida (`/inventory/assets`) que cruza Servidor -> Instancia -> Bases de Datos en una vista centralizada.
+- **Auto-Descubrimiento de BD**: Wizard guiado para conectarse a motores registrados y poblar/actualizar la CMDB de forma automatizada.
+- **Gestión de FileSystems (SSH)**: Administrador de almacenamiento integrado que descubre particiones físicas (`df -h`) y permite registrar discos específicos (Upsert) para el monitoreo del Scheduler.
 - **Alcance de Monitoreo Selectivo**: Configuración granular por servidor para activar/desactivar monitoreo de Host (CPU/RAM/Disk) y Base de Datos independientemente.
 - **Wizard de Registro Inteligente**: Asistente dinámico que solicita credenciales múltiples (SSH/DB) según el alcance elegido.
 - **Diagnóstico Rápido (Quick Ping)**: Validación ICMP integrada para verificar alcanzabilidad de red y latencia.
