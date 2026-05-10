@@ -1,19 +1,18 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
-  Box, Typography, Stack, Paper, TextField, InputAdornment,
+  Box, Typography, Stack, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, IconButton, Tooltip, Divider, CircularProgress,
+  Chip, IconButton, Tooltip, CircularProgress,
   Button
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import StorageIcon from '@mui/icons-material/Storage';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { getAssets } from '../api/infrastructureService';
 import { type Asset } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { DiscoveryWizard } from '../components/DiscoveryWizard';
+import { FilterBar } from '../components/FilterBar';
 
 export const SearchAssetsPage = () => {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -86,79 +85,35 @@ export const SearchAssetsPage = () => {
       />
 
       {/* --- 2. GENERAL (Buscador y Filtros) --- */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 2.5, 
-          mb: 4, 
-          borderRadius: 3,
-          bgcolor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider'
-        }}
-      >
-        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-          <TextField
-            placeholder="Buscar por base, IP, motor o servidor..."
-            size="small"
-            fullWidth
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-                sx: { borderRadius: 2, bgcolor: 'action.hover', border: 'none', '& fieldset': { border: 'none' } }
-              }
-            }}
-          />
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar por base, IP, motor o servidor..."
+        rightActions={
           <Button 
-              variant="contained" 
-              startIcon={<AutoAwesomeIcon />}
-              onClick={() => setWizardOpen(true)}
-              sx={{ 
-                  borderRadius: 2, 
-                  px: 4, 
-                  height: 40,
-                  whiteSpace: 'nowrap',
-                  fontWeight: 700,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-              }}
+            variant="contained" 
+            startIcon={<AutoAwesomeIcon />}
+            onClick={() => setWizardOpen(true)}
+            sx={{ 
+                borderRadius: 2, 
+                px: 4, 
+                height: 40,
+                whiteSpace: 'nowrap',
+                fontWeight: 700,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}
           >
-              Sincronizar
+            Sincronizar
           </Button>
-        </Stack>
-
-        <Divider sx={{ my: 2, borderStyle: 'dashed' }} />
-
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-          <FilterListIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-          <Chip 
-            label="Todos" 
-            onClick={() => setDbmsFilter('all')}
-            color={dbmsFilter === 'all' ? 'primary' : 'default'}
-            variant={dbmsFilter === 'all' ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-          />
-          {uniqueMotors.map(motor => (
-            <Chip 
-              key={motor}
-              label={motor} 
-              onClick={() => setDbmsFilter(motor)}
-              color={dbmsFilter === motor ? 'primary' : 'default'}
-              variant={dbmsFilter === motor ? 'filled' : 'outlined'}
-              sx={{ fontWeight: 600, borderRadius: 1.5 }}
-            />
-          ))}
-          <Box sx={{ flexGrow: 1 }} />
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-            {filteredData.length} activos encontrados
-          </Typography>
-        </Stack>
-      </Paper>
+        }
+        filters={[
+          { label: 'Todos', value: 'all' },
+          ...uniqueMotors.map(motor => ({ label: motor, value: motor }))
+        ]}
+        activeFilter={dbmsFilter}
+        onFilterChange={setDbmsFilter}
+        statsLabel={`${filteredData.length} activos encontrados`}
+      />
 
       {/* --- 4. LISTAS (Tabla) --- */}
       <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', minHeight: 400 }}>

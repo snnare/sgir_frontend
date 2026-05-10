@@ -2,16 +2,13 @@ import { useEffect, useState, useMemo } from 'react';
 import { 
   Box, Typography, Paper, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Chip, IconButton, 
-  Stack, Button, CircularProgress, Tooltip, TextField, 
-  InputAdornment, Divider 
+  Stack, Button, CircularProgress, Tooltip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import StorageIcon from '@mui/icons-material/Storage';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +16,7 @@ import { getCredentials, deleteCredential } from '../api/infrastructureService';
 import { type CredentialEnriched } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { MetricCard } from '../components/MetricCard';
+import { FilterBar } from '../components/FilterBar';
 
 export const CredentialsPage = () => {
   const [credentials, setCredentials] = useState<CredentialEnriched[]>([]);
@@ -75,23 +73,21 @@ export const CredentialsPage = () => {
     });
   }, [credentials, searchTerm, typeFilter]);
 
-  // Cálculos para métricas
   const sshCount = credentials.filter(c => c.tipo.id_tipo_acceso === 1).length;
   const dbCount = credentials.filter(c => c.tipo.id_tipo_acceso === 2).length;
 
   const getTipoAccesoColor = (tipoId: number) => {
     switch (tipoId) {
-      case 1: return 'primary' as const;   // SSH
-      case 2: return 'secondary' as const; // DB Native
-      case 3: return 'info' as const;      // SFTP
-      case 4: return 'warning' as const;   // API
+      case 1: return 'primary' as const;
+      case 2: return 'secondary' as const;
+      case 3: return 'info' as const;
+      case 4: return 'warning' as const;
       default: return 'default' as const;
     }
   };
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
-      {/* --- SECCIÓN 1: ENCABEZADO --- */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
           Credenciales de Acceso
@@ -101,7 +97,6 @@ export const CredentialsPage = () => {
         </Typography>
       </Box>
 
-      {/* --- SECCIÓN 2: MÉTRICAS --- */}
       <Box 
         sx={{ 
           display: 'grid', 
@@ -137,42 +132,11 @@ export const CredentialsPage = () => {
         />
       </Box>
 
-      {/* --- SECCIÓN 3: ÁREA DE BOTONES Y FILTROS --- */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 2.5, 
-          mb: 5, 
-          borderRadius: 3,
-          bgcolor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2.5
-        }}
-      >
-        {/* Fila Superior: Búsqueda y Acciones */}
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
-          <TextField
-            placeholder="Buscar por usuario o servidor..."
-            size="small"
-            fullWidth
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ flexGrow: 1 }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" color="action" />
-                  </InputAdornment>
-                ),
-                sx: { borderRadius: 2, bgcolor: 'action.hover', border: 'none', '& fieldset': { border: 'none' } }
-              }
-            }}
-          />
-          
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar por usuario o servidor..."
+        rightActions={
           <Stack direction="row" spacing={1.5}>
             <Tooltip title="Actualizar">
               <IconButton onClick={fetchData} disabled={loading} size="medium">
@@ -195,58 +159,19 @@ export const CredentialsPage = () => {
               Nueva Credencial
             </Button>
           </Stack>
-        </Stack>
+        }
+        filters={[
+          { label: `Todas (${credentials.length})`, value: 'all' },
+          { label: 'SSH', value: 1 },
+          { label: 'Base de Datos', value: 2 },
+          { label: 'SFTP', value: 3 },
+          { label: 'API', value: 4 },
+        ]}
+        activeFilter={typeFilter}
+        onFilterChange={setTypeFilter}
+        statsLabel={`Mostrando ${filteredCredentials.length} de ${credentials.length} registros`}
+      />
 
-        <Divider sx={{ borderStyle: 'dashed' }} />
-
-        {/* Fila Inferior: Filtros de Tipo */}
-        <Stack direction="row" spacing={1} alignItems="center">
-          <FilterListIcon fontSize="small" color="action" sx={{ mr: 1 }} />
-          <Chip 
-            label={`Todas (${credentials.length})`} 
-            onClick={() => setTypeFilter('all')}
-            color={typeFilter === 'all' ? 'primary' : 'default'}
-            variant={typeFilter === 'all' ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-          />
-          <Chip 
-            label="SSH" 
-            onClick={() => setTypeFilter(1)}
-            color={typeFilter === 1 ? 'primary' : 'default'}
-            variant={typeFilter === 1 ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-          />
-          <Chip 
-            label="Base de Datos" 
-            onClick={() => setTypeFilter(2)}
-            color={typeFilter === 2 ? 'primary' : 'default'}
-            variant={typeFilter === 2 ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-          />
-          <Chip 
-            label="SFTP" 
-            onClick={() => setTypeFilter(3)}
-            color={typeFilter === 3 ? 'primary' : 'default'}
-            variant={typeFilter === 3 ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-          />
-          <Chip 
-            label="API" 
-            onClick={() => setTypeFilter(4)}
-            color={typeFilter === 4 ? 'primary' : 'default'}
-            variant={typeFilter === 4 ? 'filled' : 'outlined'}
-            sx={{ fontWeight: 600, borderRadius: 1.5 }}
-          />
-          
-          <Box sx={{ flexGrow: 1 }} />
-          
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-            Mostrando {filteredCredentials.length} de {credentials.length} registros
-          </Typography>
-        </Stack>
-      </Paper>
-
-      {/* --- SECCIÓN 4: LISTADO (TABLA) --- */}
       <TableContainer component={Paper} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none' }}>
         <Table sx={{ minWidth: 650 }}>
           <TableHead sx={{ bgcolor: 'action.hover' }}>

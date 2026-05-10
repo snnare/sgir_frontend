@@ -1,72 +1,87 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { 
-  Box, Typography, Button, Stack, Paper, CircularProgress, 
-  TextField, InputAdornment, Chip, Divider, IconButton, Tooltip,
-  Alert, AlertTitle
+  Box, Typography, Button, Stack, CircularProgress, 
+  Tooltip, IconButton, Paper, Slide
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AddIcon from '@mui/icons-material/Add';
-import TerminalIcon from '@mui/icons-material/Terminal';
 import DnsIcon from '@mui/icons-material/Dns';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
-import SearchIcon from '@mui/icons-material/Search';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
+import CloseIcon from '@mui/icons-material/Close';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import { MetricCard } from '../components/MetricCard';
 import { ServerCard } from '../components/ServerCard';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
 import { useMonitoringStore } from '../store/useMonitoringStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { deleteServer, pingServer } from '../api/infrastructureService';
+import { deleteServer } from '../api/infrastructureService';
 import { useNotificationStore } from '../components/GlobalNotification';
+import { FilterBar } from '../components/FilterBar';
 
 export const HomePage = () => {
   const navigate = useNavigate();
-  const { servers, criticalities, loading, fetchServers, fetchCriticalities } = useInfrastructureStore();
   const { 
-    schedulerStatus, liveMetrics: healthCache,
-    fetchSchedulerStatus,
+    servers, loading, fetchServers, 
+    fetchCriticalities, criticalities
+  } = useInfrastructureStore();
+  const { 
+    schedulerStatus, liveMetrics: healthCache, alerts,
+    fetchSchedulerStatus, fetchAlerts,
     pauseMonitoring, resumeMonitoring, fetchLiveCache 
   } = useMonitoringStore();
   const { user } = useAuthStore();
   const { showNotification } = useNotificationStore();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'critical'>('all');
+  const [criticalityFilter, setCriticalityFilter] = useState<number | 'all'>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [pinging, setPinging] = useState(false);
+  const [showScheduler, setShowScheduler] = useState(true);
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // console.log('[HomePage] Initializing dashboard data...');
     fetchServers();
     fetchCriticalities();
     fetchSchedulerStatus();
     fetchLiveCache();
-  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus, fetchLiveCache]);
+    fetchAlerts();
+  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus, fetchLiveCache, fetchAlerts]);
 
-  // Polling para métricas en vivo (Live Cache)
+  const startHideTimer = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    if (schedulerStatus?.status === 'running') {
+      hideTimerRef.current = setTimeout(() => setShowScheduler(false), 5000);
+    }
+  };
+
   useEffect(() => {
-    // console.log(`[HomePage] Polling setup: ${servers.length} servers, Scheduler: ${schedulerStatus?.status}`);
-    
+    if (schedulerStatus?.status === 'running') {
+      startHideTimer();
+    } else {
+      setShowScheduler(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    }
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [schedulerStatus?.status]);
+
+  useEffect(() => {
     const startPolling = () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
 
       pollingRef.current = setInterval(() => {
         if (servers.length > 0 && schedulerStatus?.status === 'running') {
-          // console.log('[HomePage] Polling cycle: fetching live cache...');
           fetchLiveCache();
-        } else {
-          // console.log('[HomePage] Polling cycle skipped:', { servers: servers.length, status: schedulerStatus?.status });
         }
       }, 15000); 
     };
@@ -114,46 +129,7 @@ export const HomePage = () => {
     }
   };
 
-  const handlePing = async () => {
-    if (!searchTerm) {
-      showNotification('Ingrese una IP o Host para realizar el ping', 'warning');
-      return;
-    }
-
-    setPinging(true);
-    try {
-      const isReachable = await pingServer(searchTerm);
-      if (isReachable) {
-        showNotification(`El servidor ${searchTerm} respondió correctamente (UP)`, 'success');
-      } else {
-        showNotification(`El servidor ${searchTerm} no responde o es inalcanzable (DOWN)`, 'error');
-      }
-    } catch (error: any) {
-      showNotification('Error al realizar el ping. Verifique el formato de la IP/Host.', 'error');
-    } finally {
-      setPinging(false);
-    }
-  };
-
   const isAdmin = user?.id_rol === 1;
-
-  // Calculamos el resumen global desde healthCache, filtrando por los servidores actualmente cargados
-  const stats = useMemo(() => {
-    let sanos = 0;
-    let criticos = 0;
-    let desactualizados = 0;
-
-    servers.forEach(server => {
-      const health = healthCache[server.id_servidor];
-      if (!health) return;
-      
-      if (health.status === 'healthy') sanos++;
-      else if (health.status === 'critical') criticos++;
-      else if (health.status === 'stale') desactualizados++;
-    });
-
-    return { sanos, criticos, desactualizados };
-  }, [servers, healthCache]);
 
   const filteredServers = useMemo(() => {
     return servers.filter(server => {
@@ -161,15 +137,13 @@ export const HomePage = () => {
         server.nombre_servidor.toLowerCase().includes(searchTerm.toLowerCase()) ||
         server.direccion_ip.includes(searchTerm);
       
-      const health = healthCache[server.id_servidor];
-      const matchesStatus = 
-        statusFilter === 'all' ||
-        (statusFilter === 'online' && health?.status === 'healthy') ||
-        (statusFilter === 'critical' && health?.status === 'critical');
+      const matchesCriticality = 
+        criticalityFilter === 'all' || 
+        server.id_nivel_criticidad === criticalityFilter;
 
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesCriticality;
     });
-  }, [servers, searchTerm, statusFilter, healthCache]);
+  }, [servers, searchTerm, criticalityFilter]);
 
   if (loading && servers.length === 0) {
     return (
@@ -180,8 +154,104 @@ export const HomePage = () => {
   }
 
   return (
-    <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
-      {/* --- 1. TITULO Y SCHEDULER CONTROL --- */}
+    <Box sx={{ animation: 'fadeIn 0.5s ease-in-out', position: 'relative' }}>
+      
+      {/* --- ACTIVADOR POR HOVER (ESQUINA SUPERIOR DERECHA) --- */}
+      {isAdmin && !showScheduler && (
+        <Box 
+          onMouseEnter={() => {
+            setShowScheduler(true);
+            startHideTimer();
+          }}
+          sx={{ 
+            position: 'fixed', 
+            top: 0, 
+            right: 0, 
+            width: 150, 
+            height: 40, 
+            zIndex: 1400,
+            cursor: 'pointer'
+          }} 
+        />
+      )}
+
+      {/* --- CONTROL FLOTANTE DEL SCHEDULER (TOP-RIGHT) --- */}
+      {isAdmin && schedulerStatus && (
+        <Slide in={showScheduler} direction="left">
+          <Paper 
+            elevation={6}
+            onMouseEnter={() => {
+              if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+            }}
+            onMouseLeave={() => {
+              startHideTimer();
+            }}
+            sx={{ 
+              position: 'fixed', 
+              top: 24, 
+              right: 24, 
+              zIndex: 1300,
+              p: 1.5, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 2, 
+              bgcolor: schedulerStatus.status === 'running' ? 'rgba(232, 245, 233, 0.98)' : 'rgba(255, 243, 224, 0.98)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid',
+              borderColor: schedulerStatus.status === 'running' ? 'success.light' : 'warning.light',
+              borderRadius: 3,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+              transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 0.5 }}>
+              {schedulerStatus.status === 'running' ? (
+                <MonitorHeartIcon color="success" sx={{ animation: 'pulse 2s infinite' }} />
+              ) : (
+                <PauseCircleIcon color="warning" />
+              )}
+              <Box>
+                <Typography variant="caption" sx={{ display: 'block', fontWeight: 900, lineHeight: 1, color: 'text.secondary', fontSize: '0.6rem' }}>
+                  SCHEDULER
+                </Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: schedulerStatus.status === 'running' ? 'success.dark' : 'warning.dark' }}>
+                  {schedulerStatus.status.toUpperCase()}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={schedulerStatus.status === 'running' ? <PauseCircleIcon /> : <PlayCircleIcon />}
+              onClick={handleToggleScheduler}
+              sx={{ 
+                bgcolor: schedulerStatus.status === 'running' ? 'success.dark' : 'warning.dark',
+                color: 'white',
+                borderRadius: 1.5,
+                fontWeight: 700,
+                textTransform: 'none',
+                minWidth: 100,
+                '&:hover': { bgcolor: schedulerStatus.status === 'running' ? 'success.main' : 'warning.main' }
+              }}
+            >
+              {schedulerStatus.status === 'running' ? 'Pausar' : 'Reanudar'}
+            </Button>
+
+            <IconButton 
+              size="small" 
+              onClick={() => {
+                setShowScheduler(false);
+                if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+              }}
+              sx={{ ml: -0.5, color: 'text.secondary' }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Paper>
+        </Slide>
+      )}
+
       <Stack 
         direction={{ xs: 'column', md: 'row' }} 
         justifyContent="space-between" 
@@ -196,56 +266,14 @@ export const HomePage = () => {
             Resumen de salud y control global de infraestructura.
           </Typography>
         </Box>
-
-        {isAdmin && (
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              p: 1.5, 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 2, 
-              bgcolor: schedulerStatus?.status === 'running' ? 'success.lighter' : 'warning.lighter',
-              border: '1px solid',
-              borderColor: schedulerStatus?.status === 'running' ? 'success.light' : 'warning.light',
-              borderRadius: 3
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {schedulerStatus?.status === 'running' ? (
-                <MonitorHeartIcon color="success" sx={{ animation: 'pulse 2s infinite' }} />
-              ) : (
-                <PauseCircleIcon color="warning" />
-              )}
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: schedulerStatus?.status === 'running' ? 'success.dark' : 'warning.dark' }}>
-                MONITOREO: {schedulerStatus?.status.toUpperCase() || '...'}
-              </Typography>
-            </Box>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={schedulerStatus?.status === 'running' ? <PauseCircleIcon /> : <PlayCircleIcon />}
-              onClick={handleToggleScheduler}
-              sx={{ 
-                bgcolor: schedulerStatus?.status === 'running' ? 'success.dark' : 'warning.dark',
-                color: 'white',
-                '&:hover': { bgcolor: schedulerStatus?.status === 'running' ? 'success.main' : 'warning.main' }
-              }}
-            >
-              {schedulerStatus?.status === 'running' ? 'Pausar' : 'Reanudar'}
-            </Button>
-          </Paper>
-        )}
       </Stack>
 
-      {/* --- 2. KPI CARDS --- */}
       <Box 
         sx={{ 
           display: 'grid', 
           gridTemplateColumns: { 
             xs: '1fr', 
-            sm: 'repeat(2, 1fr)', 
-            md: 'repeat(4, 1fr)' 
+            sm: 'repeat(2, 1fr)'
           }, 
           gap: 3,
           mb: 4
@@ -259,124 +287,52 @@ export const HomePage = () => {
           icon={<DnsIcon fontSize="small" />} 
         />
         <MetricCard 
-          title="Sanos" 
-          value={stats.sanos} 
-          unit="UP" 
-          percent={servers.length > 0 ? (stats.sanos / servers.length) * 100 : 0} 
-          color="#22c55e"
-          icon={<CheckCircleIcon fontSize="small" />} 
-        />
-        <MetricCard 
-          title="Críticos" 
-          value={stats.criticos} 
-          unit="ERR" 
-          percent={servers.length > 0 ? (stats.criticos / servers.length) * 100 : 0} 
-          color="#ef4444"
-          icon={<ReportProblemIcon fontSize="small" />} 
-        />
-        <MetricCard 
-          title="Desactualizados" 
-          value={stats.desactualizados} 
-          unit="STALE" 
-          percent={servers.length > 0 ? (stats.desactualizados / servers.length) * 100 : 0} 
-          color="#f59e0b"
-          icon={<SignalCellularAltIcon fontSize="small" />} 
+          title="Alertas Activas" 
+          value={alerts.length} 
+          unit="Incidencias" 
+          percent={alerts.length > 0 ? 100 : 0} 
+          color={alerts.length > 0 ? "#ef4444" : "#22c55e"}
+          icon={<NotificationsActiveIcon fontSize="small" />} 
         />
       </Box>
 
-      {/* --- 3. BARRA DE BUSQUEDA Y FILTROS --- */}
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 2, 
-          mb: 4, 
-          borderRadius: 4, 
-          border: '1px solid', 
-          borderColor: 'divider',
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          gap: 2,
-          alignItems: 'center'
-        }}
-      >
-        <TextField
-          placeholder="Buscar por IP o nombre..."
-          fullWidth
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" color="action" />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ maxWidth: { md: 400 } }}
-        />
-
-        <Stack direction="row" spacing={1} sx={{ flexGrow: 1, justifyContent: { xs: 'center', md: 'flex-start' } }}>
-          <Chip 
-            label="Todos" 
-            variant={statusFilter === 'all' ? 'filled' : 'outlined'} 
-            onClick={() => setStatusFilter('all')}
-            sx={{ fontWeight: 700 }}
-          />
-          <Chip 
-            label="Sanos" 
-            color="success"
-            variant={statusFilter === 'online' ? 'filled' : 'outlined'} 
-            onClick={() => setStatusFilter('online')}
-            sx={{ fontWeight: 700 }}
-          />
-          <Chip 
-            label="Críticos" 
-            color="error"
-            variant={statusFilter === 'critical' ? 'filled' : 'outlined'} 
-            onClick={() => setStatusFilter('critical')}
-            sx={{ fontWeight: 700 }}
-          />
-        </Stack>
-
-        <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />
-
-        <Stack direction="row" spacing={1}>
-          <Tooltip title="Vista de Lista">
-            <IconButton 
-              size="small" 
-              color={viewMode === 'list' ? 'primary' : 'default'}
-              onClick={() => setViewMode('list')}
-            >
-              <ViewListIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Vista de Cuadrícula">
-            <IconButton 
-              size="small" 
-              color={viewMode === 'grid' ? 'primary' : 'default'}
-              onClick={() => setViewMode('grid')}
-            >
-              <ViewModuleIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Realizar Ping">
-            <Box component="span">
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={pinging ? <CircularProgress size={16} /> : <TerminalIcon />}
-                onClick={handlePing}
-                disabled={pinging || !searchTerm}
-                sx={{ borderRadius: 2, fontWeight: 700 }}
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar por IP o nombre..."
+        filters={[
+          { label: 'Todas las Criticidades', value: 'all' },
+          ...criticalities.map(c => ({
+            label: c.nombre_nivel,
+            value: c.id_nivel_criticidad
+          }))
+        ]}
+        activeFilter={criticalityFilter}
+        onFilterChange={setCriticalityFilter}
+        bottomActions={
+          <Stack direction="row" spacing={1}>
+            <Tooltip title="Vista de Lista">
+              <IconButton 
+                size="small" 
+                color={viewMode === 'list' ? 'primary' : 'default'}
+                onClick={() => setViewMode('list')}
               >
-                Ping
-              </Button>
-            </Box>
-          </Tooltip>
-        </Stack>
-      </Paper>
+                <ViewListIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Vista de Cuadrícula">
+              <IconButton 
+                size="small" 
+                color={viewMode === 'grid' ? 'primary' : 'default'}
+                onClick={() => setViewMode('grid')}
+              >
+                <ViewModuleIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        }
+      />
 
-      {/* --- 4. LISTADO DE SERVIDORES --- */}
       {filteredServers.length === 0 ? (
         <Box sx={{ py: 10, textAlign: 'center' }}>
           <Typography variant="h6" color="text.secondary">
@@ -384,7 +340,10 @@ export const HomePage = () => {
           </Typography>
           <Button 
             variant="text" 
-            onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}
+            onClick={() => { 
+              setSearchTerm(''); 
+              setCriticalityFilter('all');
+            }}
             sx={{ mt: 2, fontWeight: 700 }}
           >
             Limpiar Filtros
@@ -412,7 +371,6 @@ export const HomePage = () => {
         </Box>
       )}
 
-      {/* --- 5. ACCIONES FLOTANTES (Opcional) --- */}
       <Box sx={{ position: 'fixed', bottom: 32, right: 32, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Tooltip title="Carga Masiva" placement="left">
           <Button
