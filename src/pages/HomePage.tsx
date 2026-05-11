@@ -25,6 +25,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { deleteServer } from '../api/infrastructureService';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { FilterBar } from '../components/FilterBar';
+import { FloatingActionGroup } from '../components/FloatingActionGroup';
 
 export const HomePage = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export const HomePage = () => {
   } = useInfrastructureStore();
   const { 
     schedulerStatus, liveMetrics: healthCache, alerts,
-    fetchSchedulerStatus, fetchAlerts,
+    fetchSchedulerStatus, fetchAlertsToday,
     pauseMonitoring, resumeMonitoring, fetchLiveCache 
   } = useMonitoringStore();
   const { user } = useAuthStore();
@@ -53,8 +54,8 @@ export const HomePage = () => {
     fetchCriticalities();
     fetchSchedulerStatus();
     fetchLiveCache();
-    fetchAlerts();
-  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus, fetchLiveCache, fetchAlerts]);
+    fetchAlertsToday();
+  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus, fetchLiveCache, fetchAlertsToday]);
 
   const startHideTimer = () => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -260,7 +261,7 @@ export const HomePage = () => {
       >
         <Box>
           <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
-            Dashboard Principal
+            Panel Principal
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Resumen de salud y control global de infraestructura.
@@ -287,7 +288,7 @@ export const HomePage = () => {
           icon={<DnsIcon fontSize="small" />} 
         />
         <MetricCard 
-          title="Alertas Activas" 
+          title="Alertas del Día" 
           value={alerts.length} 
           unit="Incidencias" 
           percent={alerts.length > 0 ? 100 : 0} 
@@ -371,40 +372,22 @@ export const HomePage = () => {
         </Box>
       )}
 
-      <Box sx={{ position: 'fixed', bottom: 32, right: 32, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Tooltip title="Carga Masiva" placement="left">
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={() => navigate('/bulk-upload')}
-            sx={{ 
-              borderRadius: '50%', 
-              width: 56, 
-              height: 56, 
-              minWidth: 0,
-              boxShadow: 3
-            }}
-          >
-            <CloudUploadIcon />
-          </Button>
-        </Tooltip>
-        <Tooltip title="Agregar Servidor" placement="left">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate('/add-server')}
-            sx={{ 
-              borderRadius: '50%', 
-              width: 56, 
-              height: 56, 
-              minWidth: 0,
-              boxShadow: 3
-            }}
-          >
-            <AddIcon />
-          </Button>
-        </Tooltip>
-      </Box>
+      <FloatingActionGroup 
+        items={[
+          {
+            label: "Carga Masiva",
+            icon: <CloudUploadIcon />,
+            color: "secondary",
+            onClick: () => navigate('/bulk-upload')
+          },
+          {
+            label: "Agregar Servidor",
+            icon: <AddIcon />,
+            color: "primary",
+            onClick: () => navigate('/add-server')
+          }
+        ]}
+      />
     </Box>
   );
 };

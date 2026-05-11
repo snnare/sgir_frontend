@@ -21,6 +21,16 @@ export const getAlerts = async (): Promise<Alert[]> => {
     return z.array(AlertSchema).parse(data);
 };
 
+export const getAlertsToday = async (): Promise<Alert[]> => {
+    const { data } = await api.get('/alertas/today');
+    return z.array(AlertSchema).parse(data);
+};
+
+export const getAlertsRecent = async (limit: number = 50): Promise<Alert[]> => {
+    const { data } = await api.get('/alertas/recent', { params: { limit } });
+    return z.array(AlertSchema).parse(data);
+};
+
 export const getAlertsByServer = async (serverId: number): Promise<Alert[]> => {
     const { data } = await api.get(`/alertas/servidor/${serverId}`);
     return z.array(AlertSchema).parse(data);

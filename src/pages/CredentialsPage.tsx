@@ -11,12 +11,14 @@ import EditIcon from '@mui/icons-material/Edit';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import StorageIcon from '@mui/icons-material/Storage';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useNavigate } from 'react-router-dom';
 import { getCredentials, deleteCredential } from '../api/infrastructureService';
 import { type CredentialEnriched } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { MetricCard } from '../components/MetricCard';
 import { FilterBar } from '../components/FilterBar';
+import { FloatingActionGroup } from '../components/FloatingActionGroup';
 
 export const CredentialsPage = () => {
   const [credentials, setCredentials] = useState<CredentialEnriched[]>([]);
@@ -143,21 +145,6 @@ export const CredentialsPage = () => {
                 <RefreshIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Button 
-              variant="contained" 
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/credenciales/nueva')}
-              sx={{ 
-                bgcolor: 'text.primary', 
-                color: 'background.paper',
-                borderRadius: 2,
-                px: 3,
-                fontWeight: 700,
-                '&:hover': { bgcolor: 'grey.800' }
-              }}
-            >
-              Nueva Credencial
-            </Button>
           </Stack>
         }
         filters={[
@@ -196,7 +183,12 @@ export const CredentialsPage = () => {
                 <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
                   <VpnKeyIcon sx={{ fontSize: 48, color: 'action.disabled', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary">No se encontraron credenciales</Typography>
-                  <Button sx={{ mt: 2 }} onClick={() => navigate('/credenciales/nueva')}>Registrar nueva</Button>
+                  <Button 
+                    sx={{ mt: 2, fontWeight: 700 }} 
+                    onClick={() => { setSearchTerm(''); setTypeFilter('all'); }}
+                  >
+                    Limpiar Filtros
+                  </Button>
                 </TableCell>
               </TableRow>
             ) : (
@@ -255,6 +247,23 @@ export const CredentialsPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <FloatingActionGroup 
+        items={[
+          {
+            label: "Carga Masiva (Credenciales)",
+            icon: <CloudUploadIcon />,
+            color: "secondary",
+            onClick: () => navigate('/bulk-upload?target=credentials')
+          },
+          {
+            label: "Nueva Credencial",
+            icon: <AddIcon />,
+            color: "primary",
+            onClick: () => navigate('/credenciales/nueva')
+          }
+        ]}
+      />
     </Box>
   );
 };

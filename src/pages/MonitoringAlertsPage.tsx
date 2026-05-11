@@ -12,11 +12,11 @@ import InfoIcon from '@mui/icons-material/Info';
 import { useMonitoringStore } from '../store/useMonitoringStore';
 
 export const MonitoringAlertsPage = () => {
-  const { alerts, loading, fetchAlerts } = useMonitoringStore();
+  const { alerts, loading, fetchAlertsRecent } = useMonitoringStore();
 
   useEffect(() => {
-    fetchAlerts();
-  }, [fetchAlerts]);
+    fetchAlertsRecent();
+  }, [fetchAlertsRecent]);
 
   const getAlertLevelInfo = (levelId: number) => {
     switch (levelId) {
@@ -43,7 +43,7 @@ export const MonitoringAlertsPage = () => {
       {/* --- 2. ACCIONES --- */}
       <Stack direction="row" justifyContent="flex-end" sx={{ mb: 3 }}>
         <Tooltip title="Actualizar Alertas">
-          <IconButton onClick={() => fetchAlerts()} disabled={loading} size="medium" sx={{ border: '1px solid', borderColor: 'divider' }}>
+          <IconButton onClick={() => fetchAlertsRecent()} disabled={loading} size="medium" sx={{ border: '1px solid', borderColor: 'divider' }}>
             <RefreshIcon fontSize="small" />
           </IconButton>
         </Tooltip>

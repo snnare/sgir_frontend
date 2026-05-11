@@ -19,7 +19,7 @@ export const ProfilePage = () => {
     <Container maxWidth="sm" sx={{ py: 6 }}>
       {/* SECCIÓN DE ENCABEZADO */}
       <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-        <BackButton label="Volver al Dashboard" />
+        <BackButton label="Volver al Panel Principal" />
         
         <Typography 
           variant="h4" 

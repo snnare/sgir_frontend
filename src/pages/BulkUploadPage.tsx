@@ -68,7 +68,7 @@ export const BulkUploadPage = () => {
     <Container maxWidth="sm" sx={{ py: 6 }}>
       {/* SECCIÓN DE ENCABEZADO */}
       <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-        <BackButton to="/" label="Volver al Dashboard" />
+        <BackButton to="/" label="Volver al Panel Principal" />
         
         <Typography 
           variant="h4" 

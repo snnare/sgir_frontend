@@ -20,30 +20,28 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - Manejo proactivo de sesiones expiradas (Auto-logout en 401).
 
 ### 📊 Monitoreo Real-Time e Histórico
-- **Arquitectura de Bajo Latencia (Live Cache)**: Consulta masiva a la memoria RAM del backend (`/live-cache`) con soporte para formatos comprimidos de métricas para alto rendimiento.
-- **Normalización de Salud (Health Status)**: Clasificación de estados unificada (Sano, Crítico, Desactualizado, Desconocido).
-- **Explorador de Logs**: Historial de sesiones de monitoreo con detalle de métricas que superaron el umbral crítico (>90%).
-- **Centro de Alertas**: Panel centralizado de incidencias con clasificación por severidad y seguimiento de estado.
-- **Control del Scheduler**: Gestión global del motor de monitoreo SSH con estados de ejecución en tiempo real (Running, Paused, Stopped).
+- **Arquitectura de Bajo Latencia (Live Cache)**: Consulta masiva a la memoria RAM del backend (`/live-cache`) con soporte para formatos comprimidos de métricas.
+- **Centro de Alertas del Día**: KPI en el panel principal que muestra incidencias de las últimas 24 horas con códigos de color de severidad.
+- **Bitácora de Actividad (Auditoría)**: Historial completo de cambios en el sistema (quién, qué y cuándo) con soporte para **paginación dinámica** y filtrado avanzado.
+- **Control Inteligente del Scheduler**: Mando flotante que se auto-esconde en estado saludable y se activa mediante hover en la esquina superior derecha.
 
 ### 🏗️ Gestión de Inventario y Activos
-- **Inventario CMDB Real**: Búsqueda global enriquecida (`/inventory/assets`) que cruza Servidor -> Instancia -> Bases de Datos en una vista centralizada.
-- **Auto-Descubrimiento de BD**: Wizard guiado para conectarse a motores registrados y poblar/actualizar la CMDB de forma automatizada.
-- **Gestión de FileSystems (SSH)**: Administrador de almacenamiento integrado que descubre particiones físicas (`df -h`) y permite registrar discos específicos (Upsert) para el monitoreo del Scheduler.
-- **Alcance de Monitoreo Selectivo**: Configuración granular por servidor para activar/desactivar monitoreo de Host (CPU/RAM/Disk) y Base de Datos independientemente.
-- **Wizard de Registro Inteligente**: Asistente dinámico que solicita credenciales múltiples (SSH/DB) según el alcance elegido.
-- **Diagnóstico Rápido (Quick Ping)**: Validación ICMP integrada para verificar alcanzabilidad de red y latencia.
+- **Inventario CMDB Real**: Búsqueda global enriquecida (`/inventory/assets`) que cruza Servidor -> Instancia -> Bases de Datos.
+- **Auto-Descubrimiento de BD**: Wizard guiado para sincronizar automáticamente el inventario de bases de datos.
+- **Gestión de FileSystems (SSH)**: Administrador de almacenamiento que descubre particiones físicas y permite registrar discos específicos para monitoreo.
+- **Alcance de Monitoreo Selectivo**: Configuración granular para activar monitoreo de Host y Base de Datos de forma independiente.
 - **Módulo de Políticas**: Gestión completa (CRUD) de reglas de respaldo automatizado.
 
 ### 🎨 Experiencia de Usuario (UI/UX)
-- **Dashboard de Alta Densidad**: Tarjetas de servidor con diseño de "Sensores en Fila" (estilo PRTG) optimizadas para monitorear 30+ activos simultáneamente.
-- **Sensores Ghost**: Visualización de capas de monitoreo no configuradas mediante estados atenuados para mantener la consistencia de la cuadrícula.
-- **Navegación Contextual**: Acceso directo a la gestión de almacenamiento desde las métricas de disco de cada servidor.
-- **Branding Oficial**: Integración de identidad visual corporativa en todo el portal.
-- **Sidebar Inteligente**: Menús colapsables y control global del monitoreo integrado.
+- **Componentes Estandarizados**:
+  - `FilterBar`: Barra de búsqueda y filtrado unificada en todas las pantallas principales.
+  - `FloatingActionGroup`: Botones de acción flotantes (FAB) para creación y carga masiva.
+- **Dashboard de Alta Densidad**: Tarjetas de servidor optimizadas para monitorear múltiples activos simultáneamente.
+- **Localización Completa**: Interfaz 100% en español orientada a la terminología SRE.
+- **Diseño Glassmorphism**: Controles flotantes con desenfoque de fondo y sombras profundas para una estética moderna.
 
 ## 📥 Kit de Importación
-El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que contiene la plantilla técnica oficial y el manual de instrucciones para asegurar la integridad de los datos importados.
+El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que contiene la plantilla técnica oficial y el manual de instrucciones.
 
 ## 📦 Instalación y Desarrollo
 
@@ -52,7 +50,7 @@ El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que c
    ```bash
    pnpm install
    ```
-3. Configurar variables de entorno en un archivo `.env` (basado en `.env.example`).
+3. Configurar variables de entorno en un archivo `.env`.
 4. Iniciar el servidor de desarrollo:
    ```bash
    pnpm dev

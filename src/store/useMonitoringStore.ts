@@ -4,7 +4,7 @@ import {
     getHostMetrics, getMySQLMetrics, getMongoDBMetrics,
     getSchedulerStatus, pauseScheduler, resumeScheduler, getHealthStatus,
     getGlobalSummary, getMonitoringSessions, getMonitoringStatus,
-    getAlerts, getLiveCache
+    getAlerts, getLiveCache, getAlertsToday, getAlertsRecent
 } from '../api/monitoringService';
 import type { 
     Alert, AlertLevel, MonitoringSummary, 
@@ -31,6 +31,8 @@ interface MonitoringState {
 
     fetchAlertsByServer: (serverId: number) => Promise<void>;
     fetchAlerts: () => Promise<void>;
+    fetchAlertsToday: () => Promise<void>;
+    fetchAlertsRecent: (limit?: number) => Promise<void>;
     fetchAlertLevels: () => Promise<void>;
     fetchSummary: (serverId: number) => Promise<void>;
     fetchGlobalSummary: () => Promise<void>;
@@ -81,6 +83,26 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
         set({ loading: true, error: null });
         try {
             const alerts = await getAlerts();
+            set({ alerts, loading: false });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+        }
+    },
+
+    fetchAlertsToday: async () => {
+        set({ loading: true, error: null });
+        try {
+            const alerts = await getAlertsToday();
+            set({ alerts, loading: false });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+        }
+    },
+
+    fetchAlertsRecent: async (limit: number = 50) => {
+        set({ loading: true, error: null });
+        try {
+            const alerts = await getAlertsRecent(limit);
             set({ alerts, loading: false });
         } catch (err: any) {
             set({ error: err.message, loading: false });

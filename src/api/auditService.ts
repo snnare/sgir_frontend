@@ -5,8 +5,8 @@ import {
 } from './types';
 import { z } from 'zod';
 
-export const getAuditLogs = async (): Promise<AuditLog[]> => {
-    const { data } = await api.get('/audit-logs/');
+export const getAuditLogs = async (skip: number = 0, limit: number = 100): Promise<AuditLog[]> => {
+    const { data } = await api.get('/audit-logs/', { params: { skip, limit } });
     return z.array(AuditLogSchema).parse(data);
 };
 

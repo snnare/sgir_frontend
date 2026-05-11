@@ -175,7 +175,7 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
             </Stack>
             {isExpanded && (
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>
-                Status: {schedulerStatus?.status.toUpperCase() || '...'}
+                Estado: {schedulerStatus?.status.toUpperCase() || '...'}
               </Typography>
             )}
           </Box>
@@ -199,10 +199,10 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
           open={isExpanded} 
         />
         
-        {/* Grupo de Backups */}
+        {/* Grupo de Respaldos */}
         <SidebarItem 
           icon={<BackupIcon fontSize="small" />} 
-          label="Backups" 
+          label="Respaldos" 
           onClick={handleBackupsToggle}
           active={location.pathname.startsWith('/backups')} 
           open={isExpanded} 
@@ -258,7 +258,7 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
           <Stack spacing={0.5} sx={{ mt: 0.5 }}>
             <SidebarItem 
               icon={<ListAltIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
-              label="Logs" 
+              label="Bitácora" 
               to="/monitoreo/logs" 
               active={location.pathname === '/monitoreo/logs'} 
               open={isExpanded} 
