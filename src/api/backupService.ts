@@ -4,7 +4,8 @@ import {
     BackupPolicyCreateSchema, type BackupPolicyCreateInput,
     BackupPathSchema, type BackupPath, 
     BackupPathCreateSchema, type BackupPathCreateInput,
-    BackupHistorySchema, type BackupHistory 
+    BackupHistorySchema, type BackupHistory,
+    PolicyAssetResponseSchema, type PolicyAssetResponse
 } from './types';
 import { z } from 'zod';
 
@@ -27,8 +28,18 @@ export const deleteBackupPolicy = async (id: number): Promise<void> => {
     await api.delete(`/politicas-respaldo/${id}`);
 };
 
+export const getPolicyAssets = async (id: number): Promise<PolicyAssetResponse> => {
+    const { data } = await api.get(`/politicas-respaldo/${id}/assets`);
+    return PolicyAssetResponseSchema.parse(data);
+};
+
 export const getBackupPaths = async (): Promise<BackupPath[]> => {
     const { data } = await api.get('/rutas-respaldo/');
+    return z.array(BackupPathSchema).parse(data);
+};
+
+export const getBackupPathsByServer = async (serverId: number): Promise<BackupPath[]> => {
+    const { data } = await api.get(`/rutas-respaldo/servidor/${serverId}`);
     return z.array(BackupPathSchema).parse(data);
 };
 

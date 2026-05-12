@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import { 
   Box, Typography, Stack, Paper, CircularProgress, 
-  Divider, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Tooltip, IconButton, Button, Chip
-} from '@mui/material';
+  Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, Tooltip, IconButton, Button, Chip,
+  Dialog, DialogTitle, DialogContent, DialogActions, Divider
+  } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import BackupTableIcon from '@mui/icons-material/BackupTable';
 import AddIcon from '@mui/icons-material/Add';
@@ -11,6 +12,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchOffIcon from '@mui/icons-material/SearchOff';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import InfoIcon from '@mui/icons-material/Info';
 import { useBackupStore } from '../store/useBackupStore';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { useConfirmStore } from '../store/useConfirmStore';
@@ -20,7 +23,11 @@ import HistoryIcon from '@mui/icons-material/History';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { FloatingActionGroup } from '../components/FloatingActionGroup';
 import { FilterBar } from '../components/FilterBar';
-import { type BackupPolicy } from '../api/types';
+import { type BackupPolicy, type PolicyAssetResponse } from '../api/types';
+import { getPolicyAssets } from '../api/backupService';
+import StorageIcon from '@mui/icons-material/Storage';
+import DnsIcon from '@mui/icons-material/Dns';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 
 const BACKUP_TYPES_MAP: Record<number, string> = {
   1: 'Completo',
@@ -296,6 +303,15 @@ export const BackupPoliciesPage = () => {
                   </TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Tooltip title="Ver Detalle de Política">
+                        <IconButton 
+                          size="small" 
+                          color="primary"
+                          onClick={() => navigate(`/backups/politica/${policy.id_politica}`)}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Editar Política">
                         <IconButton 
                           size="small" 

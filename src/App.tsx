@@ -23,6 +23,7 @@ import { AddDbmsPage } from './pages/AddDbmsPage'
 import { AddBackupPolicyPage } from './pages/AddBackupPolicyPage';
 import { BackupPoliciesPage } from './pages/BackupPoliciesPage';
 import { EditBackupPolicyPage } from './pages/EditBackupPolicyPage';
+import { PolicyDetailsPage } from './pages/PolicyDetailsPage';
 import { AddBackupPathPage } from './pages/AddBackupPathPage';
 import { EditBackupPathPage } from './pages/EditBackupPathPage';
 import { BackupPathsPage } from './pages/BackupPathsPage';
@@ -114,6 +115,7 @@ function App() {
             <Route path="add-instance" element={<AddInstancePage />} />
             <Route path="add-dbms" element={<AddDbmsPage />} />
             <Route path="backups/politicas" element={<BackupPoliciesPage />} />
+            <Route path="backups/politica/:id" element={<PolicyDetailsPage />} />
             <Route path="add-policy" element={<AddBackupPolicyPage />} />
             <Route path="edit-policy/:id" element={<EditBackupPolicyPage />} />
             <Route path="backups/rutas" element={<BackupPathsPage />} />

@@ -241,15 +241,23 @@ export const BackupPathCreateSchema = z.object({
 });
 export type BackupPathCreateInput = z.infer<typeof BackupPathCreateSchema>;
 
+export const BackupFileSchema = z.object({
+    nombre: z.string(),
+    tamano_mb: z.coerce.number(),
+    fecha_modificacion: z.string(),
+});
+
 export const BackupDiscoveryResponseSchema = z.object({
     status: z.string(),
     servidor: z.string(),
-    ruta: z.string(),
-    archivos_fisicos_totales: z.number(),
-    peso: z.string(),
-    lista_archivos: z.array(z.string()),
+    ruta_respaldo: z.string(),
+    archivos_fisicos_conteo: z.number(),
+    total_peso_mb: z.coerce.number(),
+    registros_respaldo_creados: z.number(),
+    archivos: z.array(BackupFileSchema),
 });
 export type BackupDiscoveryResponse = z.infer<typeof BackupDiscoveryResponseSchema>;
+export type BackupFile = z.infer<typeof BackupFileSchema>;
 
 export const BackupHistorySchema = z.object({
     id_respaldo: z.number(),
@@ -444,6 +452,30 @@ export const GlobalDiscoveryResponseSchema = z.object({
 
 export type GlobalDiscoveryResponse = z.infer<typeof GlobalDiscoveryResponseSchema>;
 export type GlobalDiscoveryDetail = z.infer<typeof GlobalDiscoveryDetailSchema>;
+
+// --- Vinculación de Activos a Políticas ---
+export const PolicyDatabaseSchema = z.object({
+    id_base_datos: z.number(),
+    nombre_base: z.string(),
+    tamano_mb: z.coerce.number().nullable().optional(),
+    estado: z.string(),
+});
+
+export const PolicyServerLinkedSchema = z.object({
+    ip: z.string(),
+    motor: z.string(),
+    databases: z.array(PolicyDatabaseSchema),
+});
+
+export const PolicyAssetResponseSchema = z.object({
+    id_politica: z.number(),
+    nombre_politica: z.string(),
+    servidores_vinculados: z.array(PolicyServerLinkedSchema),
+});
+
+export type PolicyAssetResponse = z.infer<typeof PolicyAssetResponseSchema>;
+export type PolicyServerLinked = z.infer<typeof PolicyServerLinkedSchema>;
+export type PolicyDatabase = z.infer<typeof PolicyDatabaseSchema>;
 
 // --- Monitoreo Host y Particiones ---
 export const FilesystemSchema = z.object({
