@@ -14,6 +14,7 @@ import {
     ImportSummarySchema, type ImportSummary,
     AssetSchema, type Asset,
     DiscoveryResponseSchema, type DiscoveryResponse,
+    GlobalDiscoveryResponseSchema, type GlobalDiscoveryResponse,
     FilesystemDiscoveryResponseSchema, type FilesystemDiscoveryResponse,
     PartitionUpsertSchema, type PartitionUpsertInput
 } from './types';
@@ -150,6 +151,11 @@ export const getAssets = async (): Promise<Asset[]> => {
 export const discoverInventory = async (instanceId: number, credentialId: number): Promise<DiscoveryResponse> => {
     const { data } = await api.post(`/monitoring/inventory/discover/${instanceId}/${credentialId}`);
     return DiscoveryResponseSchema.parse(data);
+};
+
+export const discoverAllInventory = async (): Promise<GlobalDiscoveryResponse> => {
+    const { data } = await api.post('/monitoring/inventory/discover-all');
+    return GlobalDiscoveryResponseSchema.parse(data);
 };
 
 export const discoverFilesystems = async (serverId: number): Promise<FilesystemDiscoveryResponse> => {

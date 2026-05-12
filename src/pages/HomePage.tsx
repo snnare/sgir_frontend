@@ -22,6 +22,7 @@ import { ServerCard } from '../components/ServerCard';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
 import { useMonitoringStore } from '../store/useMonitoringStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useConfirmStore } from '../store/useConfirmStore';
 import { deleteServer } from '../api/infrastructureService';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { FilterBar } from '../components/FilterBar';
@@ -40,6 +41,7 @@ export const HomePage = () => {
   } = useMonitoringStore();
   const { user } = useAuthStore();
   const { showNotification } = useNotificationStore();
+  const { confirmAction } = useConfirmStore();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [criticalityFilter, setCriticalityFilter] = useState<number | 'all'>('all');
@@ -102,18 +104,22 @@ export const HomePage = () => {
   };
 
   const handleDelete = async (id: number, name: string) => {
-    if (!window.confirm(`¿Está seguro de que desea eliminar el servidor "${name}"? Esta acción no se puede deshacer.`)) {
-      return;
-    }
-    
-    try {
-      await deleteServer(id);
-      showNotification('Servidor eliminado correctamente', 'success');
-      fetchServers();
-    } catch (error: any) {
-      console.error('Error deleting server:', error);
-      showNotification(error.response?.data?.detail || 'Error al eliminar el servidor', 'error');
-    }
+    confirmAction({
+      title: '¿Eliminar Servidor?',
+      description: `¿Está seguro de que desea eliminar el servidor "${name}"? Esta acción eliminará permanentemente el nodo y todos sus activos asociados (instancias, bases de datos). No se puede deshacer.`,
+      confirmLabel: 'Eliminar ahora',
+      severity: 'error',
+      onConfirm: async () => {
+        try {
+          await deleteServer(id);
+          showNotification('Servidor eliminado correctamente', 'success');
+          fetchServers();
+        } catch (error: any) {
+          console.error('Error deleting server:', error);
+          showNotification(error.response?.data?.detail || 'Error al eliminar el servidor', 'error');
+        }
+      }
+    });
   };
 
   const handleToggleScheduler = async () => {

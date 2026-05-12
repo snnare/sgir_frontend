@@ -15,6 +15,7 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { useLocation } from 'react-router-dom';
 import { SidebarItem } from './SidebarItem';
 import { useThemeStore } from '../store/useThemeStore';
@@ -212,26 +213,26 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
         <Collapse in={isExpanded && backupsExpanded} timeout="auto" unmountOnExit>
           <Stack spacing={0.5} sx={{ mt: 0.5 }}>
             <SidebarItem 
+              icon={<TravelExploreIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
+              label="General" 
+              to="/backups/explorador" 
+              active={location.pathname === '/backups/explorador'} 
+              open={isExpanded} 
+              isSubItem
+            />
+            <SidebarItem 
               icon={<AssignmentIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
-              label="Políticas" 
+              label="Políticas de Respaldo" 
               to="/backups/politicas" 
               active={location.pathname === '/backups/politicas'} 
               open={isExpanded} 
               isSubItem
             />
             <SidebarItem 
-              icon={<FolderSpecialIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
-              label="Rutas" 
+              icon={<SettingsIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
+              label="Rutas Respaldo" 
               to="/backups/rutas" 
               active={location.pathname === '/backups/rutas'} 
-              open={isExpanded} 
-              isSubItem
-            />
-            <SidebarItem 
-              icon={<TravelExploreIcon fontSize="small" sx={{ fontSize: '1rem' }} />} 
-              label="Explorador RAW" 
-              to="/backups/explorador" 
-              active={location.pathname === '/backups/explorador'} 
               open={isExpanded} 
               isSubItem
             />

@@ -25,6 +25,7 @@ import { BackupPoliciesPage } from './pages/BackupPoliciesPage';
 import { EditBackupPolicyPage } from './pages/EditBackupPolicyPage';
 import { AddBackupPathPage } from './pages/AddBackupPathPage';
 import { EditBackupPathPage } from './pages/EditBackupPathPage';
+import { BackupPathsPage } from './pages/BackupPathsPage';
 import { BackupDiscoveryPage } from './pages/BackupDiscoveryPage';
 import { MonitoringLogsPage } from './pages/MonitoringLogsPage';
 import { MonitoringAlertsPage } from './pages/MonitoringAlertsPage';
@@ -62,6 +63,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 import { GlobalNotification } from './components/GlobalNotification';
+import { ConfirmDialog } from './components/ConfirmDialog';
 
 function App() {
   const mode = useThemeStore((state) => state.mode);
@@ -91,6 +93,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <GlobalNotification />
+      <ConfirmDialog />
       <BrowserRouter>
         <Routes>
           {/* Rutas Públicas */}
@@ -113,6 +116,7 @@ function App() {
             <Route path="backups/politicas" element={<BackupPoliciesPage />} />
             <Route path="add-policy" element={<AddBackupPolicyPage />} />
             <Route path="edit-policy/:id" element={<EditBackupPolicyPage />} />
+            <Route path="backups/rutas" element={<BackupPathsPage />} />
             <Route path="add-path" element={<AddBackupPathPage />} />
             <Route path="edit-path/:id" element={<EditBackupPathPage />} />
             <Route path="backups/explorador" element={<BackupDiscoveryPage />} />

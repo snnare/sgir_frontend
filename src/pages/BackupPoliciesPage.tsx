@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { 
   Box, Typography, Stack, Paper, CircularProgress, 
   Divider, Table, TableBody, TableCell, TableContainer,
@@ -13,9 +13,14 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchOffIcon from '@mui/icons-material/SearchOff';
 import { useBackupStore } from '../store/useBackupStore';
 import { useNotificationStore } from '../components/GlobalNotification';
+import { useConfirmStore } from '../store/useConfirmStore';
 import { MetricCard } from '../components/MetricCard';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import HistoryIcon from '@mui/icons-material/History';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { FloatingActionGroup } from '../components/FloatingActionGroup';
+import { FilterBar } from '../components/FilterBar';
+import { type BackupPolicy } from '../api/types';
 
 const BACKUP_TYPES_MAP: Record<number, string> = {
   1: 'Completo',
@@ -24,12 +29,45 @@ const BACKUP_TYPES_MAP: Record<number, string> = {
   4: 'Full',
 };
 
+const TEST_POLICIES: BackupPolicy[] = [
+  {
+    id_politica: 101,
+    nombre_politica: "Diario Crítico",
+    descripcion: "Respaldo cada 24 horas con retención de 30 días",
+    frecuencia_horas: 24,
+    retencion_dias: 30,
+    id_tipo_respaldo: 1,
+    id_estado_politica: 1
+  },
+  {
+    id_politica: 102,
+    nombre_politica: "Semanal Archivo",
+    descripcion: "Respaldo semanal para historial largo",
+    frecuencia_horas: 168,
+    retencion_dias: 365,
+    id_tipo_respaldo: 4,
+    id_estado_politica: 1
+  },
+  {
+    id_politica: 103,
+    nombre_politica: "Incremental Horario",
+    descripcion: "Captura de cambios cada hora",
+    frecuencia_horas: 1,
+    retencion_dias: 7,
+    id_tipo_respaldo: 2,
+    id_estado_politica: 2
+  }
+];
+
 export const BackupPoliciesPage = () => {
   const navigate = useNavigate();
   const { policies, fetchPolicies, deletePolicy, loading: storeLoading } = useBackupStore();
   const { showNotification } = useNotificationStore();
+  const { confirmAction } = useConfirmStore();
   
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<number | 'all'>('all');
 
   useEffect(() => {
     const loadData = async () => {
@@ -39,16 +77,22 @@ export const BackupPoliciesPage = () => {
     loadData();
   }, [fetchPolicies]);
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('¿Está seguro de eliminar esta política de respaldo?')) {
-      try {
-        await deletePolicy(id);
-        showNotification('Política eliminada correctamente', 'success');
-      } catch (error: any) {
-        console.error('Error deleting policy:', error);
-        showNotification(error.response?.data?.detail || 'Error al eliminar la política', 'error');
+  const handleDelete = async (id: number, name: string) => {
+    confirmAction({
+      title: '¿Eliminar Política?',
+      description: `Esta acción eliminará de forma permanente la política "${name}". Los respaldos ya realizados no se verán afectados, pero no se generarán nuevos bajo esta regla.`,
+      confirmLabel: 'Eliminar ahora',
+      severity: 'error',
+      onConfirm: async () => {
+        try {
+          await deletePolicy(id);
+          showNotification('Política eliminada correctamente', 'success');
+        } catch (error: any) {
+          console.error('Error deleting policy:', error);
+          showNotification(error.response?.data?.detail || 'Error al eliminar la política', 'error');
+        }
       }
-    }
+    });
   };
 
   const handleRefresh = async () => {
@@ -58,6 +102,24 @@ export const BackupPoliciesPage = () => {
     showNotification('Datos actualizados', 'info');
   };
 
+  // Combinar políticas reales con datos de prueba si no hay reales
+  const allData = useMemo(() => {
+    return policies.length > 0 ? policies : TEST_POLICIES;
+  }, [policies]);
+
+  const filteredPolicies = useMemo(() => {
+    return allData.filter(policy => {
+      const matchesSearch = 
+        policy.nombre_politica.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (policy.descripcion?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      
+      const matchesType = 
+        typeFilter === 'all' || policy.id_tipo_respaldo === typeFilter;
+
+      return matchesSearch && matchesType;
+    });
+  }, [allData, searchTerm, typeFilter]);
+
   if (loading && policies.length === 0) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
@@ -66,7 +128,7 @@ export const BackupPoliciesPage = () => {
     );
   }
 
-  const hasNothing = policies.length === 0;
+  const hasNothing = allData.length === 0;
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
@@ -80,22 +142,6 @@ export const BackupPoliciesPage = () => {
             Configuración de frecuencia y retención de respaldos automatizados.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/add-policy')}
-          sx={{ 
-            bgcolor: 'text.primary', 
-            color: 'background.paper',
-            borderRadius: 2,
-            fontWeight: 700,
-            px: 3,
-            py: 1,
-            '&:hover': { bgcolor: 'text.secondary' }
-          }}
-        >
-          Nueva Política
-        </Button>
       </Box>
 
       {/* --- 2. MÉTRICAS --- */}
@@ -113,27 +159,43 @@ export const BackupPoliciesPage = () => {
         >
           <MetricCard 
             title="Políticas Activas" 
-            value={policies.filter(p => p.id_estado_politica === 1).length} 
+            value={allData.filter(p => p.id_estado_politica === 1).length} 
             unit="Reglas" 
             percent={100} 
             icon={<BackupTableIcon fontSize="small" />} 
           />
           <MetricCard 
             title="Frecuencia Promedio" 
-            value={Math.round(policies.reduce((acc, p) => acc + p.frecuencia_horas, 0) / policies.length) || 0} 
+            value={Math.round(allData.reduce((acc, p) => acc + p.frecuencia_horas, 0) / allData.length) || 0} 
             unit="Horas" 
             percent={100} 
             icon={<AccessTimeIcon fontSize="small" />} 
           />
           <MetricCard 
             title="Retención Promedio" 
-            value={Math.round(policies.reduce((acc, p) => acc + p.retencion_dias, 0) / policies.length) || 0} 
+            value={Math.round(allData.reduce((acc, p) => acc + p.retencion_dias, 0) / allData.length) || 0} 
             unit="Días" 
             percent={100} 
             icon={<HistoryIcon fontSize="small" />} 
           />
         </Box>
       )}
+
+      <FilterBar 
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar por nombre o descripción..."
+        filters={[
+          { label: 'Todos los tipos', value: 'all' },
+          ...Object.entries(BACKUP_TYPES_MAP).map(([id, label]) => ({
+            label,
+            value: Number(id)
+          }))
+        ]}
+        activeFilter={typeFilter}
+        onFilterChange={setTypeFilter}
+        statsLabel={`${filteredPolicies.length} políticas encontradas`}
+      />
 
       <Divider sx={{ mb: 4, borderStyle: 'dashed' }} />
 
@@ -189,7 +251,7 @@ export const BackupPoliciesPage = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {policies.map((policy) => (
+              {filteredPolicies.map((policy) => (
                 <TableRow key={policy.id_politica} hover>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -246,7 +308,7 @@ export const BackupPoliciesPage = () => {
                         <IconButton 
                           size="small" 
                           color="error"
-                          onClick={() => handleDelete(policy.id_politica)}
+                          onClick={() => handleDelete(policy.id_politica, policy.nombre_politica)}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -260,6 +322,23 @@ export const BackupPoliciesPage = () => {
           </Table>
         </TableContainer>
       )}
+
+      <FloatingActionGroup 
+        items={[
+          {
+            label: "Carga Masiva",
+            icon: <CloudUploadIcon />,
+            color: "secondary",
+            onClick: () => navigate('/bulk-upload')
+          },
+          {
+            label: "Nueva Política",
+            icon: <AddIcon />,
+            color: "primary",
+            onClick: () => navigate('/add-policy')
+          }
+        ]}
+      />
     </Box>
   );
 };

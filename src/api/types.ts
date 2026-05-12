@@ -398,17 +398,22 @@ export const AuditEventTypeSchema = z.object({
 export type AuditEventType = z.infer<typeof AuditEventTypeSchema>;
 
 // --- Inventario y Activos ---
+export const AssetDatabaseSchema = z.object({
+    nombre: z.string(),
+    tamano_mb: z.coerce.number().nullable().optional(),
+    estado: z.string(),
+});
+
 export const AssetSchema = z.object({
-    id_asset: z.string(),
-    servidor: z.string(),
     ip: z.string(),
     motor: z.string(),
     instancia: z.string(),
-    base_datos: z.string().nullable(),
-    estado: z.string(),
+    servidor: z.string(),
     criticidad: z.string(),
+    bases_de_datos: z.array(AssetDatabaseSchema),
 });
 export type Asset = z.infer<typeof AssetSchema>;
+export type AssetDatabase = z.infer<typeof AssetDatabaseSchema>;
 
 export const DiscoveryResponseSchema = z.object({
     instancia: z.string(),
@@ -418,6 +423,27 @@ export const DiscoveryResponseSchema = z.object({
     desactivadas: z.number(),
 });
 export type DiscoveryResponse = z.infer<typeof DiscoveryResponseSchema>;
+
+export const GlobalDiscoveryDetailSchema = z.object({
+    instancia: z.string(),
+    status: z.enum(['success', 'failed']),
+    nuevas: z.number().optional(),
+    actualizadas: z.number().optional(),
+    desactivadas: z.number().optional(),
+    error: z.string().optional(),
+});
+
+export const GlobalDiscoveryResponseSchema = z.object({
+    total_instancias_encontradas: z.number(),
+    instancias_procesadas_exitosamente: z.number(),
+    instancias_fallidas: z.number(),
+    omitidas_sin_credenciales: z.number(),
+    detalles: z.array(GlobalDiscoveryDetailSchema),
+    total_db_size_mb: z.coerce.number(),
+});
+
+export type GlobalDiscoveryResponse = z.infer<typeof GlobalDiscoveryResponseSchema>;
+export type GlobalDiscoveryDetail = z.infer<typeof GlobalDiscoveryDetailSchema>;
 
 // --- Monitoreo Host y Particiones ---
 export const FilesystemSchema = z.object({
