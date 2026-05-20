@@ -35,7 +35,7 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
     setValue,
     formState: { errors }
   } = useForm<BackupPolicyCreateInput>({
-    resolver: zodResolver(BackupPolicyCreateSchema),
+    resolver: zodResolver(BackupPolicyCreateSchema) as any,
     defaultValues: {
       nombre_politica: '',
       descripcion: '',
@@ -108,15 +108,17 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
             type="number"
             id="frecuencia_horas"
             label="Frecuencia"
-            InputProps={{
-              endAdornment: <InputAdornment position="end">Horas</InputAdornment>,
-              startAdornment: (
-                <InputAdornment position="start">
-                  <AccessTimeIcon fontSize="small" />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                endAdornment: <InputAdornment position="end">Horas</InputAdornment>,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AccessTimeIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }
             }}
-            {...register('frecuencia_horas')}
+            {...register('frecuencia_horas', { valueAsNumber: true })}
             error={!!errors.frecuencia_horas}
             helperText={errors.frecuencia_horas?.message}
           />
@@ -126,15 +128,17 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
             type="number"
             id="retencion_dias"
             label="Retención"
-            InputProps={{
-              endAdornment: <InputAdornment position="end">Días</InputAdornment>,
-              startAdornment: (
-                <InputAdornment position="start">
-                  <HistoryIcon fontSize="small" />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                endAdornment: <InputAdornment position="end">Días</InputAdornment>,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <HistoryIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }
             }}
-            {...register('retencion_dias')}
+            {...register('retencion_dias', { valueAsNumber: true })}
             error={!!errors.retencion_dias}
             helperText={errors.retencion_dias?.message}
           />

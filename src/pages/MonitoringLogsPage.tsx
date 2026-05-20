@@ -136,7 +136,7 @@ export const MonitoringLogsPage = () => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                         <Avatar sx={{ width: 24, height: 24, bgcolor: 'action.selected', color: 'text.secondary' }}>
                           <PersonIcon sx={{ fontSize: 16 }} />
                         </Avatar>

@@ -13,7 +13,7 @@ export const DashboardLayout = () => {
   const currentMargin = sidebarPinned ? 260 : 70;
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex' }} style={{ '--sidebar-width': `${currentMargin}px` } as React.CSSProperties}>
       <Sidebar open={sidebarPinned} onToggle={toggleSidebar} />
 
       <Box 

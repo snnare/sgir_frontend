@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { 
   Box, Typography, Stack, Paper, Button, Grid, 
   FormControl, InputLabel, Select, MenuItem, 
-  CircularProgress, Divider, Table, TableBody, 
+  CircularProgress, Table, TableBody, 
   TableCell, TableContainer, TableHead, TableRow, 
-  Chip, Tooltip, Alert
+  Chip, Alert
 } from '@mui/material';
 import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import DnsIcon from '@mui/icons-material/Dns';
@@ -12,7 +12,6 @@ import KeyIcon from '@mui/icons-material/Key';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import StorageIcon from '@mui/icons-material/Storage';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { getServers, getCredentialsByServer } from '../api/infrastructureService';
 import { getBackupPathsByServer } from '../api/backupService';
 import { discoverBackups } from '../api/monitoringService';
@@ -124,8 +123,8 @@ export const BackupDiscoveryPage = () => {
 
       {/* Panel de Selección */}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, mb: 4, bgcolor: 'background.paper' }}>
-        <Grid container spacing={3} alignItems="flex-end">
-          <Grid item xs={12} md={3}>
+        <Grid container spacing={3} sx={{ alignItems: 'flex-end' }}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Servidor</InputLabel>
               <Select
@@ -143,7 +142,7 @@ export const BackupDiscoveryPage = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <FormControl fullWidth size="small" disabled={!selectedServerId || loadingDetails || discovering}>
               <InputLabel>Credencial SSH</InputLabel>
               <Select
@@ -164,7 +163,7 @@ export const BackupDiscoveryPage = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <FormControl fullWidth size="small" disabled={!selectedServerId || loadingDetails || discovering}>
               <InputLabel>Ruta de Respaldo</InputLabel>
               <Select
@@ -185,7 +184,7 @@ export const BackupDiscoveryPage = () => {
             </FormControl>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Button
               fullWidth
               variant="contained"
@@ -210,19 +209,19 @@ export const BackupDiscoveryPage = () => {
       {result && (
         <Box sx={{ animation: 'slideUp 0.4s ease-out' }}>
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>ARCHIVOS FÍSICOS</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800 }}>{result.archivos_fisicos_conteo}</Typography>
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>PESO TOTAL</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800 }}>{result.total_peso_mb.toFixed(2)} MB</Typography>
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2, borderLeft: '4px solid', borderLeftColor: 'success.main' }}>
                 <Typography variant="caption" color="success.main" sx={{ fontWeight: 700 }}>REGISTROS CREADOS</Typography>
                 <Typography variant="h4" sx={{ fontWeight: 800 }}>{result.registros_respaldo_creados}</Typography>
@@ -244,7 +243,7 @@ export const BackupDiscoveryPage = () => {
                   result.archivos.map((file, idx) => (
                     <TableRow key={idx} hover>
                       <TableCell>
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                           <StorageIcon fontSize="small" color="primary" />
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>{file.nombre}</Typography>
                         </Stack>

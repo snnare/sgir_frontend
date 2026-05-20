@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { 
   Box, Typography, Stack, Paper, CircularProgress, 
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  IconButton, Tooltip, Chip, Grid
+  IconButton, Tooltip, Chip
 } from '@mui/material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -41,7 +41,7 @@ export const MonitoringAlertsPage = () => {
       </Box>
 
       {/* --- 2. ACCIONES --- */}
-      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 3 }}>
+      <Stack direction="row" sx={{ justifyContent: 'flex-end', mb: 3 }}>
         <Tooltip title="Actualizar Alertas">
           <IconButton onClick={() => fetchAlertsRecent()} disabled={loading} size="medium" sx={{ border: '1px solid', borderColor: 'divider' }}>
             <RefreshIcon fontSize="small" />
@@ -79,7 +79,7 @@ export const MonitoringAlertsPage = () => {
                     <TableCell sx={{ fontWeight: 500 }}>
                       {alert.descripcion}
                     </TableCell>
-                    <TableCell variant="body2" sx={{ color: 'text.secondary' }}>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
                       {new Date(alert.fecha_alerta).toLocaleString()}
                     </TableCell>
                     <TableCell sx={{ fontFamily: 'monospace', fontWeight: 600 }}>

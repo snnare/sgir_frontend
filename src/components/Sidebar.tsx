@@ -7,7 +7,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
-import FolderSpecialIcon from '@mui/icons-material/FolderSpecial';
 import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';

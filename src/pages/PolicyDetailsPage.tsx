@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { 
   Box, Typography, Stack, Paper, CircularProgress, 
-  Button, Grid, Divider, Chip, Table, TableBody, 
-  TableCell, TableContainer, TableHead, TableRow 
+  Button, Grid, Chip, Table, TableBody, 
+  TableCell, TableHead, TableRow 
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -101,7 +101,7 @@ export const PolicyDetailsPage = () => {
 
       <Grid container spacing={4}>
         {/* Configuración de la Política */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, height: '100%' }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
               <BackupTableIcon color="primary" /> Configuración
@@ -121,7 +121,7 @@ export const PolicyDetailsPage = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
                   Frecuencia de Ejecución
                 </Typography>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 0.5 }}>
                   <AccessTimeIcon fontSize="small" color="action" />
                   <Typography variant="body1" sx={{ fontWeight: 600 }}>
                     Cada {policy.frecuencia_horas} horas
@@ -133,7 +133,7 @@ export const PolicyDetailsPage = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
                   Retención de Datos
                 </Typography>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 0.5 }}>
                   <HistoryIcon fontSize="small" color="action" />
                   <Typography variant="body1" sx={{ fontWeight: 600 }}>
                     {policy.retencion_dias} días naturales
@@ -159,7 +159,7 @@ export const PolicyDetailsPage = () => {
         </Grid>
 
         {/* Activos Vinculados */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
               <StorageIcon color="primary" /> Activos Protegidos
@@ -170,7 +170,7 @@ export const PolicyDetailsPage = () => {
                 {assets.servidores_vinculados.map((sv, idx) => (
                   <Box key={idx} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
                     <Box sx={{ bgcolor: 'action.hover', p: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Stack direction="row" spacing={1} alignItems="center">
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                         <DnsIcon fontSize="small" color="action" />
                         <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{sv.ip}</Typography>
                         <Chip label={sv.motor} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }} />

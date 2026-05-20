@@ -32,7 +32,7 @@ export const SidebarItem = ({
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
 
-  const handleClick = async (e: React.MouseEvent) => {
+  const handleClick = async () => {
     if (onClick) {
       onClick();
       // Si tiene hijos y no tiene ruta, no navegamos

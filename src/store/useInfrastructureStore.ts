@@ -3,14 +3,14 @@ import {
     getServers, getServerById, getInstancesByServer, 
     getDbms, getCredentialsByServer, getCriticalities, getGeneralStatuses 
 } from '../api/infrastructureService';
-import type { Server, Instance, Dbms, Credential, Criticality, GeneralStatus } from '../api/types';
+import type { Server, Instance, Dbms, CredentialEnriched, Criticality, GeneralStatus } from '../api/types';
 
 interface InfrastructureState {
     servers: Server[];
     currentServer: Server | null;
     instances: Instance[];
     dbmsList: Dbms[];
-    credentials: Credential[];
+    credentials: CredentialEnriched[];
     criticalities: Criticality[];
     statuses: GeneralStatus[];
     loading: boolean;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
@@ -43,7 +43,7 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
     getValues,
     formState: { errors },
   } = useForm<ExtendedCredentialInput>({
-    resolver: zodResolver(CredentialCreateSchema),
+    resolver: zodResolver(CredentialCreateSchema) as any,
     defaultValues: {
       id_servidor: serverId,
       id_estado_credencial: 1,
@@ -54,6 +54,24 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
   const isDbNative = tipoAcceso === 2;
   const selectedDbmsId = useWatch({ control, name: 'id_dbms' });
   const watchServerId = useWatch({ control, name: 'id_servidor' });
+  const watchUsuario = useWatch({ control, name: 'usuario' });
+  const watchPassword = useWatch({ control, name: 'password' });
+  const watchPuerto = useWatch({ control, name: 'puerto' });
+
+  // Lógica para habilitar el botón de Test Connection
+  const canTest = useMemo(() => {
+    // Validar campos base (Servidor, Tipo Acceso, Usuario, Password)
+    const hasBaseFields = (serverId || watchServerId) && tipoAcceso && watchUsuario?.trim() && watchPassword?.trim();
+    if (!hasBaseFields) return false;
+    
+    // Si es DB Native, requiere motor y puerto
+    if (isDbNative) {
+      return !!selectedDbmsId && !!watchPuerto;
+    }
+    
+    // Para SSH u otros, basta con los base fields
+    return true;
+  }, [serverId, watchServerId, tipoAcceso, watchUsuario, watchPassword, isDbNative, selectedDbmsId, watchPuerto]);
 
   // 1. Cargar servidores si estamos en modo "Standalone"
   useEffect(() => {
@@ -194,7 +212,7 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ width: '100%' }}>
+    <Box component="form" onSubmit={handleSubmit(onSubmit as any)} noValidate sx={{ width: '100%' }}>
       <Stack spacing={3}>
         
         {/* Selector de Servidor (Solo en modo Standalone) */}
@@ -344,18 +362,25 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
             variant="outlined"
             fullWidth
             onClick={handleTestConnection}
-            disabled={testing}
+            disabled={testing || !canTest}
             startIcon={testing ? <CircularProgress size={20} /> : <DnsIcon fontSize="small" />}
             sx={{ 
               py: 1.5, 
               fontWeight: 600,
               fontSize: '0.9rem',
               borderStyle: 'dashed',
-              color: 'text.secondary',
-              borderColor: 'divider',
+              color: canTest ? 'text.secondary' : 'text.disabled',
+              borderColor: canTest ? 'divider' : 'rgba(0,0,0,0.08)',
+              opacity: canTest ? 1 : 0.6,
+              transition: 'all 0.2s ease',
               '&:hover': {
-                borderColor: 'text.secondary',
-                bgcolor: 'action.hover'
+                borderColor: canTest ? 'text.secondary' : 'rgba(0,0,0,0.08)',
+                bgcolor: canTest ? 'action.hover' : 'transparent'
+              },
+              '&.Mui-disabled': {
+                borderStyle: 'dashed',
+                borderColor: 'rgba(0,0,0,0.08)',
+                color: 'text.disabled'
               }
             }}
           >

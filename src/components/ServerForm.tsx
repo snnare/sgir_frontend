@@ -126,7 +126,7 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ width: '100%' }}>
       <Stack spacing={3}>
         
-        <Stack direction="row" spacing={1} alignItems="flex-start">
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
           <TextField
             required
             fullWidth
@@ -156,7 +156,7 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
           helperText={errors.nombre_servidor?.message}
         />
 
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" sx={{ alignItems: 'center' }} spacing={1}>
           <Controller
             name="es_legacy"
             control={control}

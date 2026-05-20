@@ -11,7 +11,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import DnsIcon from '@mui/icons-material/Dns';
 import { BackupPathCreateSchema, type BackupPathCreateInput, type BackupPath } from '../api/types';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
-import { createBackupPath } from '../api/backupService'; // Deberíamos añadir updateBackupPath
+import { createBackupPath, updateBackupPath } from '../api/backupService';
 import { useNotificationStore } from './GlobalNotification';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -42,7 +42,7 @@ export const BackupPathForm = ({ initialData, isEdit = false }: BackupPathFormPr
     formState: { errors, isSubmitting },
     reset
   } = useForm<BackupPathCreateInput>({
-    resolver: zodResolver(BackupPathCreateSchema),
+    resolver: zodResolver(BackupPathCreateSchema) as any,
     defaultValues: initialData ? {
       ...initialData,
       id_servidor: initialData.id_servidor || undefined
@@ -150,7 +150,7 @@ export const BackupPathForm = ({ initialData, isEdit = false }: BackupPathFormPr
         >
           {STORAGE_TYPES.map((type) => (
             <MenuItem key={type.id} value={type.id}>
-              <Stack direction="row" alignItems="center" spacing={1}>
+              <Stack direction="row" sx={{ alignItems: 'center' }} spacing={1}>
                 {type.id === 2 ? <CloudQueueIcon fontSize="inherit" /> : <StorageIcon fontSize="inherit" />}
                 <span>{type.name}</span>
               </Stack>

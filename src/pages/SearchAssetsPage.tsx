@@ -4,7 +4,8 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Chip, IconButton, Tooltip, CircularProgress,
   Button, Menu, MenuItem, ListItemIcon, ListItemText,
-  Dialog, DialogTitle, DialogContent, DialogActions, Divider, List, ListItem, Grid
+  Dialog, DialogTitle, DialogContent, DialogActions, Grid,
+  Alert
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import StorageIcon from '@mui/icons-material/Storage';
@@ -12,9 +13,6 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
 import DnsIcon from '@mui/icons-material/Dns';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import WarningIcon from '@mui/icons-material/Warning';
 import InfoIcon from '@mui/icons-material/Info';
 import { getAssets, discoverAllInventory } from '../api/infrastructureService';
 import { type Asset, type GlobalDiscoveryResponse } from '../api/types';
@@ -145,7 +143,7 @@ export const SearchAssetsPage = () => {
         onClose={() => setResultDialogOpen(false)}
         maxWidth="md"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
+        slotProps={{ paper: { sx: { borderRadius: 3 } } }}
       >
         <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <AutoAwesomeIcon color="primary" /> Resultado de Sincronización Global
@@ -155,25 +153,25 @@ export const SearchAssetsPage = () => {
             <Box>
               {/* Resumen de KPIs */}
               <Grid container spacing={2} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2, bgcolor: 'action.hover' }}>
                     <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Instancias</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800 }}>{globalResult.total_instancias_encontradas}</Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2, borderLeft: '4px solid', borderLeftColor: 'success.main' }}>
                     <Typography variant="caption" color="success.main" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Exitosas</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800 }}>{globalResult.instancias_procesadas_exitosamente}</Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2, borderLeft: '4px solid', borderLeftColor: 'error.main' }}>
                     <Typography variant="caption" color="error.main" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Fallidas</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800 }}>{globalResult.instancias_fallidas}</Typography>
                   </Paper>
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2, borderLeft: '4px solid', borderLeftColor: 'info.main' }}>
                     <Typography variant="caption" color="info.main" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Tamaño Total</Typography>
                     <Typography variant="h5" sx={{ fontWeight: 800, mt: 0.5 }}>{globalResult.total_db_size_mb.toFixed(1)} <Typography component="span" variant="caption">MB</Typography></Typography>
@@ -208,7 +206,7 @@ export const SearchAssetsPage = () => {
                         </TableCell>
                         <TableCell align="center">
                           {det.status === 'success' ? (
-                            <Stack direction="row" spacing={1} justifyContent="center">
+                            <Stack direction="row" spacing={1} sx={{ justifyContent: 'center' }}>
                               <Typography variant="caption" color="success.main" sx={{ fontWeight: 700 }}>+{det.nuevas}</Typography>
                               <Typography variant="caption" color="primary.main" sx={{ fontWeight: 700 }}>~{det.actualizadas}</Typography>
                               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>-{det.desactivadas}</Typography>
@@ -271,12 +269,14 @@ export const SearchAssetsPage = () => {
               anchorEl={anchorEl}
               open={menuOpen}
               onClose={handleMenuClose}
-              PaperProps={{
-                sx: {
-                  borderRadius: 2,
-                  mt: 1,
-                  minWidth: 180,
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+              slotProps={{
+                paper: {
+                  sx: {
+                    borderRadius: 2,
+                    mt: 1,
+                    minWidth: 180,
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+                  }
                 }
               }}
               transformOrigin={{ horizontal: 'right', vertical: 'top' }}

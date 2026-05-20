@@ -22,7 +22,7 @@ export const ProfileDetails = () => {
   if (!user) {
     return (
       <Box sx={{ width: '100%' }}>
-        <Stack alignItems="center" spacing={2} sx={{ mb: 4 }}>
+        <Stack spacing={2} sx={{ mb: 4, alignItems: 'center' }}>
           <Skeleton variant="circular" width={80} height={80} />
           <Box sx={{ textAlign: 'center', width: '100%' }}>
             <Skeleton variant="text" width="60%" sx={{ mx: 'auto' }} />
@@ -45,7 +45,7 @@ export const ProfileDetails = () => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Stack alignItems="center" spacing={2} sx={{ mb: 6 }}>
+      <Stack spacing={2} sx={{ mb: 6, alignItems: 'center' }}>
         <Avatar 
           sx={{ 
             width: 80, 
@@ -88,7 +88,7 @@ export const ProfileDetails = () => {
 };
 
 const DataRow = ({ label, value, isMono = false, color }: any) => (
-  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 0.5 }}>
+  <Stack direction="row" sx={{ py: 0.5, justifyContent: 'space-between', alignItems: 'center' }}>
     <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, pr: 2 }}>
       {label}
     </Typography>

@@ -35,7 +35,7 @@ export const UpdateServerInfoPage = () => {
     resolver: zodResolver(ServerUpdateSchema),
   });
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -136,7 +136,7 @@ export const UpdateServerInfoPage = () => {
               helperText={errors.nombre_servidor?.message}
             />
 
-            <Stack direction="row" alignItems="center" spacing={1}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <Controller
                 name="es_legacy"
                 control={control}

@@ -6,11 +6,11 @@ import {
 import { z } from 'zod';
 
 export const getAuditLogs = async (skip: number = 0, limit: number = 100): Promise<AuditLog[]> => {
-    const { data } = await api.get('/audit-logs/', { params: { skip, limit } });
+    const { data } = await api.get('/crud/audit-logs/', { params: { skip, limit } });
     return z.array(AuditLogSchema).parse(data);
 };
 
 export const getAuditEventTypes = async (): Promise<AuditEventType[]> => {
-    const { data } = await api.get('/audit-types/');
+    const { data } = await api.get('/crud/audit-types/');
     return z.array(AuditEventTypeSchema).parse(data);
 };

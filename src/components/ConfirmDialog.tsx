@@ -1,6 +1,6 @@
 import { 
   Dialog, DialogTitle, DialogContent, DialogContentText, 
-  DialogActions, Button, Box, Typography, Stack 
+  DialogActions, Button, Typography 
 } from '@mui/material';
 import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -38,11 +38,13 @@ export const ConfirmDialog = () => {
     <Dialog 
       open={open} 
       onClose={loading ? undefined : closeConfirm}
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          p: 1,
-          maxWidth: 400
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            maxWidth: 400
+          }
         }
       }}
     >

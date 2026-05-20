@@ -221,7 +221,7 @@ export const CredentialsPage = () => {
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
                       <Tooltip title="Editar">
                         <IconButton 
                           size="small"

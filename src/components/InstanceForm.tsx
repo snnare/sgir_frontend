@@ -28,7 +28,7 @@ export const InstanceForm = () => {
       <Stack spacing={3}>
 
         {/* Fila DBMS + Botón Agregar */}
-        <Stack direction="row" spacing={1} alignItems="flex-start">
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
           <TextField
             select
             fullWidth
@@ -77,12 +77,14 @@ export const InstanceForm = () => {
           label="Puerto de Conexión"
           type="number"
           name="puerto"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SettingsInputComponentIcon fontSize="small" />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SettingsInputComponentIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }
           }}
         />
 

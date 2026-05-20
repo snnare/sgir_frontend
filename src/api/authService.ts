@@ -9,7 +9,7 @@ export const login = async (credentials: LoginInput, rememberMe: boolean = false
     formData.append('password', credentials.password);
 
     // Se añade remember_me como query parameter
-    const { data } = await api.post(`/users/login?remember_me=${rememberMe}`, formData, {
+    const { data } = await api.post(`/crud/users/login?remember_me=${rememberMe}`, formData, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -19,20 +19,20 @@ export const login = async (credentials: LoginInput, rememberMe: boolean = false
 };
 
 export const register = async (userData: RegisterInput): Promise<UserResponse> => {
-    const { data } = await api.post('/users/', userData);
+    const { data } = await api.post('/crud/users/', userData);
     return UserResponseSchema.parse(data);
 };
 
 export const getMe = async (): Promise<UserResponse> => {
-    const { data } = await api.get('/users/me');
+    const { data } = await api.get('/crud/users/me');
     return UserResponseSchema.parse(data);
 };
 
 export const logout = async (): Promise<void> => {
-    await api.post('/users/logout');
+    await api.post('/crud/users/logout');
 };
 
 export const updateUser = async (userId: number, userData: UserUpdateInput): Promise<UserResponse> => {
-    const { data } = await api.put(`/users/${userId}`, userData);
+    const { data } = await api.put(`/crud/users/${userId}`, userData);
     return UserResponseSchema.parse(data);
 };

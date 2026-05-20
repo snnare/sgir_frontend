@@ -27,7 +27,7 @@ export const RegisterForm = () => {
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterInput>({
-    resolver: zodResolver(RegisterSchema),
+    resolver: zodResolver(RegisterSchema) as any,
     defaultValues: {
       id_rol: 2,
       id_estado_usuario: 1
@@ -56,7 +56,7 @@ export const RegisterForm = () => {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ width: '100%', mt: 1 }}>
+    <Box component="form" onSubmit={handleSubmit(onSubmit as any)} noValidate sx={{ width: '100%', mt: 1 }}>
       <Stack spacing={2}>
         {errorStore && (
           <Alert severity="error" sx={{ mb: 2 }}>

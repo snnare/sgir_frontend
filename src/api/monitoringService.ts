@@ -17,100 +17,100 @@ import {
 import { z } from 'zod';
 
 export const getAlerts = async (): Promise<Alert[]> => {
-    const { data } = await api.get('/alertas/');
+    const { data } = await api.get('/crud/alertas/active');
     return z.array(AlertSchema).parse(data);
 };
 
 export const getAlertsToday = async (): Promise<Alert[]> => {
-    const { data } = await api.get('/alertas/today');
+    const { data } = await api.get('/crud/alertas/today');
     return z.array(AlertSchema).parse(data);
 };
 
 export const getAlertsRecent = async (limit: number = 50): Promise<Alert[]> => {
-    const { data } = await api.get('/alertas/recent', { params: { limit } });
+    const { data } = await api.get('/crud/alertas/recent', { params: { limit } });
     return z.array(AlertSchema).parse(data);
 };
 
 export const getAlertsByServer = async (serverId: number): Promise<Alert[]> => {
-    const { data } = await api.get(`/alertas/servidor/${serverId}`);
+    const { data } = await api.get(`/crud/alertas/servidor/${serverId}`);
     return z.array(AlertSchema).parse(data);
 };
 
 export const getMonitoringStatus = async (id: number): Promise<MonitoringSessionDetail> => {
-    const { data } = await api.get(`/monitoreo/${id}`);
+    const { data } = await api.get(`/crud/monitoreo/${id}`);
     return MonitoringSessionDetailSchema.parse(data);
 };
 
 export const getMonitoringSessions = async (): Promise<MonitoringSession[]> => {
-    const { data } = await api.get('/monitoreo/');
+    const { data } = await api.get('/crud/monitoreo/');
     return z.array(MonitoringSessionSchema).parse(data);
 };
 
 export const createMonitoringSession = async (monitoringData: MonitoringCreateInput): Promise<MonitoringSession> => {
-    const { data } = await api.post('/monitoreo/', monitoringData);
+    const { data } = await api.post('/crud/monitoreo/', monitoringData);
     return MonitoringSessionSchema.parse(data);
 };
 
 export const getAlertLevels = async (): Promise<AlertLevel[]> => {
-    const { data } = await api.get('/nivel-alerta/');
+    const { data } = await api.get('/crud/nivel-alerta/');
     return z.array(AlertLevelSchema).parse(data);
 };
 
 export const getMonitoringSummary = async (serverId: number): Promise<MonitoringSummary> => {
-    const { data } = await api.get(`/monitoring/inventory/summary/${serverId}`);
+    const { data } = await api.get(`/m2/inventory/summary/${serverId}`);
     return MonitoringSummarySchema.parse(data);
 };
 
 export const getHostMetrics = async (serverId: number, credId: number): Promise<HostMetrics> => {
-    const { data } = await api.get(`/monitoring/host/${serverId}/${credId}`);
+    const { data } = await api.get(`/m1/host/${serverId}/${credId}`);
     return HostMetricsSchema.parse(data);
 };
 
 // --- Control del Scheduler ---
 
 export const getSchedulerStatus = async (): Promise<SchedulerStatus> => {
-    const { data } = await api.get('/monitoring/host/scheduler/status');
+    const { data } = await api.get('/m1/host/scheduler/status');
     return SchedulerStatusSchema.parse(data);
 };
 
 export const pauseScheduler = async (): Promise<SchedulerStatus> => {
-    const { data } = await api.post('/monitoring/host/scheduler/pause');
+    const { data } = await api.post('/m1/host/scheduler/pause');
     return SchedulerStatusSchema.parse(data);
 };
 
 export const resumeScheduler = async (): Promise<SchedulerStatus> => {
-    const { data } = await api.post('/monitoring/host/scheduler/resume');
+    const { data } = await api.post('/m1/host/scheduler/resume');
     return SchedulerStatusSchema.parse(data);
 };
 
 // --- Métricas en Tiempo Real (Live Cache) ---
 
 export const getGlobalSummary = async (): Promise<GlobalSummary> => {
-    const { data } = await api.get('/monitoring/host/global-summary');
+    const { data } = await api.get('/m1/host/global-summary');
     return GlobalSummarySchema.parse(data);
 };
 
 export const getHealthStatus = async (serverId: number): Promise<HealthStatus> => {
-    const { data } = await api.get(`/monitoring/host/health-status/${serverId}`);
+    const { data } = await api.get(`/m1/host/health-status/${serverId}`);
     return HealthStatusSchema.parse(data);
 };
 
 export const getLiveCache = async (): Promise<Record<number, HealthStatus>> => {
-    const { data } = await api.get('/monitoring/host/live-cache');
+    const { data } = await api.get('/m1/host/live-cache');
     return data;
 };
 
 export const getMySQLMetrics = async (serverId: number, credId: number): Promise<MySQLMetrics> => {
-    const { data } = await api.get(`/monitoring/mysql8/${serverId}/${credId}`);
+    const { data } = await api.get(`/m1/mysql8/${serverId}/${credId}`);
     return MySQLMetricsSchema.parse(data);
 };
 
 export const getMongoDBMetrics = async (serverId: number, credId: number): Promise<MongoDBMetrics> => {
-    const { data } = await api.get(`/monitoring/mongodb/${serverId}/${credId}`);
+    const { data } = await api.get(`/m1/mongodb/${serverId}/${credId}`);
     return MongoDBMetricsSchema.parse(data);
 };
 
 export const discoverBackups = async (serverId: number, credId: number, pathId: number): Promise<BackupDiscoveryResponse> => {
-    const { data } = await api.post(`/monitoring/inventory/discover-backups-server/${serverId}/${credId}/${pathId}`);
+    const { data } = await api.post(`/m3/inventory/discover-backups-server/${serverId}/${credId}/${pathId}`);
     return BackupDiscoveryResponseSchema.parse(data);
 };

@@ -54,7 +54,7 @@ interface MonitoringState {
     fetchLiveCache: () => Promise<void>;
 }
 
-export const useMonitoringStore = create<MonitoringState>((set, get) => ({
+export const useMonitoringStore = create<MonitoringState>((set) => ({
     alerts: [],
     alertLevels: [],
     summary: null,

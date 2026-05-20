@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Container, Box, Typography, Button, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { BackupPolicyForm } from '../components/BackupPolicyForm';
 import { useBackupStore } from '../store/useBackupStore';
+import { FormPageLayout } from '../components/FormPageLayout';
 import type { BackupPolicy } from '../api/types';
 
 export const EditBackupPolicyPage = () => {
@@ -35,43 +35,37 @@ export const EditBackupPolicyPage = () => {
 
   if (!policy) {
     return (
-      <Container maxWidth="sm" sx={{ py: 8, textAlign: 'center' }}>
-        <Typography variant="h5">Política no encontrada</Typography>
-        <Button onClick={() => navigate('/backups/politicas')} sx={{ mt: 2 }}>
-          Volver al listado
-        </Button>
-      </Container>
+      <FormPageLayout
+        title="Política no encontrada"
+        backTo="/backups/politicas"
+        backLabel="Volver al listado"
+        maxWidth="sm"
+      >
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+            La política solicitada no existe o ha sido eliminada.
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={() => navigate('/backups/politicas')}
+            sx={{ fontWeight: 700 }}
+          >
+            Volver al listado
+          </Button>
+        </Box>
+      </FormPageLayout>
     );
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: 8 }}>
-      <Box sx={{ mb: 4 }}>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          onClick={() => navigate(-1)}
-          sx={{ color: 'text.secondary', mb: 2 }}
-        >
-          Volver
-        </Button>
-        
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.03em' }}>
-          Editar Política
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Modifica los parámetros de la política de respaldo.
-        </Typography>
-      </Box>
-
-      <Box sx={{ 
-        p: 4, 
-        border: '1px solid', 
-        borderColor: 'divider', 
-        borderRadius: 2,
-        bgcolor: 'background.paper' 
-      }}>
-        <BackupPolicyForm initialData={policy} isEdit />
-      </Box>
-    </Container>
+    <FormPageLayout
+      title="Editar Política"
+      subtitle="Modifica los parámetros de la política de respaldo."
+      backTo="/backups/politicas"
+      backLabel="Volver al listado"
+      maxWidth="sm"
+    >
+      <BackupPolicyForm initialData={policy} isEdit />
+    </FormPageLayout>
   );
 };

@@ -1,5 +1,4 @@
-import { Container, Box, Paper, Typography, Avatar } from '@mui/material';
-import AppRegistrationIcon from '@mui/icons-material/AppRegistration';
+import { Container, Box, Paper, Typography } from '@mui/material';
 import { RegisterForm } from '../components/RegisterForm';
 
 export const RegisterPage = () => {

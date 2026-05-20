@@ -265,7 +265,7 @@ export const BackupPathsPage = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                       <Box sx={{ color: `${STORAGE_TYPES_MAP[path.id_tipo_almacenamiento]?.color || 'default'}.main`, display: 'flex' }}>
                         {STORAGE_TYPES_MAP[path.id_tipo_almacenamiento]?.icon}
                       </Box>
@@ -283,7 +283,7 @@ export const BackupPathsPage = () => {
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
                       <Tooltip title="Editar Ruta">
                         <IconButton 
                           size="small" 

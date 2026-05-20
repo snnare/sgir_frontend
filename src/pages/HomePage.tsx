@@ -4,17 +4,13 @@ import {
   Tooltip, IconButton, Paper, Slide
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import AddIcon from '@mui/icons-material/Add';
 import DnsIcon from '@mui/icons-material/Dns';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ReportProblemIcon from '@mui/icons-material/ReportProblem';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
-import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
 import CloseIcon from '@mui/icons-material/Close';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import { MetricCard } from '../components/MetricCard';
@@ -47,9 +43,11 @@ export const HomePage = () => {
   const [criticalityFilter, setCriticalityFilter] = useState<number | 'all'>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [showScheduler, setShowScheduler] = useState(true);
+  const [selectionModeActive, setSelectionModeActive] = useState(false);
+  const [selectedServerIds, setSelectedServerIds] = useState<number[]>([]);
 
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     fetchServers();
@@ -186,7 +184,7 @@ export const HomePage = () => {
       {isAdmin && schedulerStatus && (
         <Slide in={showScheduler} direction="left">
           <Paper 
-            elevation={6}
+            elevation={10}
             onMouseEnter={() => {
               if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
             }}
@@ -201,45 +199,84 @@ export const HomePage = () => {
               p: 1.5, 
               display: 'flex', 
               alignItems: 'center', 
-              gap: 2, 
-              bgcolor: schedulerStatus.status === 'running' ? 'rgba(232, 245, 233, 0.98)' : 'rgba(255, 243, 224, 0.98)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid',
-              borderColor: schedulerStatus.status === 'running' ? 'success.light' : 'warning.light',
-              borderRadius: 3,
-              boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+              gap: 2.5, 
+              bgcolor: 'rgba(24, 24, 27, 0.85)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 4,
+              boxShadow: '0 16px 40px rgba(0, 0, 0, 0.4)',
               transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 0.5 }}>
-              {schedulerStatus.status === 'running' ? (
-                <MonitorHeartIcon color="success" sx={{ animation: 'pulse 2s infinite' }} />
-              ) : (
-                <PauseCircleIcon color="warning" />
-              )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 0.5 }}>
+              {/* LED Status Indicator */}
+              <Box 
+                sx={{ 
+                  width: 10, 
+                  height: 10, 
+                  borderRadius: '50%', 
+                  bgcolor: schedulerStatus.status === 'running' ? '#10b981' : '#f59e0b',
+                  boxShadow: schedulerStatus.status === 'running' 
+                    ? '0 0 8px #10b981, 0 0 16px #10b981' 
+                    : '0 0 8px #f59e0b',
+                  animation: schedulerStatus.status === 'running' 
+                    ? 'ledPulse 2s infinite ease-in-out' 
+                    : 'none',
+                  '@keyframes ledPulse': {
+                    '0%': { transform: 'scale(0.9)', opacity: 0.6, boxShadow: '0 0 6px #10b981' },
+                    '50%': { transform: 'scale(1.2)', opacity: 1, boxShadow: '0 0 14px #10b981, 0 0 28px #10b981' },
+                    '100%': { transform: 'scale(0.9)', opacity: 0.6, boxShadow: '0 0 6px #10b981' }
+                  }
+                }} 
+              />
+              
               <Box>
-                <Typography variant="caption" sx={{ display: 'block', fontWeight: 900, lineHeight: 1, color: 'text.secondary', fontSize: '0.6rem' }}>
-                  SCHEDULER
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    display: 'block', 
+                    fontWeight: 900, 
+                    lineHeight: 1, 
+                    color: 'text.secondary', 
+                    fontSize: '0.6rem',
+                    letterSpacing: '0.1em'
+                  }}
+                >
+                  MONITOREO ACTIVO
                 </Typography>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: schedulerStatus.status === 'running' ? 'success.dark' : 'warning.dark' }}>
-                  {schedulerStatus.status.toUpperCase()}
+                <Typography 
+                  variant="subtitle2" 
+                  sx={{ 
+                    fontWeight: 800, 
+                    color: schedulerStatus.status === 'running' ? '#10b981' : '#f59e0b',
+                    fontSize: '0.8rem',
+                    mt: 0.5
+                  }}
+                >
+                  {schedulerStatus.status === 'running' ? 'EN EJECUCIÓN' : 'PAUSADO'}
                 </Typography>
               </Box>
             </Box>
 
             <Button
-              variant="contained"
+              variant="outlined"
               size="small"
-              startIcon={schedulerStatus.status === 'running' ? <PauseCircleIcon /> : <PlayCircleIcon />}
+              startIcon={schedulerStatus.status === 'running' ? <PauseCircleIcon fontSize="small" /> : <PlayCircleIcon fontSize="small" />}
               onClick={handleToggleScheduler}
               sx={{ 
-                bgcolor: schedulerStatus.status === 'running' ? 'success.dark' : 'warning.dark',
-                color: 'white',
-                borderRadius: 1.5,
-                fontWeight: 700,
+                borderColor: schedulerStatus.status === 'running' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)',
+                color: schedulerStatus.status === 'running' ? '#ef4444' : '#10b981',
+                borderRadius: 2,
+                fontWeight: 800,
+                fontSize: '0.75rem',
                 textTransform: 'none',
-                minWidth: 100,
-                '&:hover': { bgcolor: schedulerStatus.status === 'running' ? 'success.main' : 'warning.main' }
+                minWidth: 105,
+                px: 1.5,
+                transition: 'all 0.2s ease',
+                '&:hover': { 
+                  borderColor: schedulerStatus.status === 'running' ? '#ef4444' : '#10b981',
+                  bgcolor: schedulerStatus.status === 'running' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)'
+                }
               }}
             >
               {schedulerStatus.status === 'running' ? 'Pausar' : 'Reanudar'}
@@ -251,7 +288,16 @@ export const HomePage = () => {
                 setShowScheduler(false);
                 if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
               }}
-              sx={{ ml: -0.5, color: 'text.secondary' }}
+              sx={{ 
+                color: 'text.secondary',
+                bgcolor: 'rgba(255, 255, 255, 0.04)',
+                borderRadius: 1.5,
+                p: 0.5,
+                '&:hover': {
+                  color: 'text.primary',
+                  bgcolor: 'rgba(255, 255, 255, 0.08)'
+                }
+              }}
             >
               <CloseIcon fontSize="small" />
             </IconButton>
@@ -261,9 +307,12 @@ export const HomePage = () => {
 
       <Stack 
         direction={{ xs: 'column', md: 'row' }} 
-        justifyContent="space-between" 
-        alignItems={{ xs: 'flex-start', md: 'center' }}
-        sx={{ mb: 4, gap: 2 }}
+        sx={{ 
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'flex-start', md: 'center' },
+          mb: 4, 
+          gap: 2 
+        }}
       >
         <Box>
           <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
@@ -300,6 +349,7 @@ export const HomePage = () => {
           percent={alerts.length > 0 ? 100 : 0} 
           color={alerts.length > 0 ? "#ef4444" : "#22c55e"}
           icon={<NotificationsActiveIcon fontSize="small" />} 
+          onClick={() => navigate('/monitoreo/alertas')}
         />
       </Box>
 
@@ -317,7 +367,21 @@ export const HomePage = () => {
         activeFilter={criticalityFilter}
         onFilterChange={setCriticalityFilter}
         bottomActions={
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            {isAdmin && (
+              <Button
+                size="small"
+                variant={selectionModeActive ? "contained" : "outlined"}
+                color={selectionModeActive ? "warning" : "inherit"}
+                onClick={() => {
+                  setSelectionModeActive(!selectionModeActive);
+                  setSelectedServerIds([]);
+                }}
+                sx={{ mr: 1, fontWeight: 700, textTransform: 'none', px: 2, borderRadius: 2 }}
+              >
+                {selectionModeActive ? 'Cancelar Selección' : 'Eliminar en Bloque'}
+              </Button>
+            )}
             <Tooltip title="Vista de Lista">
               <IconButton 
                 size="small" 
@@ -373,6 +437,15 @@ export const HomePage = () => {
               healthStatus={healthCache[server.id_servidor]}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              selectionModeActive={selectionModeActive}
+              selected={selectedServerIds.includes(server.id_servidor)}
+              onToggleSelect={(id) => {
+                setSelectedServerIds(prev => 
+                  prev.includes(id) 
+                    ? prev.filter(x => x !== id) 
+                    : [...prev, id]
+                );
+              }}
             />
           ))}
         </Box>
@@ -394,6 +467,118 @@ export const HomePage = () => {
           }
         ]}
       />
+
+      {/* Floating Action Bar for Bulk Deletion */}
+      <Slide in={selectionModeActive} direction="up" mountOnEnter unmountOnExit>
+        <Paper
+          elevation={10}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            left: 'calc(50% + var(--sidebar-width, 70px) / 2)',
+            transform: 'translateX(-50%)',
+            zIndex: 1250,
+            width: 'calc(100% - var(--sidebar-width, 70px) - 32px)',
+            maxWidth: 680,
+            p: 2,
+            borderRadius: 4,
+            bgcolor: 'rgba(24, 24, 27, 0.9)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            boxShadow: '0 20px 45px rgba(0,0,0,0.5)',
+            transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}
+        >
+          <Stack spacing={0.5}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+              Modo de Eliminación Masiva
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+              {selectedServerIds.length === 0 
+                ? 'Seleccione uno o más servidores de la cuadrícula' 
+                : `${selectedServerIds.length} ${selectedServerIds.length === 1 ? 'servidor seleccionado' : 'servidores seleccionados'}`
+              }
+            </Typography>
+          </Stack>
+
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => {
+                const allFilteredIds = filteredServers.map(s => s.id_servidor);
+                const isAllSelected = allFilteredIds.every(id => selectedServerIds.includes(id));
+                if (isAllSelected) {
+                  setSelectedServerIds([]);
+                } else {
+                  setSelectedServerIds(allFilteredIds);
+                }
+              }}
+              sx={{ fontWeight: 700, textTransform: 'none' }}
+            >
+              {filteredServers.map(s => s.id_servidor).every(id => selectedServerIds.includes(id)) 
+                ? 'Deseleccionar Todos' 
+                : 'Seleccionar Todos'
+              }
+            </Button>
+            
+            <Button
+              size="small"
+              variant="contained"
+              color="error"
+              disabled={selectedServerIds.length === 0}
+              onClick={() => {
+                confirmAction({
+                  title: '¿Eliminar Servidores en Bloque?',
+                  description: `Está a punto de eliminar permanentemente ${selectedServerIds.length} servidores y todos sus activos vinculados (instancias, DBMS, credenciales, particiones, etc.). Esta acción NO se puede deshacer.`,
+                  confirmLabel: 'Sí, eliminar lote',
+                  severity: 'error',
+                  onConfirm: async () => {
+                    try {
+                      await Promise.all(selectedServerIds.map(id => deleteServer(id)));
+                      showNotification(`${selectedServerIds.length} servidores eliminados con éxito`, 'success');
+                      setSelectedServerIds([]);
+                      setSelectionModeActive(false);
+                      fetchServers();
+                    } catch (error: any) {
+                      console.error('Error during bulk deletion:', error);
+                      showNotification('Ocurrió un error al eliminar algunos servidores', 'error');
+                      fetchServers();
+                    }
+                  }
+                });
+              }}
+              sx={{ 
+                fontWeight: 700, 
+                textTransform: 'none', 
+                borderRadius: 2,
+                px: 3,
+                bgcolor: 'error.main',
+                color: 'white',
+                '&:hover': { bgcolor: 'error.dark' }
+              }}
+            >
+              Eliminar Lote
+            </Button>
+
+            <IconButton 
+              size="small" 
+              onClick={() => {
+                setSelectionModeActive(false);
+                setSelectedServerIds([]);
+              }}
+              sx={{ color: 'text.secondary' }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+        </Paper>
+      </Slide>
     </Box>
   );
 };

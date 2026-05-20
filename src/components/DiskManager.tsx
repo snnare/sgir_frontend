@@ -93,7 +93,7 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
         }}
       >
         <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <StorageIcon color="primary" fontSize="small" />
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                     Discos y Particiones Descubiertas
@@ -155,7 +155,7 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{fs.size}</Typography>
                                     </TableCell>
                                     <TableCell>
-                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                        <Stack direction="row" sx={{ alignItems: 'center' }} spacing={1}>
                                             <Box sx={{ flexGrow: 1, height: 6, bgcolor: 'divider', borderRadius: 1, overflow: 'hidden', minWidth: 60 }}>
                                                 <Box sx={{ width: fs.usage_pct, height: '100%', bgcolor: isCritical ? 'error.main' : 'primary.main' }} />
                                             </Box>

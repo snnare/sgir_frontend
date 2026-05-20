@@ -249,7 +249,7 @@ export const BulkUploadPage = () => {
                           primary={`Fila ${err.fila}`} 
                           secondary={err.error}
                           slotProps={{
-                            primary: { variant: 'caption', fontWeight: 700 },
+                            primary: { variant: 'caption', sx: { fontWeight: 700 } },
                             secondary: { variant: 'caption' }
                           }}
                         />

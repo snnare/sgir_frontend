@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import StorageIcon from '@mui/icons-material/Storage';
 import SpeedIcon from '@mui/icons-material/Speed';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HomeIcon from '@mui/icons-material/Home';
@@ -266,7 +265,7 @@ export const AddServerPage = () => {
               <br/><br/>
               Por defecto, el sistema ya está monitoreando la partición raíz (/).
             </Typography>
-            <Stack direction="row" spacing={2} justifyContent="center">
+            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
               <Button 
                 variant="outlined" 
                 onClick={() => navigate(`/server/edit/${serverId}?tab=storage`)}
@@ -339,9 +338,6 @@ const ScopeCard = ({ icon, title, description, onClick, highlight }: ScopeCardPr
         <Typography variant="body2" color="text.secondary">
           {description}
         </Typography>
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-          <ArrowForwardIcon fontSize="small" color={highlight ? 'primary' : 'disabled'} />
-        </Box>
       </CardContent>
     </CardActionArea>
   </Card>

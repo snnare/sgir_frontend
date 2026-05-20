@@ -11,6 +11,6 @@ export const HealthResponseSchema = z.object({
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 
 export const getHealthStatus = async (): Promise<HealthResponse> => {
-  const { data } = await api.get('/ping');
+  const { data } = await api.get('/m1/ping');
   return HealthResponseSchema.parse(data);
 };

@@ -68,7 +68,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       <Stack 
         direction={{ xs: 'column', sm: 'row' }} 
         spacing={2} 
-        alignItems={{ xs: 'stretch', sm: 'center' }}
+        sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}
       >
         <TextField
           placeholder={searchPlaceholder}
@@ -94,7 +94,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           }}
         />
         {rightActions && (
-          <Stack direction="row" spacing={1} alignItems="center">
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             {rightActions}
           </Stack>
         )}
@@ -107,10 +107,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <Stack 
             direction={{ xs: 'column', md: 'row' }} 
             spacing={2} 
-            alignItems={{ xs: 'flex-start', md: 'center' }}
-            justifyContent="space-between"
+            sx={{ alignItems: { xs: 'flex-start', md: 'center' }, justifyContent: 'space-between' }}
           >
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }} useFlexGap>
               {showFilterIcon && <FilterListIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />}
               {filters?.map((option) => (
                 <Chip 
@@ -124,7 +123,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               ))}
             </Stack>
 
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ alignSelf: { xs: 'flex-end', md: 'center' } }}>
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center', alignSelf: { xs: 'flex-end', md: 'center' } }}>
               {bottomActions}
               {statsLabel && (
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>

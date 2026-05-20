@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Container, Box, Typography, Button, TextField, MenuItem, 
-  Stack, CircularProgress, InputAdornment, IconButton, Paper
+  Box, Button, TextField, MenuItem, Stack, CircularProgress, InputAdornment, IconButton
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -17,6 +15,7 @@ import {
   CredentialUpdateSchema, type CredentialUpdateInput, type Server 
 } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
+import { FormPageLayout } from '../components/FormPageLayout';
 
 export const EditCredentialPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -93,25 +92,14 @@ export const EditCredentialPage = () => {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: 8 }}>
-      <Box sx={{ mb: 4 }}>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          onClick={() => navigate('/credenciales')}
-          sx={{ color: 'text.secondary', mb: 2 }}
-        >
-          Volver a Credenciales
-        </Button>
-        
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.03em' }}>
-          Editar Credencial
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Modifica los datos de acceso o el servidor vinculado.
-        </Typography>
-      </Box>
-
-      <Paper component="form" onSubmit={handleSubmit(onSubmit)} sx={{ p: 4, borderRadius: 2 }}>
+    <FormPageLayout
+      title="Editar Credencial"
+      subtitle="Modifica los datos de acceso o el servidor vinculado."
+      backTo="/credenciales"
+      backLabel="Volver a Credenciales"
+      maxWidth="sm"
+    >
+      <Box component="form" onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={3}>
           {/* Servidor */}
           <TextField
@@ -199,7 +187,7 @@ export const EditCredentialPage = () => {
             {saving ? 'Guardando Cambios...' : 'Guardar Cambios'}
           </Button>
         </Stack>
-      </Paper>
-    </Container>
+      </Box>
+    </FormPageLayout>
   );
 };

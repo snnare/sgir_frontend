@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { 
     getBackupPolicies, createBackupPolicy, updateBackupPolicy, deleteBackupPolicy,
-    getBackupPaths, getBackupHistory 
+    getBackupPaths, getBackupHistory, createBackupPath, updateBackupPath, deleteBackupPath
 } from '../api/backupService';
-import type { BackupPolicy, BackupPath, BackupHistory, BackupPolicyCreateInput } from '../api/types';
+import type { BackupPolicy, BackupPath, BackupHistory, BackupPolicyCreateInput, BackupPathCreateInput } from '../api/types';
 
 interface BackupState {
     policies: BackupPolicy[];
@@ -18,6 +18,9 @@ interface BackupState {
     deletePolicy: (id: number) => Promise<void>;
     
     fetchPaths: () => Promise<void>;
+    addPath: (path: BackupPathCreateInput) => Promise<void>;
+    updatePath: (id: number, path: BackupPathCreateInput) => Promise<void>;
+    deletePath: (id: number) => Promise<void>;
     fetchHistory: () => Promise<void>;
 }
 
@@ -87,6 +90,48 @@ export const useBackupStore = create<BackupState>((set, get) => ({
             set({ paths, loading: false });
         } catch (err: any) {
             set({ error: err.message, loading: false });
+        }
+    },
+
+    addPath: async (pathData) => {
+        set({ loading: true, error: null });
+        try {
+            const newPath = await createBackupPath(pathData);
+            set({ 
+                paths: [...get().paths, newPath], 
+                loading: false 
+            });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+            throw err;
+        }
+    },
+
+    updatePath: async (id, pathData) => {
+        set({ loading: true, error: null });
+        try {
+            const updatedPath = await updateBackupPath(id, pathData);
+            set({ 
+                paths: get().paths.map(p => p.id_ruta === id ? updatedPath : p),
+                loading: false 
+            });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+            throw err;
+        }
+    },
+
+    deletePath: async (id) => {
+        set({ loading: true, error: null });
+        try {
+            await deleteBackupPath(id);
+            set({ 
+                paths: get().paths.filter(p => p.id_ruta !== id),
+                loading: false 
+            });
+        } catch (err: any) {
+            set({ error: err.message, loading: false });
+            throw err;
         }
     },
 

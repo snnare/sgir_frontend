@@ -1,12 +1,12 @@
-import { Box, Typography, Paper, Stack, Divider, Tooltip, IconButton } from '@mui/material';
+import { Box, Typography, Paper, Stack, Divider, IconButton, Checkbox } from '@mui/material';
 import SpeedIcon from '@mui/icons-material/Speed';
 import MemoryIcon from '@mui/icons-material/Memory';
 import StorageIcon from '@mui/icons-material/Storage';
-import TerminalIcon from '@mui/icons-material/Terminal';
 import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { useNavigate } from 'react-router-dom';
 import { CompactMetric } from './CompactMetric';
 import { type Server, type HealthStatus } from '../api/types';
 
@@ -15,29 +15,27 @@ interface ServerCardProps {
   healthStatus?: HealthStatus;
   onEdit?: (id: number) => void;
   onDelete?: (id: number, name: string) => void;
+  selectionModeActive?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
 }
 
 export const ServerCard = ({ 
   server, 
   healthStatus,
   onEdit,
-  onDelete
+  onDelete,
+  selectionModeActive = false,
+  selected = false,
+  onToggleSelect
 }: ServerCardProps) => {
+  const navigate = useNavigate();
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'healthy': return '#22c55e';
       case 'critical': return '#ef4444';
       case 'stale': return '#f59e0b';
       default: return '#64748b';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'healthy': return 'Sano';
-      case 'critical': return 'Crítico';
-      case 'stale': return 'Desactualizado';
-      default: return 'Desconocido';
     }
   };
 
@@ -52,26 +50,44 @@ export const ServerCard = ({
   const status = healthStatus?.status || 'unknown';
   const mainDiskUsage = metrics.disks['/'] ?? Object.values(metrics.disks)[0] ?? 0;
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (selectionModeActive && onToggleSelect) {
+      e.stopPropagation();
+      onToggleSelect(server.id_servidor);
+    }
+  };
+
   return (
     <Paper 
       elevation={0} 
+      onClick={handleCardClick}
       sx={{ 
         p: 2, 
         borderRadius: 2.5, 
         border: '1px solid', 
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
+        borderColor: selected ? 'primary.main' : 'divider',
+        bgcolor: selected ? 'action.selected' : 'background.paper',
+        cursor: selectionModeActive ? 'pointer' : 'default',
         transition: 'all 0.2s ease',
         '&:hover': {
           boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
-          borderColor: 'primary.light',
+          borderColor: selected ? 'primary.main' : 'primary.light',
           '& .server-actions': { opacity: 1 }
         }
       }}
     >
       {/* HEADER COMPACTO */}
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-        <Stack direction="row" spacing={1} alignItems="center">
+      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, flex: 1 }}>
+          {selectionModeActive && (
+            <Checkbox 
+              checked={selected}
+              onChange={() => onToggleSelect?.(server.id_servidor)}
+              onClick={(e) => e.stopPropagation()}
+              size="small"
+              sx={{ p: 0, mr: 0.5 }}
+            />
+          )}
           <Box 
             sx={{ 
               width: 10, 
@@ -92,23 +108,25 @@ export const ServerCard = ({
           </Box>
         </Stack>
 
-        <Stack direction="row" className="server-actions" sx={{ opacity: 0.4, transition: 'opacity 0.2s' }}>
-          {onEdit && (
-            <IconButton size="small" onClick={() => onEdit(server.id_servidor)} sx={{ p: 0.5 }}>
-              <EditIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          )}
-          {onDelete && (
-            <IconButton 
-              size="small" 
-              color="error" 
-              onClick={() => onDelete(server.id_servidor, server.nombre_servidor)}
-              sx={{ p: 0.5 }}
-            >
-              <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          )}
-        </Stack>
+        {!selectionModeActive && (
+          <Stack direction="row" className="server-actions" sx={{ opacity: 0.4, transition: 'opacity 0.2s' }}>
+            {onEdit && (
+              <IconButton size="small" onClick={() => onEdit(server.id_servidor)} sx={{ p: 0.5 }}>
+                <EditIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            )}
+            {onDelete && (
+              <IconButton 
+                size="small" 
+                color="error" 
+                onClick={() => onDelete(server.id_servidor, server.nombre_servidor)}
+                sx={{ p: 0.5 }}
+              >
+                <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            )}
+          </Stack>
+        )}
       </Stack>
 
       {/* GRILLA DE SENSORES - FILA 1: HOST */}
@@ -154,13 +172,13 @@ export const ServerCard = ({
       <Divider sx={{ mb: 1.5, borderStyle: 'dotted', opacity: 0.6 }} />
 
       {/* FOOTER MINIMALISTA */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 700, fontSize: '0.65rem' }}>
           {metrics.uptime > 0 ? `UP: ${metrics.uptime.toFixed(1)}d` : 'SSH/RDB'}
         </Typography>
         
         {healthStatus?.last_check && (
-          <Stack direction="row" spacing={0.5} alignItems="center">
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
             {healthStatus.is_stale && <WarningAmberIcon sx={{ fontSize: 12, color: 'warning.main' }} />}
             <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.65rem', fontWeight: 500 }}>
               {new Date(healthStatus.last_check).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
