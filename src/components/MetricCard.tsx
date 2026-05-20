@@ -38,7 +38,20 @@ export const MetricCard = ({ title, value, unit, icon, percent, color, onClick }
         <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {title}
         </Typography>
-        <Box sx={{ color: getStatusColor() }}>{icon}</Box>
+        <Box 
+          sx={{ 
+            color: getStatusColor(),
+            display: 'flex',
+            animation: percent > 85 ? 'pulseAlert 2s infinite ease-in-out' : 'none',
+            '@keyframes pulseAlert': {
+              '0%': { transform: 'scale(1)', opacity: 1 },
+              '50%': { transform: 'scale(1.2)', opacity: 0.7 },
+              '100%': { transform: 'scale(1)', opacity: 1 },
+            }
+          }}
+        >
+          {icon}
+        </Box>
       </Stack>
 
       <Stack direction="row" sx={{ alignItems: 'baseline' }} spacing={0.5}>

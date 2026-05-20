@@ -1,22 +1,40 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { 
   Box, Typography, Stack, Paper, CircularProgress, 
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  IconButton, Tooltip, Chip
+  IconButton, Tooltip, Chip, Button
 } from '@mui/material';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
 import InfoIcon from '@mui/icons-material/Info';
+import SearchOffIcon from '@mui/icons-material/SearchOff';
 import { useMonitoringStore } from '../store/useMonitoringStore';
+import { StatusChip } from '../components/StatusChip';
+import { FilterBar } from '../components/FilterBar';
 
 export const MonitoringAlertsPage = () => {
   const { alerts, loading, fetchAlertsRecent } = useMonitoringStore();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [levelFilter, setLevelFilter] = useState<number | 'all'>('all');
 
   useEffect(() => {
     fetchAlertsRecent();
   }, [fetchAlertsRecent]);
+
+  const filteredAlerts = useMemo(() => {
+    return alerts.filter(alert => {
+      const matchesSearch = 
+        alert.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        alert.id_servidor.toString().includes(searchTerm);
+      
+      const matchesLevel = 
+        levelFilter === 'all' || alert.id_nivel_alerta === levelFilter;
+
+      return matchesSearch && matchesLevel;
+    });
+  }, [alerts, searchTerm, levelFilter]);
 
   const getAlertLevelInfo = (levelId: number) => {
     switch (levelId) {
@@ -40,14 +58,34 @@ export const MonitoringAlertsPage = () => {
         </Typography>
       </Box>
 
-      {/* --- 2. ACCIONES --- */}
-      <Stack direction="row" sx={{ justifyContent: 'flex-end', mb: 3 }}>
-        <Tooltip title="Actualizar Alertas">
-          <IconButton onClick={() => fetchAlertsRecent()} disabled={loading} size="medium" sx={{ border: '1px solid', borderColor: 'divider' }}>
-            <RefreshIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+      {/* --- 2. BUSCADOR Y FILTROS --- */}
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar por descripción o ID de servidor..."
+        rightActions={
+          <Tooltip title="Actualizar Alertas">
+            <IconButton 
+              onClick={() => fetchAlertsRecent()} 
+              disabled={loading} 
+              size="medium" 
+              sx={{ border: '1px solid', borderColor: 'divider' }}
+            >
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        }
+        filters={[
+          { label: 'Todos los Niveles', value: 'all' },
+          { label: 'Crítico', value: 1, color: 'error' },
+          { label: 'Alto', value: 2, color: 'warning' },
+          { label: 'Medio', value: 3, color: 'info' },
+          { label: 'Bajo', value: 4, color: 'default' },
+        ]}
+        activeFilter={levelFilter}
+        onFilterChange={setLevelFilter}
+        statsLabel={`Mostrando ${filteredAlerts.length} de ${alerts.length} alertas`}
+      />
 
       {/* --- 3. LISTADO (Tabla) --- */}
       <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
@@ -62,8 +100,8 @@ export const MonitoringAlertsPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {alerts.length > 0 ? (
-              alerts.map((alert) => {
+            {filteredAlerts.length > 0 ? (
+              filteredAlerts.map((alert) => {
                 const level = getAlertLevelInfo(alert.id_nivel_alerta);
                 return (
                   <TableRow key={alert.id_alerta} hover>
@@ -86,13 +124,7 @@ export const MonitoringAlertsPage = () => {
                       #{alert.id_servidor}
                     </TableCell>
                     <TableCell align="center">
-                      <Chip 
-                        label={alert.id_estado_alerta === 1 ? 'PENDIENTE' : 'RESUELTA'} 
-                        variant="outlined"
-                        size="small"
-                        color={alert.id_estado_alerta === 1 ? 'warning' : 'success'}
-                        sx={{ fontWeight: 700, fontSize: '0.6rem' }}
-                      />
+                      <StatusChip statusId={alert.id_estado_alerta} />
                     </TableCell>
                   </TableRow>
                 );
@@ -104,13 +136,25 @@ export const MonitoringAlertsPage = () => {
                     <CircularProgress size={32} />
                   ) : (
                     <Box sx={{ opacity: 0.5 }}>
-                      <NotificationsActiveIcon sx={{ fontSize: 48, mb: 2 }} />
+                      <SearchOffIcon sx={{ fontSize: 48, mb: 2 }} />
                       <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                        Sin Alertas Activas
+                        {searchTerm || levelFilter !== 'all' ? 'Sin coincidencias' : 'Sin Alertas Activas'}
                       </Typography>
                       <Typography variant="body2">
-                        No se han detectado incidencias críticas en el sistema.
+                        {searchTerm || levelFilter !== 'all' 
+                          ? 'Pruebe con otros criterios de búsqueda.' 
+                          : 'No se han detectado incidencias críticas en el sistema.'}
                       </Typography>
+                      {(searchTerm || levelFilter !== 'all') && (
+                        <Button 
+                          variant="text" 
+                          size="small" 
+                          onClick={() => { setSearchTerm(''); setLevelFilter('all'); }}
+                          sx={{ mt: 1, fontWeight: 700 }}
+                        >
+                          Limpiar Filtros
+                        </Button>
+                      )}
                     </Box>
                   )}
                 </TableCell>

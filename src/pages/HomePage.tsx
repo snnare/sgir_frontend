@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { 
   Box, Typography, Button, Stack, CircularProgress, 
-  Tooltip, IconButton, Paper, Slide
+  Tooltip, IconButton, Paper, Slide, useTheme
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -25,6 +25,7 @@ import { FilterBar } from '../components/FilterBar';
 import { FloatingActionGroup } from '../components/FloatingActionGroup';
 
 export const HomePage = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const { 
     servers, loading, fetchServers, 
@@ -200,11 +201,12 @@ export const HomePage = () => {
               display: 'flex', 
               alignItems: 'center', 
               gap: 2.5, 
-              bgcolor: 'rgba(24, 24, 27, 0.85)',
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(24, 24, 27, 0.85)' : 'rgba(255, 255, 255, 0.85)',
               backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
               borderRadius: 4,
-              boxShadow: '0 16px 40px rgba(0, 0, 0, 0.4)',
+              boxShadow: theme.palette.mode === 'dark' ? '0 16px 40px rgba(0, 0, 0, 0.4)' : '0 16px 40px rgba(0, 0, 0, 0.1)',
               transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
           >
@@ -290,12 +292,12 @@ export const HomePage = () => {
               }}
               sx={{ 
                 color: 'text.secondary',
-                bgcolor: 'rgba(255, 255, 255, 0.04)',
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
                 borderRadius: 1.5,
                 p: 0.5,
                 '&:hover': {
                   color: 'text.primary',
-                  bgcolor: 'rgba(255, 255, 255, 0.08)'
+                  bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'
                 }
               }}
             >
@@ -482,7 +484,7 @@ export const HomePage = () => {
             maxWidth: 680,
             p: 2,
             borderRadius: 4,
-            bgcolor: 'rgba(24, 24, 27, 0.9)',
+            bgcolor: theme.palette.mode === 'dark' ? 'rgba(24, 24, 27, 0.9)' : 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(12px)',
             border: '1px solid',
             borderColor: 'divider',
@@ -490,7 +492,7 @@ export const HomePage = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 2,
-            boxShadow: '0 20px 45px rgba(0,0,0,0.5)',
+            boxShadow: theme.palette.mode === 'dark' ? '0 20px 45px rgba(0,0,0,0.5)' : '0 20px 45px rgba(0,0,0,0.1)',
             transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
         >

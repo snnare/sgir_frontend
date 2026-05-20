@@ -1,29 +1,27 @@
 # Resumen de Cambios - Proyecto SGIR Frontend
 
-**ID de Sesión:** `SGIR-SESSION-2026-05-10-UI-STANDARDIZATION-AUDIT`
+**ID de Sesión:** `SGIR-SESSION-2026-05-20-UI-ANIMATIONS-INTEGRATION`
 
-## 1. Estandarización de Patrones de UI
-- **FilterBar Component**: Se creó un componente reutilizable para unificar la búsqueda y el filtrado en `HomePage`, `SearchAssetsPage`, `CredentialsPage` y `MonitoringLogsPage`.
-- **FloatingActionGroup**: Implementación de un grupo de botones de acción flotantes (FAB Stack) para centralizar acciones de creación y carga masiva.
-- **Scheduler Floating Control**: Rediseño del mando del scheduler a una "Píldora Flotante" inteligente en la esquina superior derecha con auto-ocultado tras 5 segundos en estado saludable.
+## 1. Refactorización y Pulido de UI
+- **MetricCard Evolucionado**: 
+  - Se añadió interactividad (`onClick`) con efectos de elevación al pasar el mouse.
+  - Implementación de **Animación de Latido (Pulse)**: Los iconos de métricas críticas (>85%) ahora laten sutilmente para alertar visualmente al administrador.
+- **Floating Components Theme-Aware**: El control flotante del scheduler y la barra de eliminación masiva en `HomePage` ahora detectan el modo claro/oscuro para garantizar legibilidad y contraste.
+- **Limpieza en AddServerPage**: Se simplificó el asistente de registro eliminando pasos redundantes y elementos visuales innecesarios (flechas de navegación interna y botones de cancelación duplicados).
 
-## 2. Auditoría y Alertas Mejoradas
-- **Bitácora de Actividad**: Refactorización de la página de logs para mostrar la auditoría del sistema (Bitácora SQL).
-  - Implementación de **Paginación Dinámica** (Skip/Limit) con botón "Cargar más".
-  - Filtros por tipo de acción (Creación, Actualización, Eliminación).
-- **Módulo de Alertas**: 
-  - Integración de endpoints `/alertas/today` para KPIs del dashboard y `/alertas/recent` para el historial.
-  - Tarjeta de KPIs optimizada para mostrar solo Servidores Totales y Alertas del Día.
+## 2. Estandarización de Componentes
+- **StatusChip Reutilizable**: Creación de un componente global que unifica el mapeo de estados del sistema (Activo, Inactivo, Pendiente, Éxito, Fallo, etc.), asegurando coherencia visual en todas las tablas.
+- **Buscador de Alertas**: Integración de `FilterBar` en el Centro de Alertas, permitiendo filtrado por nivel de criticidad y búsqueda por ID de servidor o descripción.
+- **Formularios Inteligentes**: En el registro de credenciales, el botón "Test Conexión" ahora se habilita dinámicamente solo cuando los campos requeridos están completos, evitando peticiones inválidas.
 
-## 3. Localización y Pulido
-- **Spanish Localization**: Traducción completa de términos técnicos en la interfaz (Home -> Inicio, Logs -> Bitácora, Dashboard -> Panel, etc.).
-- **Hierarchy Filtering**: Simplificación de filtros en la `HomePage` para priorizar la Criticidad del servidor.
-- **Fixes de Vite/OXC**: Corrección de errores de importación de tipos MUI (`SxProps`, `SelectChangeEvent`) que causaban fallos en tiempo de ejecución.
+## 3. Integración y Corrección de API
+- **Endpoint Discovery Fix**: Corrección del endpoint de descubrimiento de sistemas de archivos (`discover-filesystems`). Se migró de `GET` a `POST` para evitar conflictos de ruta en el backend y unificar el patrón con el resto de módulos de descubrimiento (M2/M3).
+- **Navegación Intuitiva**: Vinculación directa entre los KPIs del Panel Principal y sus respectivas vistas de detalle (ej. clic en alertas redirige al Centro de Alertas).
 
 ---
 
 ### 🟢 ¿Dónde nos quedamos?
-La interfaz ha alcanzado una madurez visual y estructural superior. Los patrones de interacción están estandarizados y el sistema de auditoría es capaz de manejar grandes volúmenes de datos mediante paginación.
+La interfaz es ahora más "viva" y reactiva gracias a las micro-animaciones y la navegación mejorada. Se ha resuelto un problema crítico de colisión de rutas en el descubrimiento de discos y se ha estandarizado la representación de estados en toda la aplicación.
 
 ### 🟡 ¿Qué falta por hacer?
 - **Módulo de Expiración**: Lógica para purga de respaldos antiguos.

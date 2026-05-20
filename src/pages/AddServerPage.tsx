@@ -159,15 +159,6 @@ export const AddServerPage = () => {
                 onClick={() => handleScopeSelect('both')}
               />
             </Box>
-            
-            <Button 
-              variant="text" 
-              fullWidth 
-              onClick={() => navigate('/')}
-              sx={{ mt: 2, color: 'text.secondary' }}
-            >
-              Cancelar y volver
-            </Button>
           </Stack>
         )}
 
