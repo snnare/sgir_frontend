@@ -6,11 +6,13 @@ import {
     getGlobalSummary, getMonitoringSessions, getMonitoringStatus,
     getAlerts, getLiveCache, getAlertsToday, getAlertsRecent
 } from '../api/monitoringService';
+import { databaseService } from '../api/databaseService';
 import type { 
     Alert, AlertLevel, MonitoringSummary, 
     HostMetrics, MySQLMetrics, MongoDBMetrics,
     SchedulerStatus, HealthStatus, GlobalSummary,
-    MonitoringSession, MonitoringSessionDetail
+    MonitoringSession, MonitoringSessionDetail,
+    DBInstanceHealth, DBGlobalSummary, DBDiscoveryResponse
 } from '../api/types';
 import { useInfrastructureStore } from './useInfrastructureStore';
 
@@ -28,6 +30,14 @@ interface MonitoringState {
     sessionDetail: MonitoringSessionDetail | null;
     loading: boolean;
     error: string | null;
+
+    // --- Monitoreo de Bases de Datos ---
+    databaseMetrics: {
+        instances: DBInstanceHealth[];
+        summary: DBGlobalSummary | null;
+        isLoading: boolean;
+        error: string | null;
+    };
 
     fetchAlertsByServer: (serverId: number) => Promise<void>;
     fetchAlerts: () => Promise<void>;
@@ -52,6 +62,12 @@ interface MonitoringState {
     // Live Metrics Actions
     fetchHealthStatus: (serverId: number) => Promise<void>;
     fetchLiveCache: () => Promise<void>;
+
+    // DB Monitoring Actions
+    fetchDBGlobalSummary: () => Promise<void>;
+    fetchDBLiveCache: () => Promise<void>;
+    triggerDBDiscoverAll: () => Promise<DBDiscoveryResponse>;
+    refreshDBInstanceMetrics: (instanciaId: number) => Promise<void>;
 }
 
 export const useMonitoringStore = create<MonitoringState>((set) => ({
@@ -68,6 +84,13 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
     sessionDetail: null,
     loading: false,
     error: null,
+
+    databaseMetrics: {
+        instances: [],
+        summary: null,
+        isLoading: false,
+        error: null,
+    },
 
     fetchAlertsByServer: async (serverId: number) => {
         set({ loading: true, error: null });
@@ -311,6 +334,105 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
             set({ liveMetrics: mappedMetrics });
         } catch (err: any) {
             console.error('[MonitoringStore] Error fetching live cache:', err);
+        }
+    },
+
+    fetchDBGlobalSummary: async () => {
+        set((state) => ({ databaseMetrics: { ...state.databaseMetrics, isLoading: true, error: null } }));
+        try {
+            const summary = await databaseService.getGlobalSummary();
+            set((state) => ({
+                databaseMetrics: {
+                    ...state.databaseMetrics,
+                    summary,
+                    isLoading: false
+                }
+            }));
+        } catch (err: any) {
+            set((state) => ({
+                databaseMetrics: {
+                    ...state.databaseMetrics,
+                    error: err.message || 'Error al obtener el resumen global de BD',
+                    isLoading: false
+                }
+            }));
+        }
+    },
+
+    fetchDBLiveCache: async () => {
+        set((state) => ({ databaseMetrics: { ...state.databaseMetrics, isLoading: true, error: null } }));
+        try {
+            const instances = await databaseService.getLiveCacheInstances();
+            set((state) => ({
+                databaseMetrics: {
+                    ...state.databaseMetrics,
+                    instances,
+                    isLoading: false
+                }
+            }));
+        } catch (err: any) {
+            set((state) => ({
+                databaseMetrics: {
+                    ...state.databaseMetrics,
+                    error: err.message || 'Error al obtener la caché en vivo de BD',
+                    isLoading: false
+                }
+            }));
+        }
+    },
+
+    triggerDBDiscoverAll: async () => {
+        set((state) => ({ databaseMetrics: { ...state.databaseMetrics, isLoading: true, error: null } }));
+        try {
+            const response = await databaseService.triggerDiscoverAll();
+            // Refrescar inmediatamente
+            const summary = await databaseService.getGlobalSummary();
+            const instances = await databaseService.getLiveCacheInstances();
+            set((state) => ({
+                databaseMetrics: {
+                    ...state.databaseMetrics,
+                    summary,
+                    instances,
+                    isLoading: false
+                }
+            }));
+            return response;
+        } catch (err: any) {
+            set((state) => ({
+                databaseMetrics: {
+                    ...state.databaseMetrics,
+                    error: err.message || 'Error durante el auto-descubrimiento de BD',
+                    isLoading: false
+                }
+            }));
+            throw err;
+        }
+    },
+
+    refreshDBInstanceMetrics: async (instanciaId: number) => {
+        set((state) => ({ databaseMetrics: { ...state.databaseMetrics, isLoading: true, error: null } }));
+        try {
+            const updatedInstance = await databaseService.refreshInstanceMetrics(instanciaId);
+            set((state) => {
+                const instances = state.databaseMetrics.instances.map(inst =>
+                    inst.instancia_id === instanciaId ? updatedInstance : inst
+                );
+                return {
+                    databaseMetrics: {
+                        ...state.databaseMetrics,
+                        instances,
+                        isLoading: false
+                    }
+                };
+            });
+        } catch (err: any) {
+            set((state) => ({
+                databaseMetrics: {
+                    ...state.databaseMetrics,
+                    error: err.message || `Error al refrescar la instancia ${instanciaId}`,
+                    isLoading: false
+                }
+            }));
         }
     }
 }));

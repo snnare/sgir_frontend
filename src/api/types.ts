@@ -519,3 +519,47 @@ export const ImportSummarySchema = z.object({
 
 export type ImportError = z.infer<typeof ImportErrorSchema>;
 export type ImportSummary = z.infer<typeof ImportSummarySchema>;
+
+// --- Monitoreo de Bases de Datos Multi-Motor ---
+export const DBHealthStatusSchema = z.enum(['healthy', 'critical', 'fatal', 'stale', 'unknown']);
+export type DBHealthStatus = z.infer<typeof DBHealthStatusSchema>;
+
+export const DBMSNameSchema = z.enum(['MySQL 5', 'MySQL 8', 'Oracle', 'MongoDB', 'N/A']);
+export type DBMSName = z.infer<typeof DBMSNameSchema>;
+
+export const DBMetricsSchema = z.object({
+    ping: z.number(),               // 1 = Online, 0 = Offline/Caído
+    capacity_pct: z.number(),       // Porcentaje de uso de conexiones/sesiones
+    stuck_processes: z.number(),    // Procesos/hilos bloqueados detectados
+    specific_value: z.number(),     // Métrica de valor profundo (ej: Hit Ratio de caché o total_questions)
+});
+export type DBMetrics = z.infer<typeof DBMetricsSchema>;
+
+export const DBInstanceHealthSchema = z.object({
+    instancia_id: z.number(),
+    nombre_instancia: z.string(),
+    puerto: z.number(),
+    engine: DBMSNameSchema,
+    status: DBHealthStatusSchema,
+    metrics: DBMetricsSchema,
+    last_update: z.string(),        // ISO Timestamp de la última lectura en caché
+});
+export type DBInstanceHealth = z.infer<typeof DBInstanceHealthSchema>;
+
+export const DBGlobalSummarySchema = z.object({
+    total: z.number(),
+    healthy: z.number(),
+    critical: z.number(),
+    stale: z.number(),
+    unknown: z.number(),
+});
+export type DBGlobalSummary = z.infer<typeof DBGlobalSummarySchema>;
+
+export const DBDiscoveryResponseSchema = z.object({
+    status: z.enum(['success', 'error']),
+    total_active_servers: z.number(),
+    processed: z.number(),
+    failures: z.number(),
+});
+export type DBDiscoveryResponse = z.infer<typeof DBDiscoveryResponseSchema>;
+
