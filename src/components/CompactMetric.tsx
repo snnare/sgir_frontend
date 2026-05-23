@@ -10,6 +10,7 @@ interface CompactMetricProps {
   disabled?: boolean;
   onAction?: (e: React.MouseEvent) => void;
   actionIcon?: ReactNode;
+  tooltipTitle?: string;
 }
 
 export const CompactMetric = ({ 
@@ -19,7 +20,8 @@ export const CompactMetric = ({
   icon, 
   disabled = false,
   onAction,
-  actionIcon = <EditIcon sx={{ fontSize: 12 }} />
+  actionIcon = <EditIcon sx={{ fontSize: 12 }} />,
+  tooltipTitle
 }: CompactMetricProps) => {
   // Lógica de color inspirada en severidad técnica (PRTG Style)
   const getColors = (val: number) => {
@@ -32,8 +34,9 @@ export const CompactMetric = ({
   const colors = getColors(value);
 
   return (
-    <Tooltip title={disabled ? `${label}: No configurado` : `${label}: ${value}${unit}`}>
+    <Tooltip title={tooltipTitle ?? (disabled ? `${label}: No configurado` : `${label}: ${value}${unit}`)}>
       <Box 
+
         sx={{ 
           flex: 1,
           display: 'flex', 

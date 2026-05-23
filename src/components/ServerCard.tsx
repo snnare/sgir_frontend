@@ -68,22 +68,25 @@ export const ServerCard = ({
 
   const getEngineDetails = (engineName: string, metrics?: any) => {
     const nameLower = engineName.toLowerCase();
-    let label = 'Métrica';
+    let labelShort = 'MET';
+    let labelFull = 'Métrica del Motor';
     let value = 0;
-    let unit = '%';
 
     if (nameLower.includes('mysql')) {
-      label = 'Hit Ratio';
+      labelShort = 'HIT';
+      labelFull = 'InnoDB Cache Buffer Pool Hit Ratio (Eficiencia de Lectura)';
       value = metrics?.hit_ratio ?? 0;
     } else if (nameLower.includes('oracle')) {
-      label = 'Tablespace';
+      labelShort = 'TBS';
+      labelFull = 'Uso Consolidado de Tablespaces (Almacenamiento)';
       value = metrics?.hit_ratio ?? 0;
     } else if (nameLower.includes('mongo')) {
-      label = 'Hit/OpLog';
+      labelShort = 'OPL';
+      labelFull = 'Eficiencia de Operaciones Oplog / WiredTiger Cache';
       value = metrics?.hit_ratio ?? 0;
     }
 
-    return { label, value, unit };
+    return { labelShort, labelFull, value };
   };
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -246,83 +249,53 @@ export const ServerCard = ({
             const details = getEngineDetails(dbmsName, instanceMetrics);
 
             return (
-              <Stack 
-                key={instance.id_instancia} 
-                direction="row" 
-                spacing={1} 
-                sx={{ 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  p: 0.75, 
-                  mb: 0.5,
-                  borderRadius: 1.5,
-                  bgcolor: 'action.hover',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    borderColor: 'primary.light',
-                    bgcolor: 'action.selected'
-                  }
-                }}
-              >
-                {/* Nombre e Icono */}
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, flex: 1 }}>
+              <Box key={instance.id_instancia} sx={{ mb: 1.5 }}>
+                {/* Mini Cabecera de la Instancia */}
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 0.75, px: 0.5 }}>
                   <Box 
                     sx={{ 
-                      width: 8, 
-                      height: 8, 
+                      width: 7, 
+                      height: 7, 
                       borderRadius: '50%', 
                       bgcolor: statusColor,
-                      boxShadow: isOnline ? `0 0 6px ${statusColor}80` : 'none',
+                      boxShadow: isOnline ? `0 0 5px ${statusColor}80` : 'none',
                       flexShrink: 0,
                       animation: isOnline ? 'ledPulse 2s infinite ease-in-out' : 'none'
                     }} 
                   />
-                  <Typography variant="caption" noWrap sx={{ fontWeight: 800, fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem' }}>
-                    [{dbmsName}] {instance.nombre_instancia}
+                  <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'text.secondary', fontFamily: '"JetBrains Mono", monospace' }}>
+                    {instance.nombre_instancia} ({dbmsName})
                   </Typography>
                 </Stack>
 
-                {/* Métricas compactas */}
-                {instanceMetrics ? (
-                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexShrink: 0 }}>
-                    <Tooltip title={`Hilos: ${instanceMetrics.threads_connected}/${instanceMetrics.max_connections}`}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.62rem', color: 'text.secondary' }}>
-                        Conn: {instanceMetrics.conn_usage_pct.toFixed(0)}%
-                      </Typography>
-                    </Tooltip>
-                    
-                    <Tooltip title={`Consultas por segundo (QPS) / Slow: ${instanceMetrics.slow_queries}`}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.62rem', color: 'text.secondary' }}>
-                        QPS: {instanceMetrics.queries_per_second.toFixed(0)}
-                      </Typography>
-                    </Tooltip>
-
-                    <Tooltip title={`${details.label}: ${details.value.toFixed(1)}%`}>
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
-                          fontWeight: 800, 
-                          fontSize: '0.62rem', 
-                          color: isOnline ? 'primary.main' : 'text.disabled', 
-                          bgcolor: isOnline ? 'primary.light' : 'action.disabledBackground', 
-                          px: 0.5, 
-                          py: 0.1, 
-                          borderRadius: 0.5,
-                          opacity: isOnline ? 0.9 : 0.5
-                        }}
-                      >
-                        {details.value.toFixed(0)}%
-                      </Typography>
-                    </Tooltip>
-                  </Stack>
-                ) : (
-                  <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.62rem', fontWeight: 500 }}>
-                    Sin lectura
-                  </Typography>
-                )}
-              </Stack>
+                {/* Grid de 3 columnas de CompactMetric idéntico a CPU/RAM/Disk */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75 }}>
+                  <CompactMetric 
+                    label="CON" 
+                    value={instanceMetrics ? Math.round(instanceMetrics.conn_usage_pct) : 0} 
+                    unit="%" 
+                    icon={<StorageRoundedIcon sx={{ fontSize: 14 }} />}
+                    disabled={!isOnline || !instanceMetrics}
+                    tooltipTitle={instanceMetrics ? `Conexiones: ${instanceMetrics.threads_connected}/${instanceMetrics.max_connections} activas (${instanceMetrics.conn_usage_pct.toFixed(1)}% de capacidad)` : undefined}
+                  />
+                  <CompactMetric 
+                    label="QPS" 
+                    value={instanceMetrics ? Math.round(instanceMetrics.queries_per_second) : 0} 
+                    unit="" 
+                    icon={<SpeedIcon sx={{ fontSize: 14 }} />}
+                    disabled={!isOnline || !instanceMetrics}
+                    tooltipTitle={instanceMetrics ? `Consultas Procesadas: ${instanceMetrics.queries_per_second.toFixed(1)} QPS (Hilos ejecutando queries: ${instanceMetrics.threads_running}, Slow: ${instanceMetrics.slow_queries})` : undefined}
+                  />
+                  <CompactMetric 
+                    label={details.labelShort} 
+                    value={instanceMetrics ? Math.round(details.value) : 0} 
+                    unit="%" 
+                    icon={<MemoryIcon sx={{ fontSize: 14 }} />}
+                    disabled={!isOnline || !instanceMetrics}
+                    tooltipTitle={instanceMetrics ? `${details.labelFull}: ${details.value.toFixed(1)}%` : undefined}
+                  />
+                </Box>
+              </Box>
             );
           })
         )}
