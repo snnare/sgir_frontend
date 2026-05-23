@@ -34,7 +34,8 @@ export const HomePage = () => {
   const { 
     schedulerStatus, liveMetrics: healthCache, alerts,
     fetchSchedulerStatus, fetchAlertsToday,
-    pauseMonitoring, resumeMonitoring, fetchLiveCache 
+    pauseMonitoring, resumeMonitoring, fetchLiveCache,
+    fetchDBLiveMetricsUnified
   } = useMonitoringStore();
   const { user } = useAuthStore();
   const { showNotification } = useNotificationStore();
@@ -55,8 +56,9 @@ export const HomePage = () => {
     fetchCriticalities();
     fetchSchedulerStatus();
     fetchLiveCache();
+    fetchDBLiveMetricsUnified();
     fetchAlertsToday();
-  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus, fetchLiveCache, fetchAlertsToday]);
+  }, [fetchServers, fetchCriticalities, fetchSchedulerStatus, fetchLiveCache, fetchDBLiveMetricsUnified, fetchAlertsToday]);
 
   const startHideTimer = () => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -84,19 +86,21 @@ export const HomePage = () => {
       pollingRef.current = setInterval(() => {
         if (servers.length > 0 && schedulerStatus?.status === 'running') {
           fetchLiveCache();
+          fetchDBLiveMetricsUnified();
         }
       }, 15000); 
     };
 
     if (servers.length > 0) {
       fetchLiveCache();
+      fetchDBLiveMetricsUnified();
       startPolling();
     }
 
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [servers, schedulerStatus?.status, fetchLiveCache]);
+  }, [servers, schedulerStatus?.status, fetchLiveCache, fetchDBLiveMetricsUnified]);
 
   const handleEdit = (id: number) => {
     navigate(`/server/edit/${id}`);
