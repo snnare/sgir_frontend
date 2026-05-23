@@ -4,7 +4,8 @@ import {
     getHostMetrics, getMySQLMetrics, getMongoDBMetrics,
     getSchedulerStatus, pauseScheduler, resumeScheduler, getHealthStatus,
     getGlobalSummary, getMonitoringSessions, getMonitoringStatus,
-    getAlerts, getLiveCache, getAlertsToday, getAlertsRecent
+    getAlerts, getLiveCache, getAlertsToday, getAlertsRecent,
+    getDBLiveCache
 } from '../api/monitoringService';
 import { databaseService } from '../api/databaseService';
 import type { 
@@ -12,7 +13,8 @@ import type {
     HostMetrics, MySQLMetrics, MongoDBMetrics,
     SchedulerStatus, HealthStatus, GlobalSummary,
     MonitoringSession, MonitoringSessionDetail,
-    DBInstanceHealth, DBGlobalSummary, DBDiscoveryResponse
+    DBInstanceHealth, DBGlobalSummary, DBDiscoveryResponse,
+    ParsedDBLiveMetrics
 } from '../api/types';
 import { useInfrastructureStore } from './useInfrastructureStore';
 
@@ -38,6 +40,7 @@ interface MonitoringState {
         isLoading: boolean;
         error: string | null;
     };
+    dbLiveMetricsUnified: Record<number, ParsedDBLiveMetrics>;
 
     fetchAlertsByServer: (serverId: number) => Promise<void>;
     fetchAlerts: () => Promise<void>;
@@ -66,6 +69,7 @@ interface MonitoringState {
     // DB Monitoring Actions
     fetchDBGlobalSummary: () => Promise<void>;
     fetchDBLiveCache: () => Promise<void>;
+    fetchDBLiveMetricsUnified: () => Promise<void>;
     triggerDBDiscoverAll: () => Promise<DBDiscoveryResponse>;
     refreshDBInstanceMetrics: (instanciaId: number) => Promise<void>;
 }
@@ -80,6 +84,7 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
     mongodbMetrics: null,
     schedulerStatus: null,
     liveMetrics: {},
+    dbLiveMetricsUnified: {},
     sessions: [],
     sessionDetail: null,
     loading: false,
@@ -434,6 +439,43 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
                 }
             }));
         }
+    },
+
+    fetchDBLiveMetricsUnified: async () => {
+        set({ loading: true, error: null });
+        try {
+            const data = await getDBLiveCache();
+            const mappedMetrics: Record<number, ParsedDBLiveMetrics> = {};
+            
+            Object.entries(data).forEach(([id, info]) => {
+                const instanceId = parseInt(id);
+                if (typeof info === 'string') {
+                    mappedMetrics[instanceId] = parseDBLiveMetricsString(info);
+                } else if (info && typeof info === 'object') {
+                    mappedMetrics[instanceId] = {
+                        status: info.status || 'unknown',
+                        uptime: info.uptime || 0,
+                        threads_connected: info.threads_connected || 0,
+                        max_connections: info.max_connections || 0,
+                        conn_usage_pct: info.conn_usage_pct || 0,
+                        threads_running: info.threads_running || 0,
+                        questions: info.questions || 0,
+                        queries_per_second: info.queries_per_second || 0,
+                        slow_queries: info.slow_queries || 0,
+                        table_locks_waited: info.table_locks_waited || 0,
+                        innodb_row_lock_waits: info.innodb_row_lock_waits || 0,
+                        innodb_row_lock_time_avg: info.innodb_row_lock_time_avg || 0,
+                        innodb_buffer_pool_pages_dirty: info.innodb_buffer_pool_pages_dirty || 0,
+                        hit_ratio: info.hit_ratio || 0,
+                        timestamp: info.timestamp || 0,
+                    };
+                }
+            });
+            
+            set({ dbLiveMetricsUnified: mappedMetrics, loading: false });
+        } catch (err: any) {
+            set({ error: err.message || 'Error al obtener la caché en vivo unificada de BD', loading: false });
+        }
     }
 }));
 
@@ -457,3 +499,25 @@ function parseLiveMetricsString(metricsStr: string) {
         timestamp: parseInt(timestamp) || 0
     };
 }
+
+function parseDBLiveMetricsString(metricsStr: string): ParsedDBLiveMetrics {
+    const parts = metricsStr.split('|');
+    return {
+        status: (parts[0] || 'unknown') as 'online' | 'offline' | 'unknown',
+        uptime: parseInt(parts[1]) || 0,
+        threads_connected: parseInt(parts[2]) || 0,
+        max_connections: parseInt(parts[3]) || 0,
+        conn_usage_pct: parseFloat(parts[4]) || 0,
+        threads_running: parseInt(parts[5]) || 0,
+        questions: parseInt(parts[6]) || 0,
+        queries_per_second: parseFloat(parts[7]) || 0,
+        slow_queries: parseInt(parts[8]) || 0,
+        table_locks_waited: parseInt(parts[9]) || 0,
+        innodb_row_lock_waits: parseInt(parts[10]) || 0,
+        innodb_row_lock_time_avg: parseInt(parts[11]) || 0,
+        innodb_buffer_pool_pages_dirty: parseInt(parts[12]) || 0,
+        hit_ratio: parseFloat(parts[13]) || 0,
+        timestamp: parseInt(parts[14]) || 0,
+    };
+}
+

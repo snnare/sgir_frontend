@@ -12,7 +12,7 @@ import {
     BackupDiscoveryResponseSchema, type BackupDiscoveryResponse,
     MonitoringSessionSchema, type MonitoringSession,
     MonitoringSessionDetailSchema, type MonitoringSessionDetail,
-    type MonitoringCreateInput
+    type MonitoringCreateInput, type ParsedDBLiveMetrics
 } from './types';
 import { z } from 'zod';
 
@@ -114,3 +114,9 @@ export const discoverBackups = async (serverId: number, credId: number, pathId: 
     const { data } = await api.post(`/m3/inventory/discover-backups-server/${serverId}/${credId}/${pathId}`);
     return BackupDiscoveryResponseSchema.parse(data);
 };
+
+export const getDBLiveCache = async (): Promise<Record<number, string | ParsedDBLiveMetrics>> => {
+    const { data } = await api.get('/sgir/v1/m1/db/live-cache');
+    return data;
+};
+

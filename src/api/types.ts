@@ -563,3 +563,23 @@ export const DBDiscoveryResponseSchema = z.object({
 });
 export type DBDiscoveryResponse = z.infer<typeof DBDiscoveryResponseSchema>;
 
+export const ParsedDBLiveMetricsSchema = z.object({
+    status: z.enum(['online', 'offline', 'unknown']),
+    uptime: z.number(),
+    threads_connected: z.number(),
+    max_connections: z.number(),
+    conn_usage_pct: z.number(),
+    threads_running: z.number(),
+    questions: z.number(),
+    queries_per_second: z.number(),
+    slow_queries: z.number(),
+    table_locks_waited: z.number(),
+    innodb_row_lock_waits: z.number(),
+    innodb_row_lock_time_avg: z.number(),
+    innodb_buffer_pool_pages_dirty: z.number(),
+    hit_ratio: z.number(),
+    timestamp: z.number(),
+});
+export type ParsedDBLiveMetrics = z.infer<typeof ParsedDBLiveMetricsSchema>;
+
+

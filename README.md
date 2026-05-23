@@ -24,6 +24,7 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - **Centro de Alertas del Día**: KPI en el panel principal que muestra incidencias de las últimas 24 horas con códigos de color de severidad.
 - **Bitácora de Actividad (Auditoría)**: Historial completo de cambios en el sistema (quién, qué y cuándo) con soporte para **paginación dinámica** y filtrado avanzado.
 - **Control Inteligente del Scheduler**: Mando flotante que se auto-esconde en estado saludable y se activa mediante hover en la esquina superior derecha.
+- **Monitoreo de Bases de Datos Multi-Motor**: Observabilidad reactiva y en tiempo real de estados de salud (`healthy`, `critical`, `fatal`, `stale`, `unknown`) y métricas de desempeño (`ping`, `capacity_pct`, `stuck_processes`, `specific_value`) con estrategias de polling controlado y estado Zustand aislado del hardware.
 
 ### 🏗️ Gestión de Inventario y Activos
 - **Inventario CMDB Real**: Búsqueda global enriquecida (`/inventory/assets`) que cruza Servidor -> Instancia -> Bases de Datos.
@@ -58,3 +59,9 @@ El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que c
 
 ---
 Diseñado para la eficiencia operativa y la seguridad de datos.
+
+### 🛢️ Monitoreo Unificado de Bases de Datos (Live Cache de 15 posiciones)
+Se ha implementado el soporte en frontend para el **Live Cache Unificado de Bases de Datos** (`GET /sgir/v1/m1/db/live-cache`). Esta arquitectura permite decodificar de forma ultra-eficiente un string de métricas plano de 15 posiciones que unifica el estado de múltiples RDBMS (MySQL, Oracle, MongoDB) bajo los mismos índices:
+- **Estructura del string piped**: `status|uptime|threads_connected|max_connections|conn_usage_pct|threads_running|questions|queries_per_second|slow_queries|table_locks_waited|innodb_row_lock_waits|innodb_row_lock_time_avg|innodb_buffer_pool_pages_dirty|hit_ratio/specific|timestamp`
+- **Mapeo Inteligente**: Descompresión automática en el cliente para mostrar el estado en tiempo real, QPS, uso de conexiones y métricas críticas específicas del motor (ej: hit ratio en MySQL o tablespace en Oracle) sin penalizar el rendimiento del servidor.
+
