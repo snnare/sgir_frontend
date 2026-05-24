@@ -1,18 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   Box, TextField, Button, Stack, 
-  CircularProgress, FormControlLabel, Switch, Tooltip, IconButton
+  CircularProgress, FormControlLabel, Switch, Tooltip, IconButton,
+  Collapse, Typography, Divider, MenuItem
 } from '@mui/material';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import StorageIcon from '@mui/icons-material/Storage';
 import { useNavigate } from 'react-router-dom';
 import { ServerCreateSchema, type ServerCreateInput } from '../api/types';
-import { createServer, checkServerByIp, pingServer } from '../api/infrastructureService';
+import { createServer, checkServerByIp, pingServer, createInstance } from '../api/infrastructureService';
 import { useNotificationStore } from './GlobalNotification';
 import { CriticalitySelect } from './CriticalitySelect';
 import { StatusSelect } from './StatusSelect';
+import { useInfrastructureStore } from '../store/useInfrastructureStore';
 
 interface ServerFormProps {
   onSuccess?: (serverId: number, ip: string) => void;
@@ -25,6 +28,35 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
   const { showNotification } = useNotificationStore();
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
+
+  const { dbmsList, fetchDbmsList } = useInfrastructureStore();
+  
+  // Estados para base de datos
+  const [dbmsId, setDbmsId] = useState<string>('');
+  const [nombreInstancia, setNombreInstancia] = useState('');
+  const [puerto, setPuerto] = useState('');
+  const [sid, setSid] = useState('');
+
+  // Cargar RDBMS list
+  useEffect(() => {
+    if (monitoreoDb && dbmsList.length === 0) {
+      fetchDbmsList();
+    }
+  }, [monitoreoDb, dbmsList.length, fetchDbmsList]);
+
+  const selectedDbmsObj = dbmsList.find(d => d.id_dbms === Number(dbmsId));
+  const isOracle = selectedDbmsObj?.nombre_dbms.toLowerCase().includes('oracle');
+
+  // Ajustar puertos por defecto según el motor seleccionado
+  useEffect(() => {
+    if (selectedDbmsObj) {
+      const name = selectedDbmsObj.nombre_dbms.toLowerCase();
+      if (name.includes('mysql')) setPuerto('3306');
+      else if (name.includes('oracle')) setPuerto('1521');
+      else if (name.includes('mongo')) setPuerto('27017');
+      else if (name.includes('postgres')) setPuerto('5432');
+    }
+  }, [dbmsId, selectedDbmsObj]);
 
   const {
     register,
@@ -96,8 +128,30 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
     console.log('Enviando payload al backend:', JSON.stringify(payload, null, 2));
     setLoading(true);
     try {
+      // 1. Registrar el Servidor
       const newServer = await createServer(payload);
-      showNotification('Servidor registrado correctamente', 'success');
+      
+      // 2. Si monitoreoDb es true y se eligió un motor, registrar la InstanciaDBMS
+      if (monitoreoDb && dbmsId) {
+        try {
+          const instancePayload = {
+            nombre_instancia: nombreInstancia.trim() || `${data.nombre_servidor}_${selectedDbmsObj?.nombre_dbms.replace(/\s+/g, '')}`,
+            puerto: Number(puerto),
+            id_servidor: newServer.id_servidor,
+            id_dbms: Number(dbmsId),
+            id_estado_instancia: 1, // Activo
+            parametros_conexion: isOracle && sid.trim() ? { sid: sid.trim() } : null
+          };
+          
+          await createInstance(instancePayload);
+          showNotification('Servidor e instancia DBMS registrados correctamente', 'success');
+        } catch (dbError: any) {
+          console.error('Error al registrar la instancia DBMS:', dbError);
+          showNotification(`Servidor creado, pero falló el registro de la instancia: ${dbError.response?.data?.detail || dbError.message}`, 'warning');
+        }
+      } else {
+        showNotification('Servidor registrado correctamente', 'success');
+      }
       
       if (onSuccess) {
         onSuccess(newServer.id_servidor, data.direccion_ip);
@@ -197,6 +251,71 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
           label="Estado Inicial"
           filterIds={[1, 2]} 
         />
+
+        {/* Sección de Configuración de Base de Datos Condicional */}
+        {monitoreoDb && (
+          <Box sx={{ p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, bgcolor: 'action.hover', mt: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <StorageIcon fontSize="small" color="primary" /> Configuración de Motor de Base de Datos
+            </Typography>
+            
+            <Stack spacing={2.5}>
+              <TextField
+                select
+                fullWidth
+                id="id_dbms"
+                label="Motor de Base de Datos (DBMS)"
+                value={dbmsId}
+                onChange={(e) => setDbmsId(e.target.value)}
+                helperText="Selecciona el RDBMS instalado en este servidor"
+              >
+                {dbmsList.map((option) => (
+                  <MenuItem key={option.id_dbms} value={option.id_dbms}>
+                    {option.nombre_dbms} {option.version}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {dbmsId && (
+                <>
+                  <TextField
+                    required
+                    fullWidth
+                    label="Nombre de la Instancia"
+                    placeholder="ej. bd_app_prod o mysql_3306"
+                    value={nombreInstancia}
+                    onChange={(e) => setNombreInstancia(e.target.value)}
+                  />
+
+                  <TextField
+                    required
+                    fullWidth
+                    label="Puerto de Conexión"
+                    type="number"
+                    value={puerto}
+                    onChange={(e) => setPuerto(e.target.value)}
+                  />
+                  
+                  <Collapse in={isOracle}>
+                    <Box sx={{ p: 2, border: '1px dashed', borderColor: 'primary.light', borderRadius: 1.5, bgcolor: 'background.paper', mt: 1 }}>
+                      <Typography variant="caption" color="primary.main" sx={{ display: 'block', mb: 1, fontWeight: 700 }}>
+                        Parámetro Especial Oracle (Requerido para SID):
+                      </Typography>
+                      <TextField
+                        fullWidth
+                        label="System Identifier (SID)"
+                        placeholder="ej. ERP_SID"
+                        value={sid}
+                        onChange={(e) => setSid(e.target.value)}
+                        helperText="System Identifier (SID) para la conexión Oracle"
+                      />
+                    </Box>
+                  </Collapse>
+                </>
+              )}
+            </Stack>
+          </Box>
+        )}
 
         <Button
           type="submit"

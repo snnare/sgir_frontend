@@ -263,9 +263,25 @@ export const ServerCard = ({
                       animation: isOnline ? 'ledPulse 2s infinite ease-in-out' : 'none'
                     }} 
                   />
-                  <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.65rem', color: 'text.secondary', fontFamily: '"JetBrains Mono", monospace' }}>
-                    {instance.nombre_instancia} ({dbmsName})
-                  </Typography>
+                  <Tooltip title={
+                    `${instance.nombre_instancia} (${dbmsName})` + 
+                    (instance.parametros_conexion 
+                      ? ` — Parámetros: ${JSON.stringify(instance.parametros_conexion)}` 
+                      : '')
+                  }>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        fontWeight: 800, 
+                        fontSize: '0.65rem', 
+                        color: 'text.secondary', 
+                        fontFamily: '"JetBrains Mono", monospace',
+                        cursor: 'help'
+                      }}
+                    >
+                      {instance.nombre_instancia} ({dbmsName})
+                    </Typography>
+                  </Tooltip>
                 </Stack>
 
                 {/* Grid de 3 columnas de CompactMetric idéntico a CPU/RAM/Disk */}

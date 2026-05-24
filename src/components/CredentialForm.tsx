@@ -14,6 +14,7 @@ import ComputerIcon from '@mui/icons-material/Computer';
 import { CredentialCreateSchema, type CredentialCreateInput, type Dbms, type Server } from '../api/types';
 import { createCredential, getDbms, testConnectionDb, testConnectionSsh, getServers, type ConnectionTestRequest } from '../api/infrastructureService';
 import { useNotificationStore } from './GlobalNotification';
+import { useInfrastructureStore } from '../store/useInfrastructureStore';
 
 interface CredentialFormProps {
   serverId?: number;
@@ -34,6 +35,21 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
   const [servers, setServers] = useState<Server[]>([]);
   const [currentIp, setCurrentIp] = useState<string | undefined>(initialIp);
   const { showNotification } = useNotificationStore();
+
+  const { servers: globalServers, fetchServers: fetchGlobalServers } = useInfrastructureStore();
+
+  useEffect(() => {
+    if (globalServers.length === 0) {
+      fetchGlobalServers();
+    }
+  }, [globalServers.length, fetchGlobalServers]);
+
+  const activeServerId = serverId || watchServerId;
+  const currentServer = useMemo(() => {
+    return globalServers.find(s => s.id_servidor === activeServerId);
+  }, [globalServers, activeServerId]);
+
+  const isLegacy = currentServer?.es_legacy ?? false;
 
   const {
     register,
@@ -158,7 +174,11 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
           return;
         }
         const motorKey = selectedDbms.nombre_dbms.toLowerCase().split(' ')[0];
-        response = await testConnectionDb(motorKey, payload);
+        const motorPath = motorKey === 'oracle' 
+          ? (isLegacy ? 'oracle/legacy' : 'oracle/no-legacy') 
+          : motorKey;
+        
+        response = await testConnectionDb(motorPath, payload);
       } else {
         response = await testConnectionSsh(payload);
       }

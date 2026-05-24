@@ -60,6 +60,11 @@ export const getInstancesByServer = async (serverId: number): Promise<Instance[]
     return z.array(InstanceSchema).parse(data);
 };
 
+export const createInstance = async (instanceData: any): Promise<Instance> => {
+    const { data } = await api.post('/crud/instancias/', instanceData);
+    return InstanceSchema.parse(data);
+};
+
 export const getDbms = async (): Promise<Dbms[]> => {
     const { data } = await api.get('/crud/dbms/');
     return z.array(DbmsSchema).parse(data);
@@ -119,8 +124,8 @@ export interface ConnectionTestResponse {
     details?: any;
 }
 
-export const testConnectionDb = async (motor: string, testData: ConnectionTestRequest): Promise<ConnectionTestResponse> => {
-    const { data } = await api.post(`/crud/conexion/test/db/${motor.toLowerCase()}`, testData);
+export const testConnectionDb = async (motorPath: string, testData: ConnectionTestRequest): Promise<ConnectionTestResponse> => {
+    const { data } = await api.post(`/crud/conexion/test/db/${motorPath}`, testData);
     return data;
 };
 

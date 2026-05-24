@@ -101,6 +101,7 @@ export const ServerSchema = z.object({
     id_nivel_criticidad: z.number(),
     id_estado_servidor: z.number(),
     fecha_registro: z.string().optional(),
+    instancias: z.array(z.lazy(() => InstanceSchema)).optional(),
 });
 export type Server = z.infer<typeof ServerSchema>;
 
@@ -118,6 +119,7 @@ export const InstanceSchema = z.object({
     id_dbms: z.number(),
     id_estado_instancia: z.number(),
     fecha_inicio: z.string().optional(),
+    parametros_conexion: z.record(z.string(), z.any()).nullable().optional(),
 });
 export type Instance = z.infer<typeof InstanceSchema>;
 

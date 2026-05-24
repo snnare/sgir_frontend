@@ -60,8 +60,12 @@ El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que c
 ---
 Diseñado para la eficiencia operativa y la seguridad de datos.
 
-### 🛢️ Monitoreo Unificado de Bases de Datos (Live Cache de 15 posiciones)
-Se ha implementado el soporte en frontend para el **Live Cache Unificado de Bases de Datos** (`GET /sgir/v1/m1/db/live-cache`). Esta arquitectura permite decodificar de forma ultra-eficiente un string de métricas plano de 15 posiciones que unifica el estado de múltiples RDBMS (MySQL, Oracle, MongoDB) bajo los mismos índices:
-- **Estructura del string piped**: `status|uptime|threads_connected|max_connections|conn_usage_pct|threads_running|questions|queries_per_second|slow_queries|table_locks_waited|innodb_row_lock_waits|innodb_row_lock_time_avg|innodb_buffer_pool_pages_dirty|hit_ratio/specific|timestamp`
-- **Mapeo Inteligente**: Descompresión automática en el cliente para mostrar el estado en tiempo real, QPS, uso de conexiones y métricas críticas específicas del motor (ej: hit ratio en MySQL o tablespace en Oracle) sin penalizar el rendimiento del servidor.
+### 🛢️ Monitoreo Unificado de Bases de Datos (Live Cache & CMDB Integration)
+Se ha integrado de forma completa y robusta la observabilidad, registro y validación de bases de datos multi-motor (MySQL, Oracle, MongoDB) en el frontend:
+- **Live Cache de 15 posiciones (`GET /sgir/v1/m1/db/live-cache`)**: Mapeo e interpretación segura de un string de métricas plano de 15 posiciones en el cliente. Descomprime en tiempo real conexiones, QPS y métricas críticas de desempeño sin sobrecargar el hardware.
+- **Grilla de Rendimiento Homogénea**: Cada instancia DBMS activa en la tarjeta del servidor se dibuja con una mini-cabecera y un grid de 3 columnas de `CompactMetric` (`CON`, `QPS`, `HIT/TBS/OPL`), adaptando semánticamente las etiquetas y tooltips explicativos según el tipo de base de datos.
+- **Soporte para Parámetros de Conexión (`parametros_conexion`)**: Gestión completa del campo JSON para registrar el **System Identifier (SID)** y **Service Name** en Oracle, **authSource** en MongoDB, o parámetros JSON libres.
+- **Asistente de Registro All-in-One**: El primer paso del alta de servidores (`ServerForm.tsx`) permite capturar dinámicamente los datos del motor DBMS y registrarlos de forma transaccional y secuencial (Servidor $\rightarrow$ Instancia).
+- **Test de Conexión Inteligente para Oracle**: El validador de credenciales detecta si el servidor es **Legacy** u **Estándar** para rutear dinámicamente y de forma transparente la prueba de conexión a los endpoints específicos (`oracle/legacy` u `oracle/no-legacy`).
+
 
