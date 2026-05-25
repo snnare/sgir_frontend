@@ -44,13 +44,6 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
     }
   }, [globalServers.length, fetchGlobalServers]);
 
-  const activeServerId = serverId || watchServerId;
-  const currentServer = useMemo(() => {
-    return globalServers.find(s => s.id_servidor === activeServerId);
-  }, [globalServers, activeServerId]);
-
-  const isLegacy = currentServer?.es_legacy ?? false;
-
   const {
     register,
     handleSubmit,
@@ -73,6 +66,13 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
   const watchUsuario = useWatch({ control, name: 'usuario' });
   const watchPassword = useWatch({ control, name: 'password' });
   const watchPuerto = useWatch({ control, name: 'puerto' });
+
+  const activeServerId = serverId || watchServerId;
+  const currentServer = useMemo(() => {
+    return globalServers.find(s => s.id_servidor === activeServerId);
+  }, [globalServers, activeServerId]);
+
+  const isLegacy = currentServer?.es_legacy ?? false;
 
   // Lógica para habilitar el botón de Test Connection
   const canTest = useMemo(() => {

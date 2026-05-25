@@ -6,14 +6,12 @@ import {
   TableCell, TableHead, TableRow, LinearProgress, Divider, Tooltip, IconButton,
   TableContainer
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import SpeedIcon from '@mui/icons-material/Speed';
 import MemoryIcon from '@mui/icons-material/Memory';
 import StorageIcon from '@mui/icons-material/Storage';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -77,14 +75,14 @@ export const ServerDetailsPage = () => {
     };
 
     if (healthStatus?.live_metrics) {
-      const lm = healthStatus.live_metrics;
+      const lm = healthStatus.live_metrics as any;
       if (typeof lm === 'string') {
-        const parts = lm.split('|');
+        const parts = (lm as string).split('|');
         if (parts.length >= 5) {
           const [cpu, ram, disksRaw, uptime, timestamp] = parts;
           const disks: Record<string, number> = {};
           if (disksRaw) {
-            disksRaw.split(',').forEach(d => {
+            disksRaw.split(',').forEach((d: string) => {
               const [mount, usage] = d.split(':');
               if (mount && usage) disks[mount] = parseFloat(usage);
             });
@@ -114,49 +112,107 @@ export const ServerDetailsPage = () => {
   // Función unificada para cargar toda la información en tiempo real
   const loadServerData = useCallback(async (isRefresh = false) => {
     if (!id) return;
+    const sId = Number(id);
+
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
-      const sId = Number(id);
+      // 1. Cargar catálogos estáticos globales (solo si no están en memoria)
+      const catalogPromises = [];
+      if (criticalities.length === 0) catalogPromises.push(fetchCriticalities());
+      if (statuses.length === 0) catalogPromises.push(fetchStatuses());
+      if (dbmsList.length === 0) catalogPromises.push(fetchDbmsList());
+      if (Object.keys(dbLiveMetricsUnified).length === 0) catalogPromises.push(fetchDBLiveMetricsUnified());
 
-      // Cargar catálogos globales si no están cargados
-      await Promise.all([
-        fetchCriticalities(),
-        fetchStatuses(),
-        fetchDBLiveMetricsUnified(),
-        dbmsList.length === 0 ? fetchDbmsList() : Promise.resolve()
-      ]);
+      if (catalogPromises.length > 0) {
+        await Promise.all(catalogPromises);
+      }
 
-      // Consultar endpoints específicos
-      const [serverData, partitionsData, healthData, alertsData, instancesData] = await Promise.all([
-        getServerById(sId),
-        getPartitionsByServer(sId),
-        getHealthStatus(sId).catch(err => {
+      // 2. Intentar recuperar datos ya presentes en los stores globales (flujo directo de HomePage)
+      const serversInStore = useInfrastructureStore.getState().servers;
+      const cachedServer = serversInStore.find(s => s.id_servidor === sId);
+
+      const liveMetricsInStore = useMonitoringStore.getState().liveMetrics;
+      const cachedHealth = liveMetricsInStore[sId];
+
+      // 3. Crear promesas únicamente para lo que no esté en caché o si es refresco explícito
+
+      // Servidor y sus metadatos
+      let serverPromise: Promise<Server | null> = Promise.resolve(cachedServer || null);
+      if (!cachedServer || isRefresh) {
+        serverPromise = getServerById(sId).catch(err => {
+          console.error('[ServerDetails] Error fetching server:', err);
+          return null;
+        });
+      }
+
+      // Salud del Host
+      let healthPromise: Promise<HealthStatus | null> = Promise.resolve(cachedHealth || null);
+      if (!cachedHealth || isRefresh) {
+        healthPromise = getHealthStatus(sId).catch(err => {
           console.warn('[ServerDetails] No se pudieron obtener métricas en vivo:', err);
           return null;
-        }),
-        getAlertsByServer(sId).catch(err => {
-          console.warn('[ServerDetails] No se pudieron obtener alertas:', err);
-          return [];
-        }),
-        getInstancesByServer(sId).catch(err => {
-          console.warn('[ServerDetails] No se pudieron obtener instancias:', err);
-          return [];
-        })
+        });
+      }
+
+      // Particiones (Siempre se consulta por su naturaleza dinámica)
+      const partitionsPromise = getPartitionsByServer(sId).catch(err => {
+        console.warn('[ServerDetails] No se pudieron obtener particiones:', err);
+        return [] as PartitionResponse[];
+      });
+
+      // Bitácora de incidencias (Siempre se consulta)
+      const alertsPromise = getAlertsByServer(sId).catch(err => {
+        console.warn('[ServerDetails] No se pudieron obtener alertas:', err);
+        return [] as SystemAlert[];
+      });
+
+      // 4. Ejecutar todas las llamadas de datos requeridas en paralelo
+      const [serverData, healthData, partitionsData, alertsData] = await Promise.all([
+        serverPromise,
+        healthPromise,
+        partitionsPromise,
+        alertsPromise
       ]);
 
-      setServer(serverData);
+      // 5. Asignar los estados locales o globales
+      if (serverData) {
+        setServer(serverData);
+      } else {
+        // Error de diagnóstico crítico: No pudimos resolver la información del servidor
+        const errorMsg = 'Error crítico: No se pudieron obtener los datos generales del servidor.';
+        showNotification(errorMsg, 'error');
+        alert(errorMsg);
+        navigate('/');
+        return;
+      }
+
       setPartitions(partitionsData);
       setHealth(healthData);
       setAlerts(alertsData);
-      setInstances(instancesData);
 
-      // Si obtuvimos métricas en vivo reales, agregamos al historial para actualizar la sparkline
+      // Si obtuvimos métricas en vivo reales, las guardamos en el store local para actualizar el caché
       if (healthData) {
+        useMonitoringStore.setState((state) => ({
+          liveMetrics: {
+            ...state.liveMetrics,
+            [sId]: healthData
+          }
+        }));
+
         const parsed = getParsedMetrics(healthData);
         setCpuHistory(prev => [...prev.slice(1), parsed.cpu]);
         setRamHistory(prev => [...prev.slice(1), parsed.ram]);
+      }
+
+      // Si obtuvimos instancias del servidor, las asignamos (getServerById retorna instancias embebidas en el Server Schema)
+      if (serverData.instancias) {
+        setInstances(serverData.instancias);
+      } else {
+        // Fallback: Consultar instancias por si el esquema base del listado no las trae embebidas
+        const instancesData = await getInstancesByServer(sId).catch(() => [] as Instance[]);
+        setInstances(instancesData);
       }
 
       if (isRefresh) {
@@ -165,11 +221,12 @@ export const ServerDetailsPage = () => {
     } catch (err: any) {
       console.error('[ServerDetails] Error loading data:', err);
       showNotification('Error al consultar información técnica del servidor', 'error');
+      alert('Error general: Falló la inicialización paralela de observabilidad en el servidor.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id, fetchCriticalities, fetchStatuses, fetchDBLiveMetricsUnified, dbmsList.length, fetchDbmsList, getParsedMetrics, showNotification]);
+  }, [id, fetchCriticalities, fetchStatuses, fetchDBLiveMetricsUnified, dbmsList.length, fetchDbmsList, getParsedMetrics, showNotification, criticalities.length, statuses.length, dbLiveMetricsUnified, navigate]);
 
   useEffect(() => {
     loadServerData();
@@ -196,8 +253,6 @@ export const ServerDetailsPage = () => {
 
   // Parsear métricas en tiempo real actuales
   const metrics = getParsedMetrics(health);
-  const isHealthy = health?.status === 'healthy';
-  const statusColor = isHealthy ? '#22c55e' : (health?.status === 'critical' ? '#ef4444' : '#64748b');
 
   // Mapear IDs de catálogos
   const getCriticalityName = (id: number) => {

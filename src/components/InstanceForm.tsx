@@ -6,7 +6,6 @@ import {
 import StorageIcon from '@mui/icons-material/Storage';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
-import TerminalIcon from '@mui/icons-material/Terminal';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
 import { useNavigate, useSearchParams } from 'react-router-dom';

@@ -1,10 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { 
-  Box, Typography, Stack, Paper, CircularProgress, 
+  Box, Typography, Paper, CircularProgress, 
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, Tooltip, Chip, Button
 } from '@mui/material';
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
