@@ -17,6 +17,7 @@ import { BulkUploadPage } from './pages/BulkUploadPage';
 import { AddServerPage } from './pages/AddServerPage';
 import { SearchAssetsPage } from './pages/SearchAssetsPage';
 import { UpdateServerInfoPage } from './pages/UpdateServerInfoPage';
+import { ServerDetailsPage } from './pages/ServerDetailsPage';
 import { AddCredentialPage } from './pages/AddCredentialPage'
 import { AddInstancePage } from './pages/AddInstancePage'
 import { AddDbmsPage } from './pages/AddDbmsPage'
@@ -107,6 +108,7 @@ function App() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="activos" element={<SearchAssetsPage />} />
             <Route path="add-server" element={<AddServerPage />} />
+            <Route path="server/:id" element={<ServerDetailsPage />} />
             <Route path="server/edit/:id" element={<UpdateServerInfoPage />} />
             <Route path="bulk-upload" element={<BulkUploadPage />} />
             <Route path="credenciales" element={<CredentialsPage />} />

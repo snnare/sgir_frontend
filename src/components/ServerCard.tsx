@@ -112,6 +112,8 @@ export const ServerCard = ({
     if (selectionModeActive && onToggleSelect) {
       e.stopPropagation();
       onToggleSelect(server.id_servidor);
+    } else if (!selectionModeActive) {
+      navigate(`/server/${server.id_servidor}`);
     }
   };
 
@@ -125,7 +127,7 @@ export const ServerCard = ({
         border: '1px solid', 
         borderColor: selected ? 'primary.main' : 'divider',
         bgcolor: selected ? 'action.selected' : 'background.paper',
-        cursor: selectionModeActive ? 'pointer' : 'default',
+        cursor: 'pointer',
         transition: 'all 0.2s ease',
         '&:hover': {
           boxShadow: '0 8px 20px rgba(0,0,0,0.06)',

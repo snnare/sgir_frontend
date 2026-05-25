@@ -285,15 +285,16 @@ export type SchedulerStatus = z.infer<typeof SchedulerStatusSchema>;
 
 export const HealthStatusSchema = z.object({
     status: z.enum(['healthy', 'critical', 'stale', 'unknown']),
-    last_check: z.string(),
-    is_stale: z.boolean(),
+    last_check: z.string().nullable().optional(),
+    is_stale: z.boolean().nullable().optional(),
+    message: z.string().optional(),
     live_metrics: z.object({
         cpu: z.number(),
         ram: z.number(),
         disks: z.record(z.string(), z.number()),
         uptime: z.number(),
         timestamp: z.number(),
-    })
+    }).nullable().optional()
 });
 
 export type HealthStatus = z.infer<typeof HealthStatusSchema>;
