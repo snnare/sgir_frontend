@@ -15,7 +15,8 @@ import {
     DiscoveryResponseSchema, type DiscoveryResponse,
     GlobalDiscoveryResponseSchema, type GlobalDiscoveryResponse,
     FilesystemDiscoveryResponseSchema, type FilesystemDiscoveryResponse,
-    type PartitionUpsertInput
+    type PartitionUpsertInput,
+    PartitionResponseSchema, type PartitionResponse
 } from './types';
 import { z } from 'zod';
 
@@ -170,4 +171,13 @@ export const discoverFilesystems = async (serverId: number): Promise<FilesystemD
 export const upsertPartition = async (partitionData: PartitionUpsertInput): Promise<any> => {
     const { data } = await api.post('/crud/particiones/register-upsert', partitionData);
     return data;
+};
+
+export const getPartitionsByServer = async (serverId: number): Promise<PartitionResponse[]> => {
+    const { data } = await api.get(`/crud/particiones/servidor/${serverId}`);
+    return z.array(PartitionResponseSchema).parse(data);
+};
+
+export const deletePartition = async (partitionId: number): Promise<void> => {
+    await api.delete(`/crud/particiones/${partitionId}`);
 };

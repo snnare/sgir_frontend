@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Box, Typography, Paper, Button, Stack, 
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  CircularProgress, Alert, TextField
+  CircularProgress, Alert, TextField, IconButton, Tooltip
 } from '@mui/material';
 import StorageIcon from '@mui/icons-material/Storage';
 import SyncIcon from '@mui/icons-material/Sync';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { discoverFilesystems, upsertPartition } from '../api/infrastructureService';
-import { type Filesystem } from '../api/types';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import { discoverFilesystems, upsertPartition, getPartitionsByServer, deletePartition } from '../api/infrastructureService';
+import { type Filesystem, type PartitionResponse } from '../api/types';
 import { useNotificationStore } from './GlobalNotification';
 
 interface DiskManagerProps {
@@ -19,8 +20,10 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [filesystems, setFilesystems] = useState<Filesystem[]>([]);
+  const [registeredPartitions, setRegisteredPartitions] = useState<PartitionResponse[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [hoveredBtn, setHoveredBtn] = useState<string | null>(null);
   
   const { showNotification } = useNotificationStore();
 
@@ -30,12 +33,22 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await discoverFilesystems(serverId);
-      setFilesystems(response.filesystems);
+      const [discoveryRes, registeredRes] = await Promise.all([
+        discoverFilesystems(serverId),
+        getPartitionsByServer(serverId)
+      ]);
+      
+      setFilesystems(discoveryRes.filesystems);
+      setRegisteredPartitions(registeredRes);
       
       const initialLabels: Record<string, string> = {};
-      response.filesystems.forEach(fs => {
-          initialLabels[fs.mount_point] = fs.mount_point === '/' ? 'Root' : `Datos ${fs.mount_point}`;
+      discoveryRes.filesystems.forEach(fs => {
+          const registered = registeredRes.find(p => p.path === fs.mount_point);
+          if (registered) {
+              initialLabels[fs.mount_point] = registered.etiqueta;
+          } else {
+              initialLabels[fs.mount_point] = fs.mount_point === '/' ? 'Root' : `Datos ${fs.mount_point}`;
+          }
       });
       setLabels(initialLabels);
       
@@ -68,9 +81,32 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
               etiqueta: labels[fs.mount_point] || fs.mount_point
           });
           showNotification(`Partición ${fs.mount_point} sincronizada para monitoreo`, 'success');
+          
+          // Recargar particiones registradas para reflejar el estado en la UI sin re-escanear por SSH
+          const registeredRes = await getPartitionsByServer(serverId);
+          setRegisteredPartitions(registeredRes);
       } catch (err: any) {
           console.error(err);
           showNotification(`Error al sincronizar partición: ${err.response?.data?.detail || err.message}`, 'error');
+      } finally {
+          setSyncing(null);
+      }
+  };
+
+  const handleDeletePartition = async (partitionId: number, mountPoint: string) => {
+      if (!serverId) return;
+
+      setSyncing(mountPoint);
+      try {
+          await deletePartition(partitionId);
+          showNotification(`Partición ${mountPoint} desvinculada del monitoreo`, 'success');
+          
+          // Recargar particiones registradas para reflejar el estado en la UI sin re-escanear por SSH
+          const registeredRes = await getPartitionsByServer(serverId);
+          setRegisteredPartitions(registeredRes);
+      } catch (err: any) {
+          console.error(err);
+          showNotification(`Error al desvincular partición: ${err.response?.data?.detail || err.message}`, 'error');
       } finally {
           setSyncing(null);
       }
@@ -99,16 +135,11 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
                     Discos y Particiones Descubiertas
                 </Typography>
             </Stack>
-            <Button 
-                variant="outlined" 
-                startIcon={loading ? <CircularProgress size={16} /> : <SyncIcon />}
-                onClick={fetchFilesystems}
-                disabled={loading}
-                size="small"
-                sx={{ bgcolor: 'background.paper', fontWeight: 600 }}
-            >
-                Volver a Escanear
-            </Button>
+            <Tooltip title="Volver a Escanear">
+                <IconButton onClick={fetchFilesystems} disabled={loading} size="small">
+                    <SyncIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>
         </Box>
 
         {loading ? (
@@ -138,13 +169,41 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
                             const isCritical = usagePctNumber > 85;
                             const isSyncingThis = syncing === fs.mount_point;
                             const isRoot = fs.mount_point === '/';
+                            
+                            const isRegistered = isRoot || registeredPartitions.some(p => p.path === fs.mount_point);
+                            const dbPartition = registeredPartitions.find(p => p.path === fs.mount_point);
+                            const hasLabelChanged = dbPartition ? (labels[fs.mount_point] || '') !== dbPartition.etiqueta : false;
 
                             return (
-                                <TableRow key={fs.mount_point} hover>
+                                <TableRow 
+                                    key={fs.mount_point} 
+                                    hover
+                                    sx={{ 
+                                        transition: 'background-color 0.2s ease',
+                                        ...(isRegistered && {
+                                            bgcolor: 'rgba(34, 197, 94, 0.03)',
+                                            '&:hover': {
+                                                bgcolor: 'rgba(34, 197, 94, 0.06) !important',
+                                            }
+                                        })
+                                    }}
+                                >
                                     <TableCell>
-                                        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
-                                            {fs.mount_point}
-                                        </Typography>
+                                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                                            {isRegistered && (
+                                                <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                                            )}
+                                            <Typography 
+                                                variant="body2" 
+                                                sx={{ 
+                                                    fontWeight: 700, 
+                                                    fontFamily: 'monospace',
+                                                    color: isRegistered ? 'success.main' : 'text.primary'
+                                                }}
+                                            >
+                                                {fs.mount_point}
+                                            </Typography>
+                                        </Stack>
                                     </TableCell>
                                     <TableCell>
                                         <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
@@ -175,19 +234,56 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
                                             slotProps={{ input: { sx: { py: 0, fontSize: '0.875rem' } } }}
                                         />
                                     </TableCell>
-                                    <TableCell align="right">
-                                        <Button
-                                            variant={isRoot ? "outlined" : "contained"}
-                                            color={isRoot ? "inherit" : "primary"}
-                                            size="small"
-                                            onClick={() => handleSyncPartition(fs)}
-                                            disabled={isSyncingThis || isRoot} // Bloqueado si es root
-                                            startIcon={isSyncingThis ? <CircularProgress size={14} color="inherit" /> : <CheckCircleIcon />}
-                                            sx={{ fontWeight: 700, boxShadow: 0, '&:hover': { boxShadow: 0 } }}
-                                        >
-                                            {isRoot ? 'Monitoreado' : (isSyncingThis ? 'Sync...' : 'Monitorear')}
-                                        </Button>
-                                    </TableCell>
+                                     <TableCell align="right">
+                                         <Button
+                                             variant={isRoot ? "outlined" : (isRegistered && !hasLabelChanged ? (hoveredBtn === fs.mount_point ? "contained" : "outlined") : "contained")}
+                                             color={isRoot ? "inherit" : (isRegistered ? (hoveredBtn === fs.mount_point && !hasLabelChanged ? "error" : "success") : "primary")}
+                                             size="small"
+                                             onMouseEnter={() => !isRoot && setHoveredBtn(fs.mount_point)}
+                                             onMouseLeave={() => setHoveredBtn(null)}
+                                             onClick={() => {
+                                                 if (isRoot) return;
+                                                 if (isRegistered && !hasLabelChanged) {
+                                                     if (dbPartition) handleDeletePartition(dbPartition.id_particion, fs.mount_point);
+                                                 } else {
+                                                     handleSyncPartition(fs);
+                                                 }
+                                             }}
+                                             disabled={isSyncingThis || isRoot} // Bloqueado si es root
+                                             startIcon={isSyncingThis 
+                                                 ? <CircularProgress size={14} color="inherit" /> 
+                                                 : (isRegistered && !hasLabelChanged && hoveredBtn === fs.mount_point
+                                                     ? <DeleteOutlinedIcon sx={{ fontSize: 14 }} /> 
+                                                     : <CheckCircleIcon />
+                                                 )
+                                             }
+                                             sx={{ 
+                                                 fontWeight: 700, 
+                                                 boxShadow: 0, 
+                                                 transition: 'all 0.2s ease-in-out',
+                                                 '&:hover': { 
+                                                     boxShadow: 0,
+                                                     ...(isRegistered && !hasLabelChanged && {
+                                                         bgcolor: 'error.main',
+                                                         color: 'error.contrastText',
+                                                         borderColor: 'error.main'
+                                                     })
+                                                 }
+                                             }}
+                                         >
+                                             {isRoot 
+                                                 ? 'Monitoreado' 
+                                                 : isSyncingThis 
+                                                     ? 'Sync...' 
+                                                     : isRegistered 
+                                                         ? (hasLabelChanged 
+                                                             ? 'Actualizar' 
+                                                             : (hoveredBtn === fs.mount_point ? 'Desvincular' : 'Sincronizado')
+                                                         ) 
+                                                         : 'Monitorear'
+                                             }
+                                         </Button>
+                                     </TableCell>
                                 </TableRow>
                             );
                         })}

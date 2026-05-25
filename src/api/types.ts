@@ -505,6 +505,15 @@ export const PartitionUpsertSchema = z.object({
 });
 export type PartitionUpsertInput = z.infer<typeof PartitionUpsertSchema>;
 
+export const PartitionResponseSchema = z.object({
+    id_particion: z.number(),
+    id_servidor: z.number(),
+    path: z.string(),
+    etiqueta: z.string(),
+    fecha_registro: z.string(),
+});
+export type PartitionResponse = z.infer<typeof PartitionResponseSchema>;
+
 // --- Importación Masiva ---
 export const ImportErrorSchema = z.object({
     fila: z.number(),
