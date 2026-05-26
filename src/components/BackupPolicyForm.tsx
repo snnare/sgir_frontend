@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { 
-  Box, TextField, Button, Stack, MenuItem, InputAdornment, CircularProgress 
+  Box, TextField, Button, Stack, MenuItem, InputAdornment, CircularProgress, Divider, Typography
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,8 +39,12 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
     defaultValues: {
       nombre_politica: '',
       descripcion: '',
+      expression_cron: '',
+      hora_ejecuccion: '',
+      dias_semana: '',
       frecuencia_horas: 24,
       retencion_dias: 7,
+      script_path: '',
       id_tipo_respaldo: 1,
       id_estado_politica: 1,
     }
@@ -50,8 +54,12 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
     if (initialData) {
       setValue('nombre_politica', initialData.nombre_politica);
       setValue('descripcion', initialData.descripcion || '');
+      setValue('expression_cron', initialData.expression_cron || '');
+      setValue('hora_ejecuccion', initialData.hora_ejecuccion || '');
+      setValue('dias_semana', initialData.dias_semana || '');
       setValue('frecuencia_horas', initialData.frecuencia_horas);
       setValue('retencion_dias', initialData.retencion_dias);
+      setValue('script_path', initialData.script_path || '');
       setValue('id_tipo_respaldo', initialData.id_tipo_respaldo);
       setValue('id_estado_politica', initialData.id_estado_politica);
     }
@@ -143,6 +151,55 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
             helperText={errors.retencion_dias?.message}
           />
         </Stack>
+
+        <Divider sx={{ my: 1 }} />
+        <Typography variant="subtitle2" sx={{ fontWeight: 800, textTransform: 'uppercase', color: 'primary.main', mb: 1 }}>
+          Planificación Avanzada y Automatización (Opcional)
+        </Typography>
+
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField
+            fullWidth
+            id="expression_cron"
+            label="Expresión Cron"
+            placeholder="ej. 0 4 * * 1-5"
+            {...register('expression_cron')}
+            error={!!errors.expression_cron}
+            helperText={errors.expression_cron?.message || "Patrón cron estándar (minuto hora día-mes mes día-semana)"}
+          />
+          <TextField
+            fullWidth
+            id="hora_ejecuccion"
+            label="Hora de Ejecución"
+            placeholder="ej. 04:00:00"
+            {...register('hora_ejecuccion')}
+            error={!!errors.hora_ejecuccion}
+            helperText={errors.hora_ejecuccion?.message || "Formato de hora de 24h (HH:MM:SS)"}
+          />
+        </Stack>
+
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField
+            fullWidth
+            id="dias_semana"
+            label="Días de la Semana"
+            placeholder="ej. 1,2,3,4,5 o L,M,M,J,V"
+            {...register('dias_semana')}
+            error={!!errors.dias_semana}
+            helperText={errors.dias_semana?.message || "Lista de días separados por comas"}
+          />
+          <TextField
+            fullWidth
+            id="script_path"
+            label="Ruta del Script de Respaldo"
+            placeholder="ej. /var/scripts/backup_mysql.sh"
+            {...register('script_path')}
+            error={!!errors.script_path}
+            helperText={errors.script_path?.message || "Ubicación del ejecutable o script en el host"}
+          />
+        </Stack>
+
+        <Divider sx={{ my: 1 }} />
 
         {/* Tipo de Respaldo */}
         <TextField

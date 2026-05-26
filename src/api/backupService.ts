@@ -5,6 +5,7 @@ import {
     BackupPathSchema, type BackupPath, 
     type BackupPathCreateInput,
     BackupHistorySchema, type BackupHistory,
+    type BackupHistoryCreateInput,
     PolicyAssetResponseSchema, type PolicyAssetResponse
 } from './types';
 import { z } from 'zod';
@@ -60,4 +61,9 @@ export const deleteBackupPath = async (id: number): Promise<void> => {
 export const getBackupHistory = async (): Promise<BackupHistory[]> => {
     const { data } = await api.get('/crud/respaldos/historial');
     return z.array(BackupHistorySchema).parse(data);
+};
+
+export const createBackup = async (backupData: BackupHistoryCreateInput): Promise<BackupHistory> => {
+    const { data } = await api.post('/crud/respaldos/', backupData);
+    return BackupHistorySchema.parse(data);
 };

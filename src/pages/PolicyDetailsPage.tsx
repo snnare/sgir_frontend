@@ -141,6 +141,50 @@ export const PolicyDetailsPage = () => {
                 </Stack>
               </Box>
 
+              {policy.expression_cron && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                    Expresión Cron
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace', mt: 0.5, bgcolor: 'action.hover', p: 1, borderRadius: 1 }}>
+                    {policy.expression_cron}
+                  </Typography>
+                </Box>
+              )}
+
+              {policy.hora_ejecuccion && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                    Hora de Ejecución
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                    {policy.hora_ejecuccion}
+                  </Typography>
+                </Box>
+              )}
+
+              {policy.dias_semana && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                    Días de Ejecución
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                    {policy.dias_semana}
+                  </Typography>
+                </Box>
+              )}
+
+              {policy.script_path && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                    Script de Respaldo
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace', mt: 0.5, bgcolor: 'action.hover', p: 1, borderRadius: 1, wordBreak: 'break-all' }}>
+                    {policy.script_path}
+                  </Typography>
+                </Box>
+              )}
+
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
                   Estado Actual

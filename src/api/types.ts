@@ -207,8 +207,12 @@ export const BackupPolicySchema = z.object({
     id_politica: z.number(),
     nombre_politica: z.string(),
     descripcion: z.string().nullable().optional(),
+    expression_cron: z.string().nullable().optional(),
+    hora_ejecuccion: z.string().nullable().optional(),
+    dias_semana: z.string().nullable().optional(),
     frecuencia_horas: z.number(),
     retencion_dias: z.number(),
+    script_path: z.string().nullable().optional(),
     id_tipo_respaldo: z.number(),
     id_estado_politica: z.number(),
 });
@@ -217,8 +221,12 @@ export type BackupPolicy = z.infer<typeof BackupPolicySchema>;
 export const BackupPolicyCreateSchema = z.object({
     nombre_politica: z.string().min(1, 'El nombre es requerido'),
     descripcion: z.string().optional(),
+    expression_cron: z.string().optional(),
+    hora_ejecuccion: z.string().optional(),
+    dias_semana: z.string().optional(),
     frecuencia_horas: z.coerce.number().int().positive('Debe ser mayor a 0'),
     retencion_dias: z.coerce.number().int().positive('Debe ser mayor a 0'),
+    script_path: z.string().optional(),
     id_tipo_respaldo: z.number().int().positive(),
     id_estado_politica: z.number().int().positive().default(1),
 });
@@ -265,15 +273,40 @@ export const BackupHistorySchema = z.object({
     id_respaldo: z.number(),
     id_base_datos: z.number(),
     id_politica: z.number(),
-    id_credencial: z.number(),
-    id_ruta_respaldo: z.number(),
-    fecha_inicio: z.string(),
-    fecha_fin: z.string().nullable().optional(),
-    tamano_mb: z.number().nullable().optional(),
     id_estado_ejecucion: z.number(),
-    hash_integridad: z.string().optional(),
+    nombre_archivo: z.string().nullable().optional(),
+    path_fisico_origen: z.string().nullable().optional(),
+    ip_almacenado_actual: z.string().nullable().optional(),
+    path_fisico_actual: z.string().nullable().optional(),
+    ubicacion_actual: z.string().nullable().optional(),
+    hash_integridad: z.string().nullable().optional(),
+    tamano_mb: z.number().nullable().optional(),
+    fecha_inicio: z.string().nullable().optional(),
+    fecha_fin: z.string().nullable().optional(),
+    fecha_descubrimiento: z.string().nullable().optional(),
+    id_credencial: z.number().nullable().optional(),
+    metadata_tecnica: z.any().nullable().optional(),
 });
 export type BackupHistory = z.infer<typeof BackupHistorySchema>;
+
+export const BackupHistoryCreateSchema = z.object({
+    id_base_datos: z.number().int().positive(),
+    id_politica: z.number().int().positive(),
+    id_estado_ejecucion: z.number().int().positive(),
+    nombre_archivo: z.string().nullable().optional(),
+    path_fisico_origen: z.string().nullable().optional(),
+    ip_almacenado_actual: z.string().nullable().optional(),
+    path_fisico_actual: z.string().nullable().optional(),
+    ubicacion_actual: z.string().nullable().optional().default("Origen"),
+    hash_integridad: z.string().nullable().optional(),
+    tamano_mb: z.number().nullable().optional(),
+    fecha_inicio: z.string().nullable().optional(),
+    fecha_fin: z.string().nullable().optional(),
+    fecha_descubrimiento: z.string().nullable().optional(),
+    id_credencial: z.number().int().positive().nullable().optional(),
+    metadata_tecnica: z.any().nullable().optional(),
+});
+export type BackupHistoryCreateInput = z.infer<typeof BackupHistoryCreateSchema>;
 
 // --- Monitoreo ---
 export const SchedulerStatusSchema = z.object({
