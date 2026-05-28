@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Container, Box, Typography, Stack, Paper, 
   Button, Stepper, Step, StepLabel, Alert, 
   AlertTitle, Card, CardActionArea, CardContent, Chip,
-  Tooltip
+  Tooltip, CircularProgress, Divider
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import TerminalIcon from '@mui/icons-material/Terminal';
@@ -14,65 +14,167 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HomeIcon from '@mui/icons-material/Home';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import IconButton from '@mui/material/IconButton';
+import ShieldIcon from '@mui/icons-material/Shield';
 import { ServerForm } from '../components/ServerForm';
 import { CredentialForm } from '../components/CredentialForm';
 import { createMonitoringSession } from '../api/monitoringService';
+import { createServer, createInstance, createCredential, getDbms } from '../api/infrastructureService';
+import { useNotificationStore } from '../components/GlobalNotification';
+import { type ServerCreateInput, type CredentialCreateInput, type Dbms } from '../api/types';
 
 type MonitoringScope = 'basic' | 'database' | 'both';
 
 export const AddServerPage = () => {
   const navigate = useNavigate();
+  const { showNotification } = useNotificationStore();
   const [activeStep, setActiveStep] = useState(0);
-  const [serverId, setServerId] = useState<number | null>(null);
-  const [serverIp, setServerIp] = useState<string>(''); // Nuevo estado para la IP
   const [scope, setScope] = useState<MonitoringScope | null>(null);
-  const [registeredTypes, setRegisteredTypes] = useState<number[]>([]);
 
-  const steps = ['Alcance', 'Datos Técnicos', 'Credenciales', 'Finalizado'];
+  // In-memory data collected during the wizard steps
+  const [serverData, setServerData] = useState<ServerCreateInput | null>(null);
+  const [dbInstanceData, setDbInstanceData] = useState<any | null>(null);
+  const [sshCredential, setSshCredential] = useState<CredentialCreateInput | null>(null);
+  const [dbCredential, setDbCredential] = useState<CredentialCreateInput | null>(null);
+
+  // Connection status/extra data for UI display
+  const [dbmsList, setDbmsList] = useState<Dbms[]>([]);
+  const [credSubStep, setCredSubStep] = useState<'ssh' | 'db'>('ssh');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [createdServerId, setCreatedServerId] = useState<number | null>(null);
+
+  const steps = ['Alcance', 'Datos Técnicos', 'Credenciales', 'Resumen', 'Finalizado'];
+
+  // Load DBMS list once to display name in Summary
+  useEffect(() => {
+    getDbms()
+      .then((data) => setDbmsList(data))
+      .catch((err) => console.error("Error loading DBMS list:", err));
+  }, []);
 
   const handleScopeSelect = (selectedScope: MonitoringScope) => {
     setScope(selectedScope);
     setActiveStep(1);
   };
 
-  const handleServerSuccess = async (newServerId: number, ip: string) => {
-    setServerId(newServerId);
-    setServerIp(ip); // Guardamos la IP cuando el servidor se crea con éxito
+  // Called when Step 1 (ServerForm) submits successfully in wizard mode
+  const handleServerFormSubmit = (serverFields: ServerCreateInput, dbInstanceFields: any) => {
+    setServerData(serverFields);
+    setDbInstanceData(dbInstanceFields);
     
-    // Si se registró el servidor, creamos la sesión de monitoreo automáticamente
-    try {
-      await createMonitoringSession({
-        id_servidor: newServerId,
-        id_estado_monitoreo: 1 // Activo por defecto
-      });
-    } catch (error) {
-      console.error('Error creating monitoring session:', error);
+    // Choose initial sub-step for credentials
+    if (scope === 'both' || scope === 'basic') {
+      setCredSubStep('ssh');
+    } else {
+      setCredSubStep('db');
     }
-    
     setActiveStep(2);
   };
 
-  const handleCredentialSuccess = (typeId: number) => {
-    setRegisteredTypes(prev => [...prev, typeId]);
-    
-    // Si el alcance es simple, o si ya registramos ambos en scope 'both', podemos terminar
-    const needsBoth = scope === 'both';
-    const hasSsh = [...registeredTypes, typeId].includes(1);
-    const hasDb = [...registeredTypes, typeId].includes(2);
-
-    if (!needsBoth) {
-        setActiveStep(3);
-    } else if (hasSsh && hasDb) {
-        setActiveStep(3);
+  // Called when Step 2 SSH form submits successfully
+  const handleSshCredentialSubmit = (credentialFields: CredentialCreateInput) => {
+    setSshCredential(credentialFields);
+    if (scope === 'both') {
+      setCredSubStep('db');
+    } else {
+      setActiveStep(3);
     }
-    // Si falta alguno, nos quedamos en el paso 2 para que registre el otro
   };
 
-  const isStepComplete = () => {
-    if (scope === 'basic') return registeredTypes.includes(1);
-    if (scope === 'database') return registeredTypes.includes(2);
-    if (scope === 'both') return registeredTypes.includes(1) && registeredTypes.includes(2);
-    return false;
+  // Called when Step 2 DB form submits successfully
+  const handleDbCredentialSubmit = (credentialFields: CredentialCreateInput, extraData?: any) => {
+    setDbCredential(credentialFields);
+    if (extraData?.oracle_sid !== undefined) {
+      setDbInstanceData((prev: any) => prev ? {
+        ...prev,
+        sid: extraData.oracle_sid
+      } : null);
+    }
+    setActiveStep(3);
+  };
+
+  // Back navigation handler
+  const handleBack = () => {
+    if (activeStep === 0) {
+      navigate('/');
+    } else if (activeStep === 1) {
+      setActiveStep(0);
+    } else if (activeStep === 2) {
+      if (scope === 'both' && credSubStep === 'db') {
+        setCredSubStep('ssh');
+      } else {
+        setActiveStep(1);
+      }
+    } else if (activeStep === 3) {
+      if (scope === 'both') {
+        setCredSubStep('db');
+      }
+      setActiveStep(2);
+    }
+  };
+
+  // Transactional creation logic
+  const handleRegisterEverything = async () => {
+    if (!serverData) {
+      showNotification('Faltan datos del servidor para completar el registro', 'error');
+      return;
+    }
+
+    setIsRegistering(true);
+    try {
+      // Step A: Create the server node
+      const newServer = await createServer(serverData);
+      const serverId = newServer.id_servidor;
+
+      // Step B: Create DBMS Instance if database monitoring is selected
+      if (scope !== 'basic' && dbInstanceData) {
+        await createInstance({
+          ...dbInstanceData,
+          id_servidor: serverId
+        });
+      }
+
+      // Step C: Create active monitoring session
+      await createMonitoringSession({
+        id_servidor: serverId,
+        id_estado_monitoreo: 1 // Active
+      });
+
+      // Step D: Create SSH credentials (if configured)
+      if ((scope === 'both' || scope === 'basic') && sshCredential) {
+        await createCredential({
+          ...sshCredential,
+          id_servidor: serverId
+        });
+      }
+
+      // Step E: Create DB credentials (if configured)
+      if ((scope === 'both' || scope === 'database') && dbCredential) {
+        await createCredential({
+          ...dbCredential,
+          id_servidor: serverId
+        });
+      }
+
+      setCreatedServerId(serverId);
+      showNotification('¡Servidor y componentes registrados con éxito!', 'success');
+      setActiveStep(4); // Advance to completion screen
+    } catch (error: any) {
+      console.error('Error in transactional registration:', error);
+      const backendError = error.response?.data?.detail;
+      const errorMessage = Array.isArray(backendError)
+        ? backendError.map((d: any) => `${d.loc?.[d.loc.length - 1] || 'Campo'}: ${d.msg}`).join(', ')
+        : (typeof backendError === 'string' ? backendError : 'Error al registrar los activos en el servidor.');
+      showNotification(`Error de Registro: ${errorMessage}`, 'error');
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  // Helper to resolve DBMS engine name
+  const getDbmsName = (id_dbms?: number) => {
+    if (!id_dbms) return '';
+    const match = dbmsList.find(d => d.id_dbms === id_dbms);
+    return match ? `${match.nombre_dbms} ${match.version || ''}` : `ID ${id_dbms}`;
   };
 
   return (
@@ -92,10 +194,11 @@ export const AddServerPage = () => {
           </IconButton>
         </Tooltip>
 
-        {activeStep > 0 && activeStep < 3 && (
+        {activeStep > 0 && activeStep < 4 && (
           <Tooltip title="Paso anterior">
             <IconButton 
-              onClick={() => setActiveStep(prev => prev - 1)}
+              onClick={handleBack}
+              disabled={isRegistering}
               sx={{ 
                 bgcolor: 'action.hover', 
                 borderRadius: 2,
@@ -112,7 +215,7 @@ export const AddServerPage = () => {
             Alta de Nuevo Servidor
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Asistente de configuración para registro y monitoreo de activos.
+            Asistente de configuración transaccional para registro y monitoreo de activos.
           </Typography>
         </Box>
       </Box>
@@ -148,7 +251,7 @@ export const AddServerPage = () => {
               <ScopeCard 
                 icon={<StorageIcon sx={{ fontSize: 40 }} />}
                 title="Solo Base de Datos"
-                description="Estado del motor, sesiones y rendimiento de BD."
+                description="Estado del motor, conexiones y rendimiento de BD."
                 onClick={() => handleScopeSelect('database')}
               />
               <ScopeCard 
@@ -170,7 +273,10 @@ export const AddServerPage = () => {
                 Información del Activo
               </Typography>
               <ServerForm 
-                onSuccess={handleServerSuccess} 
+                isWizardMode={true}
+                initialData={serverData}
+                initialDbInstance={dbInstanceData}
+                onSubmitData={handleServerFormSubmit} 
                 monitoreoHost={scope === 'basic' || scope === 'both'}
                 monitoreoDb={scope === 'database' || scope === 'both'}
               />
@@ -181,85 +287,292 @@ export const AddServerPage = () => {
         {/* PASO 2: SEGURIDAD Y CREDENCIALES */}
         {activeStep === 2 && (
           <Box>
-            {scope === 'database' || scope === 'both' ? (
-              <Alert severity="info" icon={<InfoOutlinedIcon />} sx={{ mb: 4, borderRadius: 2, border: '1px solid', borderColor: 'info.light' }}>
-                <AlertTitle sx={{ fontWeight: 700 }}>Configuración de Seguridad</AlertTitle>
-                {scope === 'both' ? (
-                    'Este servidor requiere credenciales SSH (Hardware) y Credenciales de BD (Motor).'
-                ) : (
-                    'Asegúrate de haber creado un usuario de monitoreo (ej. sgir_monitor) con permisos de lectura.'
-                )}
-              </Alert>
-            ) : (
-              <Alert severity="info" icon={<TerminalIcon />} sx={{ mb: 4, borderRadius: 2 }}>
-                <AlertTitle sx={{ fontWeight: 700 }}>Conexión SSH</AlertTitle>
-                El sistema requiere un usuario con permisos de lectura sobre <code>/proc</code>.
-              </Alert>
-            )}
+            <Alert severity="info" icon={<ShieldIcon />} sx={{ mb: 4, borderRadius: 2, border: '1px solid', borderColor: 'info.light' }}>
+              <AlertTitle sx={{ fontWeight: 700 }}>Paso de Seguridad en Memoria</AlertTitle>
+              Las credenciales ingresadas se validarán e integrarán en el resumen para su posterior creación conjunta.
+            </Alert>
 
-            {registeredTypes.length > 0 && (
-                <Stack spacing={1} sx={{ mb: 3 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, px: 1 }}>
-                        Credenciales Registradas:
-                    </Typography>
-                    <Stack direction="row" spacing={1}>
-                        {registeredTypes.includes(1) && (
-                            <Chip icon={<TerminalIcon />} label="SSH Registrada" color="success" variant="outlined" />
-                        )}
-                        {registeredTypes.includes(2) && (
-                            <Chip icon={<StorageIcon />} label="DB Registrada" color="success" variant="outlined" />
-                        )}
-                    </Stack>
-                </Stack>
+            {scope === 'both' && (
+              <Stack direction="row" spacing={1} sx={{ mb: 3, justifyContent: 'center' }}>
+                <Chip 
+                  icon={<TerminalIcon />} 
+                  label="1. Credenciales SSH" 
+                  color={credSubStep === 'ssh' ? 'primary' : 'default'} 
+                  variant={credSubStep === 'ssh' ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700 }}
+                />
+                <Chip 
+                  icon={<StorageIcon />} 
+                  label="2. Credenciales DBMS" 
+                  color={credSubStep === 'db' ? 'primary' : 'default'} 
+                  variant={credSubStep === 'db' ? 'filled' : 'outlined'}
+                  sx={{ fontWeight: 700 }}
+                />
+              </Stack>
             )}
 
             <Paper sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
-                  {scope === 'both' && !registeredTypes.includes(1) ? 'Paso A: Credenciales SSH' : 
-                   scope === 'both' && !registeredTypes.includes(2) ? 'Paso B: Credenciales de BD' : 
-                   'Registro de Credenciales'}
+                  {credSubStep === 'ssh' ? 'Credenciales de Conexión SSH' : 'Credenciales del Motor de Base de Datos'}
                </Typography>
-               {serverId && (
+               {credSubStep === 'ssh' ? (
                  <CredentialForm 
-                    key={registeredTypes.length} // Forzar re-render del formulario al registrar una
-                    serverId={serverId} 
-                    serverIp={serverIp}
-                    onSuccess={handleCredentialSuccess} 
+                    key="ssh-form"
+                    isWizardMode={true}
+                    serverId={9999}
+                    serverIp={serverData?.direccion_ip}
+                    initialData={sshCredential}
+                    tipoAccesoFijo={1} // SSH
+                    onSubmitData={handleSshCredentialSubmit} 
+                    onBack={handleBack}
+                    isServerLegacy={serverData?.es_legacy}
                  />
+               ) : (
+                  <CredentialForm 
+                     key="db-form"
+                     isWizardMode={true}
+                     serverId={9999}
+                     serverIp={serverData?.direccion_ip}
+                     initialData={dbCredential}
+                     tipoAccesoFijo={2} // DB Native
+                     onSubmitData={handleDbCredentialSubmit} 
+                     onBack={handleBack}
+                     isServerLegacy={serverData?.es_legacy}
+                     oracleSid={dbInstanceData?.sid}
+                  />
                )}
             </Paper>
-
-            <Stack direction="row" spacing={2} sx={{ mt: 4 }}>
-              <Box sx={{ flexGrow: 1 }} />
-              {isStepComplete() ? (
-                  <Button onClick={() => setActiveStep(3)} variant="contained" color="primary" sx={{ px: 4, py: 1, fontWeight: 700 }}>
-                      Finalizar Configuración
-                  </Button>
-              ) : (
-                <Button onClick={() => navigate('/')} color="inherit">
-                    Saltar este paso
-                </Button>
-              )}
-            </Stack>
           </Box>
         )}
 
-        {/* PASO 3: FINALIZAR */}
+        {/* PASO 3: RESUMEN Y CONFIRMACIÓN */}
         {activeStep === 3 && (
+          <Stack spacing={4}>
+            <Alert severity="success" icon={<InfoOutlinedIcon />} sx={{ borderRadius: 2 }}>
+              <AlertTitle sx={{ fontWeight: 700 }}>Resumen de Alta de Activo</AlertTitle>
+              Revise que todos los datos y credenciales sean correctos. Al presionar <strong>Confirmar y Registrar</strong>, se creará el servidor, su instancia de monitoreo y credenciales correspondientes.
+            </Alert>
+
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: { xs: 3, sm: 5 }, 
+                borderRadius: 4, 
+                border: '1px solid', 
+                borderColor: 'divider',
+                bgcolor: 'rgba(255, 255, 255, 0.4)',
+                backdropFilter: 'blur(16px)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.03)'
+              }}
+            >
+              <Typography variant="h5" sx={{ fontWeight: 800, mb: 4, letterSpacing: '-0.03em' }}>
+                Detalles del Servidor a Crear
+              </Typography>
+
+              <Stack spacing={4}>
+                {/* 1. Módulos y Alcance */}
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 800, mb: 1.5, letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                    Alcance del Monitoreo
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Chip 
+                      icon={<TerminalIcon />} 
+                      label="Métricas de Hardware" 
+                      color={scope === 'basic' || scope === 'both' ? 'success' : 'default'} 
+                      variant="outlined" 
+                      sx={{ fontWeight: 700 }}
+                    />
+                    <Chip 
+                      icon={<StorageIcon />} 
+                      label="Observabilidad de RDBMS" 
+                      color={scope === 'database' || scope === 'both' ? 'success' : 'default'} 
+                      variant="outlined" 
+                      sx={{ fontWeight: 700 }}
+                    />
+                  </Stack>
+                </Box>
+
+                <Divider sx={{ opacity: 0.6 }} />
+
+                {/* 2. Servidor */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                      Dirección IP
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 800, fontFamily: '"JetBrains Mono", monospace' }}>
+                      {serverData?.direccion_ip}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                      Nombre del Servidor
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      {serverData?.nombre_servidor}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                      Criticidad
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      {serverData?.id_nivel_criticidad === 1 ? 'Baja' : serverData?.id_nivel_criticidad === 2 ? 'Media' : serverData?.id_nivel_criticidad === 3 ? 'Alta' : 'Crítica'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                      Compatibilidad
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                      {serverData?.es_legacy ? 'Servidor Legacy (Protocolos antiguos)' : 'Servidor Estándar'}
+                    </Typography>
+                  </Box>
+                  {serverData?.descripcion && (
+                    <Box sx={{ gridColumn: { sm: 'span 2' } }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                        Descripción
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {serverData.descripcion}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+
+                {/* 3. DBMS Instancia */}
+                {scope !== 'basic' && dbInstanceData && (
+                  <>
+                    <Divider sx={{ opacity: 0.6 }} />
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 800, mb: 2, letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                        Instancia de Base de Datos
+                      </Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                            Motor DBMS
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 800 }}>
+                            {getDbmsName(dbInstanceData.id_dbms)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                            Nombre Instancia
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                            {dbInstanceData.nombre_instancia}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                            Puerto
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                            {dbInstanceData.puerto}
+                          </Typography>
+                        </Box>
+                        {dbInstanceData.sid && (
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                              Oracle SID
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                              {dbInstanceData.sid}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+                  </>
+                )}
+
+                <Divider sx={{ opacity: 0.6 }} />
+
+                {/* 4. Credenciales Configuradas */}
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 800, mb: 2, letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: '0.75rem' }}>
+                    Credenciales Configuradas
+                  </Typography>
+                  <Stack spacing={1.5}>
+                    {(scope === 'basic' || scope === 'both') && (
+                      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', bgcolor: 'action.hover', p: 1.5, borderRadius: 2 }}>
+                        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                          <TerminalIcon color="primary" fontSize="small" />
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 800 }}>SSH Credential</Typography>
+                            <Typography variant="caption" color="text.secondary">Usuario: {sshCredential?.usuario}</Typography>
+                          </Box>
+                        </Stack>
+                        <Chip size="small" color="success" label="Configurada" variant="outlined" sx={{ fontWeight: 700 }} />
+                      </Stack>
+                    )}
+                    {(scope === 'database' || scope === 'both') && (
+                      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', bgcolor: 'action.hover', p: 1.5, borderRadius: 2 }}>
+                        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                          <StorageIcon color="primary" fontSize="small" />
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 800 }}>Database Native Credential</Typography>
+                            <Typography variant="caption" color="text.secondary">Usuario: {dbCredential?.usuario}</Typography>
+                          </Box>
+                        </Stack>
+                        <Chip size="small" color="success" label="Configurada" variant="outlined" sx={{ fontWeight: 700 }} />
+                      </Stack>
+                    )}
+                  </Stack>
+                </Box>
+              </Stack>
+            </Paper>
+
+            {/* Fila de Botones del Resumen */}
+            <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end', mt: 4 }}>
+              <Button
+                variant="outlined"
+                onClick={handleBack}
+                disabled={isRegistering}
+                sx={{ px: 4, py: 1.5, borderRadius: 2, fontWeight: 700 }}
+              >
+                Atrás
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleRegisterEverything}
+                disabled={isRegistering}
+                startIcon={isRegistering ? <CircularProgress size={20} color="inherit" /> : undefined}
+                sx={{ 
+                  px: 6, 
+                  py: 1.5, 
+                  borderRadius: 2, 
+                  fontWeight: 750,
+                  bgcolor: 'text.primary',
+                  color: 'background.paper',
+                  textTransform: 'none'
+                }}
+              >
+                {isRegistering ? 'Registrando...' : 'Registrar'}
+              </Button>
+            </Stack>
+          </Stack>
+        )}
+
+        {/* PASO 4: FINALIZAR */}
+        {activeStep === 4 && (
           <Paper sx={{ textAlign: 'center', p: 6, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
             <CheckCircleIcon sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
             <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>
               ¡Configuración Completada!
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-              El servidor ha sido registrado y cuenta con credenciales para iniciar el monitoreo.
+              El servidor ha sido registrado exitosamente junto con todas sus instancias y credenciales asociadas de forma transaccional.
               <br/><br/>
-              Por defecto, el sistema ya está monitoreando la partición raíz (/).
+              Por defecto, el sistema ya ha iniciado las tareas de monitoreo básico y de bases de datos.
             </Typography>
             <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
               <Button 
                 variant="outlined" 
-                onClick={() => navigate(`/server/edit/${serverId}?tab=storage`)}
+                onClick={() => navigate(`/server/edit/${createdServerId}?tab=storage`)}
                 sx={{ borderRadius: 2, px: 4, py: 1.5, fontWeight: 700 }}
               >
                 Configurar Discos Adicionales

@@ -42,21 +42,12 @@ const TEST_POLICIES: BackupPolicy[] = [
   },
   {
     id_politica: 102,
-    nombre_politica: "Semanal Archivo",
-    descripcion: "Respaldo semanal para historial largo",
+    nombre_politica: "Semanal Archivo (Inexistente)",
+    descripcion: "Política de prueba para simular error de no-encontrado en detalles",
     frecuencia_horas: 168,
     retencion_dias: 365,
     id_tipo_respaldo: 4,
     id_estado_politica: 1
-  },
-  {
-    id_politica: 103,
-    nombre_politica: "Incremental Horario",
-    descripcion: "Captura de cambios cada hora",
-    frecuencia_horas: 1,
-    retencion_dias: 7,
-    id_tipo_respaldo: 2,
-    id_estado_politica: 2
   }
 ];
 

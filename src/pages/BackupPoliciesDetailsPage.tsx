@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { 
   Box, Typography, Stack, Paper, CircularProgress, 
   Button, Grid, Chip, Table, TableBody, 
-  TableCell, TableHead, TableRow 
+  TableCell, TableHead, TableRow, IconButton, Tooltip
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import HomeIcon from '@mui/icons-material/Home';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import EditIcon from '@mui/icons-material/Edit';
 import StorageIcon from '@mui/icons-material/Storage';
 import DnsIcon from '@mui/icons-material/Dns';
@@ -14,6 +15,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import BackupTableIcon from '@mui/icons-material/BackupTable';
 import { getBackupPolicies, getPolicyAssets } from '../api/backupService';
 import { type BackupPolicy, type PolicyAssetResponse } from '../api/types';
+import { useAlertStore } from '../store/useAlertStore';
 
 const BACKUP_TYPES_MAP: Record<number, string> = {
   1: 'Completo',
@@ -22,9 +24,39 @@ const BACKUP_TYPES_MAP: Record<number, string> = {
   4: 'Full',
 };
 
-export const PolicyDetailsPage = () => {
+const MOCK_POLICY: BackupPolicy = {
+  id_politica: 101,
+  nombre_politica: "Diario Crítico",
+  descripcion: "Respaldo cada 24 horas con retención de 30 días",
+  frecuencia_horas: 24,
+  retencion_dias: 30,
+  id_tipo_respaldo: 1,
+  id_estado_politica: 1
+};
+
+const MOCK_ASSETS: PolicyAssetResponse = {
+  id_politica: 101,
+  nombre_politica: "Diario Crítico",
+  servidores_vinculados: [
+    {
+      ip: "192.168.12.20",
+      motor: "Oracle Enterprise Legacy 10g",
+      databases: [
+        {
+          id_base_datos: 1,
+          nombre_base: "ERP_PROD",
+          tamano_mb: 20480.0,
+          estado: "ACTIVO"
+        }
+      ]
+    }
+  ]
+};
+
+export const BackupPoliciesDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showAlert } = useAlertStore();
   const [policy, setPolicy] = useState<BackupPolicy | null>(null);
   const [assets, setAssets] = useState<PolicyAssetResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,8 +64,8 @@ export const PolicyDetailsPage = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      const policyId = Number(id);
       try {
-        const policyId = Number(id);
         const allPolicies = await getBackupPolicies();
         const foundPolicy = allPolicies.find(p => p.id_politica === policyId);
         
@@ -41,15 +73,36 @@ export const PolicyDetailsPage = () => {
           setPolicy(foundPolicy);
           const assetData = await getPolicyAssets(policyId);
           setAssets(assetData);
+        } else if (policyId === 101) {
+          setPolicy(MOCK_POLICY);
+          setAssets(MOCK_ASSETS);
+        } else {
+          showAlert({
+            title: 'Política No Encontrada',
+            description: 'La política de respaldo solicitada no existe o no se encuentra registrada en el sistema.',
+            severity: 'warning'
+          });
+          navigate('/backups/politicas');
         }
       } catch (error) {
         console.error('Error loading policy details:', error);
+        if (policyId === 101) {
+          setPolicy(MOCK_POLICY);
+          setAssets(MOCK_ASSETS);
+        } else {
+          showAlert({
+            title: 'Error al Cargar',
+            description: 'Hubo un error de conexión al cargar la política de respaldo seleccionada, o esta no existe.',
+            severity: 'error'
+          });
+          navigate('/backups/politicas');
+        }
       } finally {
         setLoading(false);
       }
     };
     loadData();
-  }, [id]);
+  }, [id, navigate, showAlert]);
 
   if (loading) {
     return (
@@ -60,14 +113,7 @@ export const PolicyDetailsPage = () => {
   }
 
   if (!policy) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h5">Política no encontrada</Typography>
-        <Button onClick={() => navigate('/backups/politicas')} sx={{ mt: 2 }}>
-          Volver al listado
-        </Button>
-      </Box>
-    );
+    return null;
   }
 
   return (
@@ -75,13 +121,34 @@ export const PolicyDetailsPage = () => {
       {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Box>
-          <Button 
-            startIcon={<ArrowBackIcon />} 
-            onClick={() => navigate('/backups/politicas')}
-            sx={{ mb: 1, color: 'text.secondary', textTransform: 'none' }}
-          >
-            Volver a Políticas
-          </Button>
+          <Stack direction="row" spacing={1.5} sx={{ mb: 2, alignItems: 'center' }}>
+            <Tooltip title="Ir al Panel de Control">
+              <IconButton 
+                onClick={() => navigate('/')}
+                sx={{ 
+                  bgcolor: 'action.hover', 
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: 'action.selected' }
+                }}
+              >
+                <HomeIcon fontSize="small" color="action" />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Volver a Políticas">
+              <IconButton 
+                onClick={() => navigate('/backups/politicas')}
+                sx={{ 
+                  bgcolor: 'action.hover', 
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: 'action.selected' }
+                }}
+              >
+                <ArrowBackIosNewIcon sx={{ fontSize: 16 }} color="action" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+          
           <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
             {policy.nombre_politica}
           </Typography>
@@ -93,9 +160,9 @@ export const PolicyDetailsPage = () => {
           variant="contained" 
           startIcon={<EditIcon />}
           onClick={() => navigate(`/edit-policy/${policy.id_politica}`)}
-          sx={{ borderRadius: 2, fontWeight: 700 }}
+          sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
         >
-          Editar Configuración
+          Editar
         </Button>
       </Box>
 

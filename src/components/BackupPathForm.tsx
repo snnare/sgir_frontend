@@ -185,7 +185,7 @@ export const BackupPathForm = ({ initialData, isEdit = false }: BackupPathFormPr
             '&:hover': { bgcolor: 'grey.800' }
           }}
         >
-          Guardar Ruta de Respaldo
+          Guardar
         </Button>
       </Stack>
     </Box>

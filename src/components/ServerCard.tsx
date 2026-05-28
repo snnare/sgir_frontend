@@ -171,7 +171,7 @@ export const ServerCard = ({
         {!selectionModeActive && (
           <Stack direction="row" className="server-actions" sx={{ opacity: 0.4, transition: 'opacity 0.2s' }}>
             {onEdit && (
-              <IconButton size="small" onClick={() => onEdit(server.id_servidor)} sx={{ p: 0.5 }}>
+              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onEdit(server.id_servidor); }} sx={{ p: 0.5 }}>
                 <EditIcon sx={{ fontSize: 16 }} />
               </IconButton>
             )}
@@ -179,7 +179,7 @@ export const ServerCard = ({
               <IconButton 
                 size="small" 
                 color="error" 
-                onClick={() => onDelete(server.id_servidor, server.nombre_servidor)}
+                onClick={(e) => { e.stopPropagation(); onDelete(server.id_servidor, server.nombre_servidor); }}
                 sx={{ p: 0.5 }}
               >
                 <DeleteOutlinedIcon sx={{ fontSize: 16 }} />

@@ -251,6 +251,15 @@ export const BackupPathCreateSchema = z.object({
 });
 export type BackupPathCreateInput = z.infer<typeof BackupPathCreateSchema>;
 
+export const BackupPathDetailsSchema = z.object({
+    id_ruta: z.number().optional(),
+    ip: z.string(),
+    path: z.string(),
+    descripcion: z.string(),
+    estado: z.string(),
+});
+export type BackupPathDetails = z.infer<typeof BackupPathDetailsSchema>;
+
 export const BackupFileSchema = z.object({
     nombre: z.string(),
     tamano_mb: z.coerce.number(),

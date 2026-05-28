@@ -24,7 +24,7 @@ import { AddDbmsPage } from './pages/AddDbmsPage'
 import { AddBackupPolicyPage } from './pages/AddBackupPolicyPage';
 import { BackupPoliciesPage } from './pages/BackupPoliciesPage';
 import { EditBackupPolicyPage } from './pages/EditBackupPolicyPage';
-import { PolicyDetailsPage } from './pages/PolicyDetailsPage';
+import { BackupPoliciesDetailsPage } from './pages/BackupPoliciesDetailsPage';
 import { AddBackupPathPage } from './pages/AddBackupPathPage';
 import { EditBackupPathPage } from './pages/EditBackupPathPage';
 import { BackupPathsPage } from './pages/BackupPathsPage';
@@ -66,6 +66,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 import { GlobalNotification } from './components/GlobalNotification';
 import { ConfirmDialog } from './components/ConfirmDialog';
+import { AlertDialog } from './components/AlertDialog';
 
 function App() {
   const mode = useThemeStore((state) => state.mode);
@@ -96,6 +97,7 @@ function App() {
       <CssBaseline />
       <GlobalNotification />
       <ConfirmDialog />
+      <AlertDialog />
       <BrowserRouter>
         <Routes>
           {/* Rutas Públicas */}
@@ -117,7 +119,7 @@ function App() {
             <Route path="add-instance" element={<AddInstancePage />} />
             <Route path="add-dbms" element={<AddDbmsPage />} />
             <Route path="backups/politicas" element={<BackupPoliciesPage />} />
-            <Route path="backups/politica/:id" element={<PolicyDetailsPage />} />
+            <Route path="backups/politica/:id" element={<BackupPoliciesDetailsPage />} />
             <Route path="add-policy" element={<AddBackupPolicyPage />} />
             <Route path="edit-policy/:id" element={<EditBackupPolicyPage />} />
             <Route path="backups/rutas" element={<BackupPathsPage />} />

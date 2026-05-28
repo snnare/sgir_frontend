@@ -22,7 +22,8 @@ import { MetricCard } from '../components/MetricCard';
 import { FilterBar } from '../components/FilterBar';
 import { FloatingActionGroup } from '../components/FloatingActionGroup';
 
-import { type BackupPath } from '../api/types';
+import { type BackupPathDetails } from '../api/types';
+import { getBackupPathsDetails } from '../api/backupService';
 
 const STORAGE_TYPES_MAP: Record<number, { label: string; icon: React.ReactNode; color: string }> = {
   1: { label: 'Local Disk', icon: <StorageIcon fontSize="inherit" />, color: 'primary' },
@@ -31,28 +32,20 @@ const STORAGE_TYPES_MAP: Record<number, { label: string; icon: React.ReactNode; 
   4: { label: 'Amazon S3', icon: <CloudQueueIcon fontSize="inherit" />, color: 'warning' },
 };
 
-const TEST_PATHS: BackupPath[] = [
+const TEST_PATHS_DETAILS: BackupPathDetails[] = [
   {
-    id_ruta: 201,
-    descripcion_ruta: "Almacenamiento Local Principal",
-    path: "/mnt/backups/local",
-    id_tipo_almacenamiento: 1,
-    id_estado_ruta: 1,
-    id_servidor: 5
+    ip: "192.168.12.10",
+    path: "/data/respaldos",
+    descripcion: "Almacenamiento Local de Backups",
+    estado: "Activo",
+    id_ruta: 201
   },
   {
-    id_ruta: 202,
-    descripcion_ruta: "NAS Producción - Sector A",
-    path: "\\\\10.0.0.50\\sgir_backups",
-    id_tipo_almacenamiento: 2,
-    id_estado_ruta: 1
-  },
-  {
-    id_ruta: 203,
-    descripcion_ruta: "Bucket S3 - Historico",
-    path: "s3://company-backups-archive",
-    id_tipo_almacenamiento: 4,
-    id_estado_ruta: 2
+    ip: "192.168.12.20",
+    path: "/u01/app/oracle/backups",
+    descripcion: "Respaldo Oracle RMAN",
+    estado: "Activo",
+    id_ruta: 202
   }
 ];
 
@@ -65,11 +58,24 @@ export const BackupPathsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [storageFilter, setStorageFilter] = useState<number | 'all'>('all');
+  const [detailsList, setDetailsList] = useState<BackupPathDetails[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
-      await fetchPaths();
-      setLoading(false);
+      try {
+        await fetchPaths();
+        const data = await getBackupPathsDetails();
+        if (data.length > 0) {
+          setDetailsList(data);
+        } else {
+          setDetailsList(TEST_PATHS_DETAILS);
+        }
+      } catch (error) {
+        console.error("Error fetching path details:", error);
+        setDetailsList(TEST_PATHS_DETAILS);
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, [fetchPaths]);
@@ -84,6 +90,8 @@ export const BackupPathsPage = () => {
         try {
           await deletePath(id);
           showNotification('Ruta eliminada correctamente', 'success');
+          const data = await getBackupPathsDetails();
+          setDetailsList(data.length > 0 ? data : TEST_PATHS_DETAILS);
         } catch (error: any) {
           console.error('Error deleting path:', error);
           showNotification(error.response?.data?.detail || 'Error al eliminar la ruta', 'error');
@@ -94,28 +102,33 @@ export const BackupPathsPage = () => {
 
   const handleRefresh = async () => {
     setLoading(true);
-    await fetchPaths();
-    setLoading(false);
-    showNotification('Datos de rutas actualizados', 'info');
+    try {
+      await fetchPaths();
+      const data = await getBackupPathsDetails();
+      setDetailsList(data.length > 0 ? data : TEST_PATHS_DETAILS);
+      showNotification('Datos de rutas actualizados', 'info');
+    } catch (error) {
+      setDetailsList(TEST_PATHS_DETAILS);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Combinar datos reales con datos de prueba
-  const allData = useMemo(() => {
-    return paths.length > 0 ? paths : TEST_PATHS;
-  }, [paths]);
-
   const filteredPaths = useMemo(() => {
-    return allData.filter(p => {
+    return detailsList.filter(p => {
       const matchesSearch = 
-        p.descripcion_ruta.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.path.toLowerCase().includes(searchTerm.toLowerCase());
-      
+        p.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.path.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.ip.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const basePath = paths.find(bp => bp.path === p.path || (p.id_ruta && bp.id_ruta === p.id_ruta));
       const matchesStorage = 
-        storageFilter === 'all' || p.id_tipo_almacenamiento === storageFilter;
+        storageFilter === 'all' || 
+        (basePath && basePath.id_tipo_almacenamiento === storageFilter);
 
       return matchesSearch && matchesStorage;
     });
-  }, [allData, searchTerm, storageFilter]);
+  }, [detailsList, searchTerm, storageFilter, paths]);
 
   if (loading && paths.length === 0) {
     return (
@@ -125,7 +138,7 @@ export const BackupPathsPage = () => {
     );
   }
 
-  const hasNothing = allData.length === 0;
+  const hasNothing = detailsList.length === 0;
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
@@ -232,9 +245,9 @@ export const BackupPathsPage = () => {
           <Table>
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800 }}>Descripción / Alias</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>Servidor (IP)</TableCell>
                 <TableCell sx={{ fontWeight: 800 }}>Ruta Física (Mount Point)</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>Tipo Storage</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>Descripción / Alias</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 800 }}>Acciones</TableCell>
                 <TableCell align="center" sx={{ width: 50 }}>
@@ -247,17 +260,12 @@ export const BackupPathsPage = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredPaths.map((path) => (
-                <TableRow key={path.id_ruta} hover>
+              {filteredPaths.map((path, idx) => (
+                <TableRow key={path.id_ruta || idx} hover>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      {path.descripcion_ruta}
+                    <Typography variant="body2" sx={{ fontWeight: 750, fontFamily: '"JetBrains Mono", monospace', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <DnsIcon fontSize="small" color="primary" /> {path.ip}
                     </Typography>
-                    {path.id_servidor && (
-                      <Typography variant="caption" color="primary" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <DnsIcon sx={{ fontSize: 12 }} /> Servidor Vinc. (ID: {path.id_servidor})
-                      </Typography>
-                    )}
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontFamily: 'monospace', bgcolor: 'action.hover', px: 1, py: 0.5, borderRadius: 1, display: 'inline-block' }}>
@@ -265,42 +273,41 @@ export const BackupPathsPage = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                      <Box sx={{ color: `${STORAGE_TYPES_MAP[path.id_tipo_almacenamiento]?.color || 'default'}.main`, display: 'flex' }}>
-                        {STORAGE_TYPES_MAP[path.id_tipo_almacenamiento]?.icon}
-                      </Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {STORAGE_TYPES_MAP[path.id_tipo_almacenamiento]?.label || 'Desconocido'}
-                      </Typography>
-                    </Stack>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {path.descripcion}
+                    </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Chip 
-                      label={path.id_estado_ruta === 1 ? 'Disponible' : 'Inactivo'}
-                      color={path.id_estado_ruta === 1 ? 'success' : 'default'}
+                      label={path.estado}
+                      color={path.estado.toLowerCase() === 'activo' || path.estado.toLowerCase() === 'disponible' ? 'success' : 'default'}
                       size="small"
                       sx={{ fontWeight: 700, borderRadius: 1 }}
                     />
                   </TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
-                      <Tooltip title="Editar Ruta">
-                        <IconButton 
-                          size="small" 
-                          onClick={() => navigate(`/edit-path/${path.id_ruta}`)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Eliminar Ruta">
-                        <IconButton 
-                          size="small" 
-                          color="error"
-                          onClick={() => handleDelete(path.id_ruta, path.descripcion_ruta)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      {path.id_ruta && (
+                        <>
+                          <Tooltip title="Editar Ruta">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => navigate(`/edit-path/${path.id_ruta}`)}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Eliminar Ruta">
+                            <IconButton 
+                              size="small" 
+                              color="error"
+                              onClick={() => handleDelete(path.id_ruta!, path.descripcion)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
                     </Stack>
                   </TableCell>
                   <TableCell />

@@ -3,7 +3,8 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   Box, TextField, Button, Stack, MenuItem, 
-  InputAdornment, IconButton, CircularProgress, Typography, Divider 
+  InputAdornment, IconButton, CircularProgress, Typography, Divider,
+  Collapse
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -12,7 +13,7 @@ import DnsIcon from '@mui/icons-material/Dns';
 import StorageIcon from '@mui/icons-material/Storage';
 import ComputerIcon from '@mui/icons-material/Computer';
 import { CredentialCreateSchema, type CredentialCreateInput, type Dbms, type Server } from '../api/types';
-import { createCredential, getDbms, testConnectionDb, testConnectionSsh, getServers, type ConnectionTestRequest } from '../api/infrastructureService';
+import { createCredential, getDbms, testConnectionDb, testConnectionSsh, getServers } from '../api/infrastructureService';
 import { useNotificationStore } from './GlobalNotification';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
 
@@ -20,6 +21,13 @@ interface CredentialFormProps {
   serverId?: number;
   serverIp?: string;
   onSuccess?: (typeId: number) => void;
+  isWizardMode?: boolean;
+  initialData?: any;
+  onSubmitData?: (data: CredentialCreateInput, extraData?: any) => void;
+  tipoAccesoFijo?: number;
+  onBack?: () => void;
+  isServerLegacy?: boolean;
+  oracleSid?: string;
 }
 
 interface ExtendedCredentialInput extends CredentialCreateInput {
@@ -27,14 +35,32 @@ interface ExtendedCredentialInput extends CredentialCreateInput {
   puerto?: number;
 }
 
-export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: CredentialFormProps) => {
+export const CredentialForm = ({ 
+  serverId, 
+  serverIp: initialIp, 
+  onSuccess,
+  isWizardMode = false,
+  initialData = null,
+  onSubmitData,
+  tipoAccesoFijo,
+  onBack,
+  isServerLegacy,
+  oracleSid
+}: CredentialFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [dbmsList, setDbmsList] = useState<Dbms[]>([]);
   const [servers, setServers] = useState<Server[]>([]);
   const [currentIp, setCurrentIp] = useState<string | undefined>(initialIp);
+  const [oracleSidState, setOracleSidState] = useState(oracleSid || '');
   const { showNotification } = useNotificationStore();
+
+  useEffect(() => {
+    if (oracleSid) {
+      setOracleSidState(oracleSid);
+    }
+  }, [oracleSid]);
 
   const { servers: globalServers, fetchServers: fetchGlobalServers } = useInfrastructureStore();
 
@@ -53,11 +79,18 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
     formState: { errors },
   } = useForm<ExtendedCredentialInput>({
     resolver: zodResolver(CredentialCreateSchema) as any,
-    defaultValues: {
-      id_servidor: serverId,
+    defaultValues: initialData || {
+      id_servidor: serverId || 9999,
       id_estado_credencial: 1,
+      id_tipo_acceso: tipoAccesoFijo || '',
     }
   });
+
+  useEffect(() => {
+    if (tipoAccesoFijo) {
+      setValue('id_tipo_acceso', tipoAccesoFijo);
+    }
+  }, [tipoAccesoFijo, setValue]);
 
   const tipoAcceso = useWatch({ control, name: 'id_tipo_acceso' });
   const isDbNative = tipoAcceso === 2;
@@ -67,12 +100,15 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
   const watchPassword = useWatch({ control, name: 'password' });
   const watchPuerto = useWatch({ control, name: 'puerto' });
 
+  const selectedDbmsObj = dbmsList.find(d => d.id_dbms === selectedDbmsId);
+  const isOracle = selectedDbmsObj?.nombre_dbms.toLowerCase().includes('oracle') ?? false;
+
   const activeServerId = serverId || watchServerId;
   const currentServer = useMemo(() => {
     return globalServers.find(s => s.id_servidor === activeServerId);
   }, [globalServers, activeServerId]);
 
-  const isLegacy = currentServer?.es_legacy ?? false;
+  const isLegacy = isWizardMode ? (isServerLegacy ?? false) : (currentServer?.es_legacy ?? false);
 
   // Lógica para habilitar el botón de Test Connection
   const canTest = useMemo(() => {
@@ -158,11 +194,12 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
 
     setTesting(true);
     try {
-      const payload: ConnectionTestRequest = {
+      const payload: any = {
         direccion_ip: currentIp,
         puerto: values.puerto || (values.id_tipo_acceso === 1 ? 22 : undefined),
         usuario: values.usuario,
-        password: values.password
+        password: values.password,
+        oracle_sid: isOracle ? (oracleSidState?.trim() || undefined) : undefined
       };
 
       let response;
@@ -201,6 +238,30 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
   };
 
   const onSubmit = async (data: ExtendedCredentialInput) => {
+    if (isWizardMode && onSubmitData) {
+      const payload: CredentialCreateInput = {
+        usuario: data.usuario,
+        password: data.password,
+        id_tipo_acceso: data.id_tipo_acceso,
+        id_servidor: serverId || 9999,
+        id_estado_credencial: data.id_estado_credencial,
+      };
+      
+      let extraData = null;
+      if (data.id_tipo_acceso === 2) {
+        const selectedDbms = dbmsList.find(d => d.id_dbms === data.id_dbms);
+        const isOracleDb = selectedDbms?.nombre_dbms.toLowerCase().includes('oracle') ?? false;
+
+        extraData = {
+          id_dbms: data.id_dbms,
+          puerto: data.puerto,
+          oracle_sid: isOracleDb ? oracleSidState?.trim() : undefined
+        };
+      }
+      onSubmitData(payload, extraData);
+      return;
+    }
+
     if (!data.id_servidor) {
       showNotification('Error: Debe seleccionar un servidor destino', 'error');
       return;
@@ -268,21 +329,23 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
         )}
 
         {/* Tipo de Acceso */}
-        <TextField
-          select
-          fullWidth
-          label="Tipo de Acceso"
-          {...register('id_tipo_acceso', { valueAsNumber: true })}
-          error={!!errors.id_tipo_acceso}
-          helperText={errors.id_tipo_acceso?.message}
-          defaultValue=""
-          required
-        >
-          <MenuItem value={1}>SSH (Monitoreo Básico)</MenuItem>
-          <MenuItem value={2}>DB Native (Monitoreo BD)</MenuItem>
-          <MenuItem value={3}>SFTP</MenuItem>
-          <MenuItem value={4}>API</MenuItem>
-        </TextField>
+        {!tipoAccesoFijo && (
+          <TextField
+            select
+            fullWidth
+            label="Tipo de Acceso"
+            {...register('id_tipo_acceso', { valueAsNumber: true })}
+            error={!!errors.id_tipo_acceso}
+            helperText={errors.id_tipo_acceso?.message}
+            defaultValue=""
+            required
+          >
+            <MenuItem value={1}>SSH (Monitoreo Básico)</MenuItem>
+            <MenuItem value={2}>DB Native (Monitoreo BD)</MenuItem>
+            <MenuItem value={3}>SFTP</MenuItem>
+            <MenuItem value={4}>API</MenuItem>
+          </TextField>
+        )}
 
         {/* Campos Condicionales de Base de Datos */}
         {isDbNative && (
@@ -323,6 +386,22 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
                   }}
                 />
               </Stack>
+
+              <Collapse in={isOracle}>
+                <Box sx={{ mt: 1, p: 2, border: '1px dashed', borderColor: 'primary.light', borderRadius: 1.5, bgcolor: 'background.paper' }}>
+                  <Typography variant="caption" color="primary.main" sx={{ display: 'block', mb: 1, fontWeight: 700 }}>
+                    Parámetro Especial Oracle (SID):
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    label="Oracle System Identifier (SID)"
+                    placeholder="ej. ERP_SID o ORCL"
+                    value={oracleSidState}
+                    onChange={(e) => setOracleSidState(e.target.value)}
+                    helperText="Identificador del sistema (SID) específico de Oracle"
+                  />
+                </Box>
+              </Collapse>
             </Stack>
           </Box>
         )}
@@ -364,6 +443,33 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
           }}
         />
 
+        {/* Botón de Test de Conexión en otro lugar (debajo del campo Password) */}
+        <Box sx={{ mt: 0.5, mb: 0.5, display: 'flex' }}>
+          <Button
+            variant="outlined"
+            onClick={handleTestConnection}
+            disabled={testing || !canTest}
+            startIcon={testing ? <CircularProgress size={16} /> : <DnsIcon sx={{ fontSize: 16 }} />}
+            sx={{ 
+              py: 1, 
+              px: 3,
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              borderStyle: 'dashed',
+              color: canTest ? 'text.secondary' : 'text.disabled',
+              borderColor: canTest ? 'divider' : 'rgba(0,0,0,0.08)',
+              textTransform: 'none',
+              borderRadius: 2,
+              '&:hover': {
+                borderColor: canTest ? 'divider' : 'rgba(0,0,0,0.08)',
+                bgcolor: 'transparent'
+              }
+            }}
+          >
+            Test Conexión
+          </Button>
+        </Box>
+
         {/* Estado de Credencial */}
         <TextField
           select
@@ -376,52 +482,38 @@ export const CredentialForm = ({ serverId, serverIp: initialIp, onSuccess }: Cre
           <MenuItem value={2}>Inactivo</MenuItem>
         </TextField>
 
-        {/* Fila de Botones de Acción */}
-        <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-          <Button
-            variant="outlined"
-            fullWidth
-            onClick={handleTestConnection}
-            disabled={testing || !canTest}
-            startIcon={testing ? <CircularProgress size={20} /> : <DnsIcon fontSize="small" />}
-            sx={{ 
-              py: 1.5, 
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              borderStyle: 'dashed',
-              color: canTest ? 'text.secondary' : 'text.disabled',
-              borderColor: canTest ? 'divider' : 'rgba(0,0,0,0.08)',
-              opacity: canTest ? 1 : 0.6,
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                borderColor: canTest ? 'text.secondary' : 'rgba(0,0,0,0.08)',
-                bgcolor: canTest ? 'action.hover' : 'transparent'
-              },
-              '&.Mui-disabled': {
-                borderStyle: 'dashed',
-                borderColor: 'rgba(0,0,0,0.08)',
-                color: 'text.disabled'
-              }
-            }}
-          >
-            {testing ? 'Probando...' : 'Test Conexión'}
-          </Button>
-
+        {/* Fila de Botones de Navegación del Wizard */}
+        <Stack direction="row" spacing={2} sx={{ justifyContent: isWizardMode ? 'flex-end' : 'stretch', mt: 3 }}>
+          {isWizardMode && onBack && (
+            <Button
+              variant="outlined"
+              onClick={onBack}
+              sx={{ px: 4, py: 1.25, borderRadius: 2, fontWeight: 700, textTransform: 'none' }}
+            >
+              Atrás
+            </Button>
+          )}
           <Button
             type="submit"
-            fullWidth
             variant="contained"
             disabled={loading}
-            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <KeyIcon />}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : (isWizardMode ? undefined : <KeyIcon />)}
             sx={{ 
-              py: 1.5, 
+              px: isWizardMode ? 5 : 4,
+              py: 1.25, 
+              borderRadius: 2,
               fontWeight: 700,
               fontSize: '0.9rem',
               bgcolor: 'text.primary',
-              color: 'background.paper'
+              color: 'background.paper',
+              textTransform: 'none',
+              flexGrow: isWizardMode ? 0 : 1,
+              '&:hover': {
+                bgcolor: 'rgba(0, 0, 0, 0.8)'
+              }
             }}
           >
-            {loading ? 'Guardando...' : 'Guardar'}
+            {loading ? 'Guardando...' : (isWizardMode ? 'Siguiente' : 'Guardar Credencial')}
           </Button>
         </Stack>
 

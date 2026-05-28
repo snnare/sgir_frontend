@@ -7,7 +7,7 @@ import {
   Collapse, Typography, MenuItem
 } from '@mui/material';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import HelpIcon from '@mui/icons-material/Help';
 import StorageIcon from '@mui/icons-material/Storage';
 import { useNavigate } from 'react-router-dom';
 import { ServerCreateSchema, type ServerCreateInput } from '../api/types';
@@ -21,9 +21,26 @@ interface ServerFormProps {
   onSuccess?: (serverId: number, ip: string) => void;
   monitoreoHost?: boolean;
   monitoreoDb?: boolean;
+  isWizardMode?: boolean;
+  initialData?: ServerCreateInput | null;
+  initialDbInstance?: {
+    id_dbms: number;
+    nombre_instancia: string;
+    puerto: number;
+    sid?: string;
+  } | null;
+  onSubmitData?: (serverData: ServerCreateInput, dbInstanceData?: any) => void;
 }
 
-export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = false }: ServerFormProps) => {
+export const ServerForm = ({ 
+  onSuccess, 
+  monitoreoHost = false, 
+  monitoreoDb = false,
+  isWizardMode = false,
+  initialData = null,
+  initialDbInstance = null,
+  onSubmitData
+}: ServerFormProps) => {
   const navigate = useNavigate();
   const { showNotification } = useNotificationStore();
   const [loading, setLoading] = useState(false);
@@ -32,10 +49,10 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
   const { dbmsList, fetchDbmsList } = useInfrastructureStore();
   
   // Estados para base de datos
-  const [dbmsId, setDbmsId] = useState<string>('');
-  const [nombreInstancia, setNombreInstancia] = useState('');
-  const [puerto, setPuerto] = useState('');
-  const [sid, setSid] = useState('');
+  const [dbmsId, setDbmsId] = useState<string>(initialDbInstance?.id_dbms ? String(initialDbInstance.id_dbms) : '');
+  const [nombreInstancia, setNombreInstancia] = useState(initialDbInstance?.nombre_instancia || '');
+  const [puerto, setPuerto] = useState(initialDbInstance?.puerto ? String(initialDbInstance.puerto) : '');
+  const [sid, setSid] = useState(initialDbInstance?.sid || '');
 
   // Cargar RDBMS list
   useEffect(() => {
@@ -66,7 +83,7 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
     formState: { errors },
   } = useForm<ServerCreateInput>({
     resolver: zodResolver(ServerCreateSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       id_nivel_criticidad: 1, 
       id_estado_servidor: 1, 
       es_legacy: false,
@@ -125,6 +142,21 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
       monitoreo_db: monitoreoDb,
     };
     
+    if (isWizardMode && onSubmitData) {
+      let dbInstancePayload = null;
+      if (monitoreoDb && dbmsId) {
+        dbInstancePayload = {
+          nombre_instancia: nombreInstancia.trim() || `${data.nombre_servidor}_${selectedDbmsObj?.nombre_dbms.replace(/\s+/g, '')}`,
+          puerto: Number(puerto),
+          id_dbms: Number(dbmsId),
+          id_estado_instancia: 1, // Activo
+          sid: isOracle && sid.trim() ? sid.trim() : undefined
+        };
+      }
+      onSubmitData(payload, dbInstancePayload);
+      return;
+    }
+
     console.log('Enviando payload al backend:', JSON.stringify(payload, null, 2));
     setLoading(true);
     try {
@@ -228,9 +260,9 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
               />
             )}
           />
-          <Tooltip title="Los servidores legacy utilizan protocolos de conexión antiguos">
+          <Tooltip title="Un servidor es legacy si su sistema operativo tiene más de 10 años de antigüedad (ej. Windows Server 2012, CentOS 6). Requieren protocolos de conexión más antiguos y menos seguros.">
             <IconButton size="small">
-              <InfoOutlinedIcon fontSize="small" />
+              <HelpIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </Stack>
@@ -330,7 +362,7 @@ export const ServerForm = ({ onSuccess, monitoreoHost = false, monitoreoDb = fal
             color: 'background.paper'
           }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Registrar Servidor'}
+          {loading ? <CircularProgress size={24} color="inherit" /> : (isWizardMode ? 'Siguiente' : 'Registrar Servidor')}
         </Button>
       </Stack>
     </Box>
