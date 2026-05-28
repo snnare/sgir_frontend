@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Container, Box, Typography, Button, TextField, Stack, 
-  CircularProgress, Paper, FormControlLabel, Switch, Tooltip, IconButton, Tabs, Tab
+  CircularProgress, Paper, FormControlLabel, Switch, Tooltip, IconButton, Tabs, Tab, Skeleton
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -89,9 +89,21 @@ export const UpdateServerInfoPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="md" sx={{ py: 6, animation: 'fadeIn 0.5s ease-in-out' }}>
+        <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+          <Skeleton width={150} height={24} sx={{ mb: 1 }} />
+          <Skeleton width={300} height={40} />
+        </Box>
+        <Paper variant="outlined" sx={{ p: 4, borderRadius: 3 }}>
+          <Stack spacing={3}>
+            <Skeleton height={56} variant="rounded" />
+            <Skeleton height={56} variant="rounded" />
+            <Skeleton height={56} variant="rounded" />
+            <Skeleton height={56} variant="rounded" />
+            <Skeleton height={48} variant="rounded" sx={{ mt: 2 }} />
+          </Stack>
+        </Paper>
+      </Container>
     );
   }
 
@@ -218,10 +230,17 @@ export const UpdateServerInfoPage = () => {
               fullWidth
               variant="contained"
               disabled={saving}
-              startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
-              sx={{ py: 1.5, fontWeight: 700, mt: 2 }}
+              startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+              sx={{ 
+                py: 1.5, 
+                fontWeight: 700, 
+                mt: 2,
+                bgcolor: 'text.primary',
+                color: 'background.paper',
+                '&:hover': { bgcolor: 'grey.800' }
+              }}
             >
-              {saving ? 'Guardando Cambios...' : 'Guardar Cambios'}
+              {saving ? 'Procesando...' : 'Guardar'}
             </Button>
           </Stack>
         </Paper>

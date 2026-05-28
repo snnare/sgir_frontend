@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { 
-  Box, Typography, Button, Stack, CircularProgress, 
-  Tooltip, IconButton, Paper, Slide, useTheme
+  Box, Typography, Button, Stack, 
+  Tooltip, IconButton, Paper, Slide, useTheme, Skeleton
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -157,8 +157,62 @@ export const HomePage = () => {
 
   if (loading && servers.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
+      <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
+        {/* Header Skeleton */}
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ width: '60%' }}>
+            <Skeleton width={320} height={48} />
+            <Skeleton width={500} height={20} sx={{ mt: 1 }} />
+          </Box>
+          <Stack direction="row" spacing={1.5}>
+            <Skeleton width={120} height={40} variant="rounded" />
+            <Skeleton width={120} height={40} variant="rounded" />
+          </Stack>
+        </Box>
+
+        {/* Dashboard Metrics Cards */}
+        <Box 
+          sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, 
+            gap: 3, 
+            mb: 4 
+          }}
+        >
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Paper key={i} variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+              <Skeleton width="40%" height={24} sx={{ mb: 1 }} />
+              <Skeleton width="60%" height={40} />
+            </Paper>
+          ))}
+        </Box>
+
+        {/* Server List Skeleton */}
+        <Box sx={{ mb: 3 }}>
+          <Skeleton width={200} height={36} sx={{ mb: 2 }} />
+          <Box 
+            sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, 
+              gap: 3 
+            }}
+          >
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Paper key={i} variant="outlined" sx={{ p: 3, borderRadius: 3, height: 200 }}>
+                <Stack direction="row" spacing={2} sx={{ mb: 2, justifyContent: 'space-between' }}>
+                  <Skeleton width="40%" height={28} />
+                  <Skeleton width="20%" height={24} />
+                </Stack>
+                <Skeleton width="100%" height={16} sx={{ mb: 1 }} />
+                <Skeleton width="80%" height={16} sx={{ mb: 2 }} />
+                <Stack direction="row" spacing={1}>
+                  <Skeleton width={80} height={32} variant="rounded" />
+                  <Skeleton width={80} height={32} variant="rounded" />
+                </Stack>
+              </Paper>
+            ))}
+          </Box>
+        </Box>
       </Box>
     );
   }

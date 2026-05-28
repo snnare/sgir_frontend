@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { 
-  Box, Typography, Stack, Paper, CircularProgress, 
+  Box, Typography, Stack, Paper, 
   Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, Tooltip, IconButton, Button, Chip, Divider
+  TableHead, TableRow, Tooltip, IconButton, Button, Chip, Divider, Skeleton
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import FolderSpecialIcon from '@mui/icons-material/FolderSpecial';
@@ -132,8 +132,50 @@ export const BackupPathsPage = () => {
 
   if (loading && paths.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
+      <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
+        {/* Header Skeleton */}
+        <Box sx={{ mb: 4 }}>
+          <Skeleton width={300} height={48} />
+          <Skeleton width={450} height={20} sx={{ mt: 1 }} />
+        </Box>
+
+        {/* Metrics Cards Skeleton */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 3, mb: 4 }}>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}><Skeleton width="40%" height={24} sx={{ mb: 1 }} /><Skeleton width="70%" height={40} /></Paper>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}><Skeleton width="40%" height={24} sx={{ mb: 1 }} /><Skeleton width="70%" height={40} /></Paper>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}><Skeleton width="40%" height={24} sx={{ mb: 1 }} /><Skeleton width="70%" height={40} /></Paper>
+        </Box>
+
+        {/* Table Skeleton */}
+        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 800 }}>Servidor (IP)</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>Ruta Física (Mount Point)</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>Descripción / Alias</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800 }}>Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton width="60%" height={24} /></TableCell>
+                  <TableCell><Skeleton width="40%" height={24} /></TableCell>
+                  <TableCell><Skeleton width="80%" height={24} /></TableCell>
+                  <TableCell align="center"><Skeleton width={60} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+                      <Skeleton width={28} height={28} variant="circular" />
+                      <Skeleton width={28} height={28} variant="circular" />
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
     );
   }

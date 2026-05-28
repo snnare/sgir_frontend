@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   Box, TextField, Button, Stack, MenuItem, InputAdornment, CircularProgress, Divider, Typography
 } from '@mui/material';
@@ -28,6 +28,34 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
   const navigate = useNavigate();
   const { addPolicy, updatePolicy, loading } = useBackupStore();
   const { showNotification } = useNotificationStore();
+
+  const [cronPreset, setCronPreset] = useState<string>('custom');
+
+  const getPresetFromCron = (cron: string): string => {
+    if (!cron) return 'custom';
+    switch (cron.trim()) {
+      case '0 0 * * *': return 'daily';
+      case '0 0 * * 0': return 'weekly';
+      case '0 0 1 * *': return 'monthly';
+      case '0 * * * *': return 'hourly';
+      default: return 'custom';
+    }
+  };
+
+  const handlePresetChange = (preset: string) => {
+    setCronPreset(preset);
+    if (preset === 'daily') {
+      setValue('expression_cron', '0 0 * * *');
+    } else if (preset === 'weekly') {
+      setValue('expression_cron', '0 0 * * 0');
+    } else if (preset === 'monthly') {
+      setValue('expression_cron', '0 0 1 * *');
+    } else if (preset === 'hourly') {
+      setValue('expression_cron', '0 * * * *');
+    } else if (preset === 'custom') {
+      setValue('expression_cron', '');
+    }
+  };
 
   const {
     register,
@@ -62,6 +90,7 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
       setValue('script_path', initialData.script_path || '');
       setValue('id_tipo_respaldo', initialData.id_tipo_respaldo);
       setValue('id_estado_politica', initialData.id_estado_politica);
+      setCronPreset(getPresetFromCron(initialData.expression_cron || ''));
     }
   }, [initialData, setValue]);
 
@@ -157,12 +186,34 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
           Planificación Avanzada y Automatización (Opcional)
         </Typography>
 
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+          <TextField
+            select
+            fullWidth
+            label="Planificador Rápido (Frecuencia)"
+            value={cronPreset}
+            onChange={(e) => handlePresetChange(e.target.value)}
+          >
+            <MenuItem value="daily">Diario (Cada medianoche - 0 0 * * *)</MenuItem>
+            <MenuItem value="weekly">Semanal (Domingos medianoche - 0 0 * * 0)</MenuItem>
+            <MenuItem value="monthly">Mensual (Día 1 medianoche - 0 0 1 * *)</MenuItem>
+            <MenuItem value="hourly">Cada hora (0 * * * *)</MenuItem>
+            <MenuItem value="custom">Personalizado (Manual)</MenuItem>
+          </TextField>
+        </Stack>
+
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
             fullWidth
             id="expression_cron"
-            label="Expresión Cron"
+            label={cronPreset !== 'custom' ? "Expresión Cron Generada" : "Expresión Cron"}
             placeholder="ej. 0 4 * * 1-5"
+            disabled={cronPreset !== 'custom'}
+            slotProps={{
+              input: {
+                readOnly: cronPreset !== 'custom'
+              }
+            }}
             {...register('expression_cron')}
             error={!!errors.expression_cron}
             helperText={errors.expression_cron?.message || "Patrón cron estándar (minuto hora día-mes mes día-semana)"}

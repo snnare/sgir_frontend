@@ -12,11 +12,13 @@ import { BackButton } from '../components/BackButton';
 import { useState, useRef } from 'react';
 import { importBulkServers } from '../api/infrastructureService';
 import { useNotificationStore } from '../components/GlobalNotification';
+import { useAlertStore } from '../store/useAlertStore';
 import type { ImportSummary } from '../api/types';
 
 export const BulkUploadPage = () => {
   const navigate = useNavigate();
   const showNotification = useNotificationStore((state) => state.showNotification);
+  const { showAlert } = useAlertStore();
   
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -54,7 +56,11 @@ export const BulkUploadPage = () => {
     } catch (error: any) {
       console.error('Error detallado en BulkUpload:', error);
       const message = error.response?.data?.detail || 'Error al procesar el archivo.';
-      showNotification(typeof message === 'string' ? message : JSON.stringify(message), 'error');
+      showAlert({
+        title: 'Error de Carga',
+        description: typeof message === 'string' ? message : 'El archivo CSV contiene registros duplicados, un formato de red inválido, o campos vacíos.',
+        severity: 'error'
+      });
     } finally {
       setIsUploading(false);
     }

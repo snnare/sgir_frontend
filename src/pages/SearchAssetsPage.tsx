@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   Box, Typography, Stack, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, IconButton, Tooltip, CircularProgress,
+  Chip, IconButton, Tooltip, CircularProgress, Skeleton,
   Button, Menu, MenuItem, ListItemIcon, ListItemText,
   Dialog, DialogTitle, DialogContent, DialogActions, Grid,
   Alert
@@ -17,6 +17,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import { getAssets, discoverAllInventory } from '../api/infrastructureService';
 import { type Asset, type GlobalDiscoveryResponse } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
+import { useAlertStore } from '../store/useAlertStore';
 import { DiscoveryWizard } from '../components/DiscoveryWizard';
 import { FilterBar } from '../components/FilterBar';
 
@@ -28,11 +29,12 @@ export const SearchAssetsPage = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [syncingAll, setSyncingAll] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const menuOpen = Boolean(anchorEl);
   const [globalResult, setGlobalResult] = useState<GlobalDiscoveryResponse | null>(null);
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
 
-  const menuOpen = Boolean(anchorEl);
   const { showNotification } = useNotificationStore();
+  const { showAlert } = useAlertStore();
 
   const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -54,6 +56,11 @@ export const SearchAssetsPage = () => {
       fetchAllAssets();
     } catch (error) {
       console.error('Error in global sync:', error);
+      showAlert({
+        title: 'Error de Sincronización',
+        description: 'No se pudo completar la sincronización global de activos. Por favor verifique el estado del servidor e intente de nuevo.',
+        severity: 'error'
+      });
     } finally {
       setSyncingAll(false);
     }
@@ -71,7 +78,11 @@ export const SearchAssetsPage = () => {
       setAssets(data);
     } catch (error) {
       console.error('Error fetching assets:', error);
-      showNotification('Error al cargar la lista de activos', 'error');
+      showAlert({
+        title: 'Error de Conexión',
+        description: 'No se pudieron recuperar los activos protegidos desde el inventario. Verifique su conexión de red.',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -309,9 +320,30 @@ export const SearchAssetsPage = () => {
       {/* --- 4. LISTAS (Tabla) --- */}
       <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', minHeight: 400 }}>
         {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 20 }}>
-                <CircularProgress />
-            </Box>
+          <Table>
+            <TableHead sx={{ bgcolor: 'action.hover' }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 800 }}>Base de Datos</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+                <TableCell sx={{ fontWeight: 800 }}>Instancia / Motor</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 800 }}>Criticidad</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
+                <TableCell align="right" sx={{ width: 50 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton width="60%" height={24} /></TableCell>
+                  <TableCell><Skeleton width="50%" height={24} /></TableCell>
+                  <TableCell><Skeleton width="70%" height={24} /></TableCell>
+                  <TableCell align="center"><Skeleton width={60} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                  <TableCell align="center"><Skeleton width={50} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                  <TableCell align="right"><Skeleton width={28} height={28} variant="circular" sx={{ ml: 'auto' }} /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         ) : (
         <Table>
           <TableHead sx={{ bgcolor: 'action.hover' }}>

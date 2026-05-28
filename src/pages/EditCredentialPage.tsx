@@ -6,10 +6,12 @@ import {
 import SaveIcon from '@mui/icons-material/Save';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import SpeedIcon from '@mui/icons-material/Speed';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
-  getCredentialById, updateCredential, getServers 
+  getCredentialById, updateCredential, getServers,
+  testConnectionDb, testConnectionSsh, getInstancesByServer, getDbms
 } from '../api/infrastructureService';
 import { 
   CredentialUpdateSchema, type CredentialUpdateInput, type Server 
@@ -25,11 +27,14 @@ export const EditCredentialPage = () => {
   const [saving, setSaving] = useState(false);
   const [servers, setServers] = useState<Server[]>([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [dbmsList, setDbmsList] = useState<any[]>([]);
 
   const {
     register,
     handleSubmit,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<CredentialUpdateInput>({
     resolver: zodResolver(CredentialUpdateSchema),
@@ -39,11 +44,13 @@ export const EditCredentialPage = () => {
     const fetchData = async () => {
       if (!id) return;
       try {
-        const [credData, serversData] = await Promise.all([
+        const [credData, serversData, dbmsData] = await Promise.all([
           getCredentialById(Number(id)),
-          getServers()
+          getServers(),
+          getDbms()
         ]);
         setServers(serversData);
+        setDbmsList(dbmsData);
         // Reseteamos el formulario con los valores actuales
         reset({
           usuario: credData.usuario,
@@ -62,6 +69,78 @@ export const EditCredentialPage = () => {
 
     fetchData();
   }, [id, reset, navigate, showNotification]);
+
+  const handleTestConnection = async () => {
+    const values = getValues();
+    const serverId = values.id_servidor;
+    if (!serverId) {
+      showNotification('Seleccione un servidor válido para realizar el test', 'error');
+      return;
+    }
+    const selectedServer = servers.find(s => s.id_servidor === serverId);
+
+    if (!selectedServer) {
+      showNotification('Seleccione un servidor válido para realizar el test', 'error');
+      return;
+    }
+
+    if (!values.usuario || !values.password) {
+      showNotification('Ingrese usuario y contraseña para realizar el test', 'warning');
+      return;
+    }
+
+    setTesting(true);
+    try {
+      const payload: any = {
+        direccion_ip: selectedServer.direccion_ip,
+        puerto: values.id_tipo_acceso === 1 ? 22 : undefined,
+        usuario: values.usuario,
+        password: values.password
+      };
+
+      let response;
+      if (values.id_tipo_acceso === 2) {
+        // Consultar instancias del servidor para identificar el motor de base de datos
+        const instances = await getInstancesByServer(serverId).catch(() => []);
+        if (instances.length === 0) {
+          showNotification('No se encontraron instancias de base de datos en este servidor para testear', 'warning');
+          setTesting(false);
+          return;
+        }
+
+        const firstInst = instances[0];
+        const dbms = dbmsList.find(d => d.id_dbms === firstInst.id_dbms);
+        const motorKey = (dbms?.nombre_dbms || 'oracle').toLowerCase().split(' ')[0];
+        
+        // Determinar motorKey
+        const motorPath = motorKey === 'oracle' ? 'oracle/no-legacy' : motorKey;
+        if (motorKey === 'oracle') {
+          payload.oracle_sid = firstInst.nombre_instancia || 'ORCL';
+        }
+        
+        response = await testConnectionDb(motorPath, payload);
+      } else if (values.id_tipo_acceso === 1) {
+        response = await testConnectionSsh(payload);
+      } else {
+        showNotification('El test de conexión solo está disponible para accesos SSH o DB Native', 'info');
+        setTesting(false);
+        return;
+      }
+
+      if (response.status === 'success') {
+        showNotification(response.message, 'success');
+      } else {
+        showNotification(response.message || 'La conexión falló', 'error');
+      }
+    } catch (error: any) {
+      console.error('Error en Test Conexión:', error);
+      const detail = error.response?.data?.detail;
+      const message = typeof detail === 'string' ? detail : 'Error al intentar conectar con el servidor';
+      showNotification(message, 'error');
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const onSubmit = async (data: CredentialUpdateInput) => {
     if (!id) return;
@@ -189,23 +268,36 @@ export const EditCredentialPage = () => {
             <MenuItem value={2}>Inactivo</MenuItem>
           </TextField>
 
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-            sx={{ 
-              py: 1.5, 
-              fontWeight: 700, 
-              mt: 2,
-              bgcolor: 'text.primary',
-              color: 'background.paper',
-              '&:hover': { bgcolor: 'grey.800' }
-            }}
-          >
-            {saving ? 'Procesando...' : 'Guardar'}
-          </Button>
+          <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              color="primary"
+              disabled={testing || saving}
+              onClick={handleTestConnection}
+              startIcon={testing ? <CircularProgress size={20} color="inherit" /> : <SpeedIcon />}
+              sx={{ py: 1.5, fontWeight: 700, borderRadius: 2.5 }}
+            >
+              {testing ? 'Probando...' : 'Test Conexión'}
+            </Button>
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={saving || testing}
+              startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+              sx={{ 
+                py: 1.5, 
+                fontWeight: 700, 
+                bgcolor: 'text.primary',
+                color: 'background.paper',
+                '&:hover': { bgcolor: 'grey.800' }
+              }}
+            >
+              {saving ? 'Procesando...' : 'Guardar'}
+            </Button>
+          </Stack>
         </Stack>
       </Box>
     </FormPageLayout>
