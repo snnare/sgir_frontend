@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { 
   Box, Typography, Paper, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Chip, IconButton, 
-  Stack, Button, CircularProgress, Tooltip
+  Stack, Button, Tooltip, Skeleton
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCredentials, deleteCredential } from '../api/infrastructureService';
 import { type CredentialEnriched } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
+import { useConfirmStore } from '../store/useConfirmStore';
 import { MetricCard } from '../components/MetricCard';
 import { FilterBar } from '../components/FilterBar';
 import { FloatingActionGroup } from '../components/FloatingActionGroup';
@@ -28,6 +29,7 @@ export const CredentialsPage = () => {
   
   const navigate = useNavigate();
   const { showNotification } = useNotificationStore();
+  const { confirmAction } = useConfirmStore();
 
   const fetchData = async () => {
     setLoading(true);
@@ -47,18 +49,22 @@ export const CredentialsPage = () => {
   }, []);
 
   const handleDelete = async (id: number, usuario: string) => {
-    if (!window.confirm(`¿Está seguro de eliminar la credencial del usuario "${usuario}"?`)) {
-      return;
-    }
-
-    try {
-      await deleteCredential(id);
-      showNotification('Credencial eliminada correctamente', 'success');
-      setCredentials(prev => prev.filter(c => c.id_credencial !== id));
-    } catch (error: any) {
-      console.error('Error deleting credential:', error);
-      showNotification(error.response?.data?.detail || 'Error al eliminar la credencial', 'error');
-    }
+    confirmAction({
+      title: '¿Eliminar Credencial?',
+      description: `Esta acción eliminará de forma permanente la credencial del usuario "${usuario}". El sistema ya no podrá usarla para acceder a los servidores vinculados.`,
+      confirmLabel: 'Eliminar ahora',
+      severity: 'error',
+      onConfirm: async () => {
+        try {
+          await deleteCredential(id);
+          showNotification('Credencial eliminada correctamente', 'success');
+          setCredentials(prev => prev.filter(c => c.id_credencial !== id));
+        } catch (error: any) {
+          console.error('Error deleting credential:', error);
+          showNotification(error.response?.data?.detail || 'Error al eliminar la credencial', 'error');
+        }
+      }
+    });
   };
 
   const filteredCredentials = useMemo(() => {
@@ -172,12 +178,20 @@ export const CredentialsPage = () => {
           </TableHead>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                  <CircularProgress size={32} thickness={5} />
-                  <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>Cargando datos...</Typography>
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 4 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton width="40%" height={24} /></TableCell>
+                  <TableCell><Skeleton width="70%" height={24} /></TableCell>
+                  <TableCell><Skeleton width="50%" height={24} /></TableCell>
+                  <TableCell><Skeleton width="30%" height={24} /></TableCell>
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
+                      <Skeleton width={28} height={28} variant="circular" />
+                      <Skeleton width={28} height={28} variant="circular" />
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))
             ) : filteredCredentials.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 8 }}>

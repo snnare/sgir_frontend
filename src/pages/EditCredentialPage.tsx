@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Box, Button, TextField, MenuItem, Stack, CircularProgress, InputAdornment, IconButton
+  Box, Button, TextField, MenuItem, Stack, InputAdornment, IconButton, Skeleton, CircularProgress
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -85,9 +85,22 @@ export const EditCredentialPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
-      </Box>
+      <FormPageLayout
+        title="Editar Credencial"
+        subtitle="Cargando configuración de la credencial de acceso..."
+        backTo="/credenciales"
+        backLabel="Volver a Credenciales"
+        maxWidth="sm"
+      >
+        <Stack spacing={3} sx={{ py: 2 }}>
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={48} variant="rounded" sx={{ mt: 2 }} />
+        </Stack>
+      </FormPageLayout>
     );
   }
 
