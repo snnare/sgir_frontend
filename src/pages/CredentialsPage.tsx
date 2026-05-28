@@ -268,7 +268,7 @@ export const CredentialsPage = () => {
             label: "Carga Masiva (Credenciales)",
             icon: <CloudUploadIcon />,
             color: "secondary",
-            onClick: () => navigate('/bulk-upload?target=credentials')
+            onClick: () => navigate('/bulk-upload?type=credenciales')
           },
           {
             label: "Nueva Credencial",

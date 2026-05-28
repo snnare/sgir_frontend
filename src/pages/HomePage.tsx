@@ -517,7 +517,7 @@ export const HomePage = () => {
             label: "Carga Masiva",
             icon: <CloudUploadIcon />,
             color: "secondary",
-            onClick: () => navigate('/bulk-upload')
+            onClick: () => navigate('/bulk-upload?type=servidores')
           },
           {
             label: "Agregar Servidor",

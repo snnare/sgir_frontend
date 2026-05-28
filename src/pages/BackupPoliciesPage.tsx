@@ -376,7 +376,7 @@ export const BackupPoliciesPage = () => {
             label: "Carga Masiva",
             icon: <CloudUploadIcon />,
             color: "secondary",
-            onClick: () => navigate('/bulk-upload')
+            onClick: () => navigate('/bulk-upload?type=politicas')
           },
           {
             label: "Nueva Política",

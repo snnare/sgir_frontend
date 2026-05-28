@@ -366,7 +366,7 @@ export const BackupPathsPage = () => {
             label: "Carga Masiva",
             icon: <CloudUploadIcon />,
             color: "secondary",
-            onClick: () => navigate('/bulk-upload')
+            onClick: () => navigate('/bulk-upload?type=rutas')
           },
           {
             label: "Nueva Ruta",

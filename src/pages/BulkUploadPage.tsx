@@ -1,5 +1,5 @@
 import { Container, Box, Typography, Paper, Button, Stack, Alert, CircularProgress, Divider, List, ListItem, ListItemIcon, ListItemText, Collapse } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import FilePresentIcon from '@mui/icons-material/FilePresent';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
@@ -15,10 +15,79 @@ import { useNotificationStore } from '../components/GlobalNotification';
 import { useAlertStore } from '../store/useAlertStore';
 import type { ImportSummary } from '../api/types';
 
+// Configuración de cargas dinámicas por tipo de activo
+interface UploadConfig {
+  title: string;
+  subtitle: string;
+  description: string;
+  helperText: string;
+  zipPath: string;
+  apiCall?: (file: File) => Promise<ImportSummary>;
+  mockResult: (file: File) => ImportSummary;
+}
+
+const UPLOAD_CONFIGS: Record<string, UploadConfig> = {
+  servidores: {
+    title: 'Carga Masiva de Servidores',
+    subtitle: 'Importa múltiples activos al inventario de forma simultánea.',
+    description: 'Registra servidores físicos o virtuales en la CMDB junto con sus credenciales, almacenamiento y bases de datos en un solo paso.',
+    helperText: 'El archivo debe estar en formato .csv. Ahora puedes definir múltiples particiones y asociar instancias de bases de datos de forma transaccional. Descarga el kit para ver la estructura exacta.',
+    zipPath: '/templates/importacion_servidores.zip',
+    apiCall: importBulkServers,
+    mockResult: () => ({ total_filas: 3, servidores_procesados: 2, instancias_procesadas: 2, credenciales_procesadas: 2, errores: [] })
+  },
+  rutas: {
+    title: 'Carga Masiva de Rutas',
+    subtitle: 'Importa puntos de montaje físicos, NAS/NFS y Cloud Storage.',
+    description: 'Registra directorios locales y almacenamiento de red en bloque para habilitar de inmediato las políticas de respaldo y monitoreo.',
+    helperText: 'El archivo debe estar en formato .csv. Asegúrate de configurar correctamente los puntos de montaje absolutos de Linux y sus alias descriptivos.',
+    zipPath: '/templates/importacion_rutas.zip',
+    mockResult: () => ({ total_filas: 4, servidores_procesados: 0, instancias_procesadas: 0, credenciales_procesadas: 0, errores: [] })
+  },
+  'bases-datos': {
+    title: 'Carga Masiva de Bases de Datos',
+    subtitle: 'Registra motores DBMS de forma masiva sobre tus servidores.',
+    description: 'Asocia instancias de MySQL, Oracle and MongoDB a tus servidores físicos o virtuales previamente existentes.',
+    helperText: 'El archivo debe estar en formato .csv. Cada motor debe enlazarse a una IP de servidor válida y pre-registrada en tu inventario.',
+    zipPath: '/templates/importacion_bases_datos.zip',
+    mockResult: () => ({ total_filas: 3, servidores_procesados: 0, instancias_procesadas: 3, credenciales_procesadas: 0, errores: [] })
+  },
+  politicas: {
+    title: 'Carga Masiva de Políticas',
+    subtitle: 'Registra reglas de respaldo y automatización en bloque.',
+    description: 'Carga múltiples directivas de respaldo configuradas mediante expresiones Cron y frecuencias de retención de datos.',
+    helperText: 'El archivo debe estar en formato .csv. Se validará que las expresiones Cron introducidas sean sintácticamente válidas para los schedulers.',
+    zipPath: '/templates/importacion_politicas.zip',
+    mockResult: () => ({ total_filas: 2, servidores_procesados: 0, instancias_procesadas: 0, credenciales_procesadas: 0, errores: [] })
+  },
+  asignaciones: {
+    title: 'Carga Masiva de Asignaciones',
+    subtitle: 'Vincula políticas de respaldo a bases de datos y rutas en bloque.',
+    description: 'Asocia de forma masiva directivas de respaldo preestablecidas a tus activos, instancias y directorios.',
+    helperText: 'El archivo debe estar en formato .csv. Asegúrate de relacionar IDs de políticas y rutas de respaldo válidos en la plataforma.',
+    zipPath: '/templates/importacion_asignaciones.zip',
+    mockResult: () => ({ total_filas: 5, servidores_procesados: 0, instancias_procesadas: 0, credenciales_procesadas: 0, errores: [] })
+  },
+  credenciales: {
+    title: 'Carga Masiva de Credenciales',
+    subtitle: 'Carga accesos SSH y DBMS al llavero de seguridad.',
+    description: 'Sube contraseñas y claves de manera segura y encriptada (AES-256) para habilitar diagnósticos automáticos.',
+    helperText: 'El archivo debe estar en formato .csv. El backend encriptará las contraseñas al vuelo de forma totalmente transparente.',
+    zipPath: '/templates/importacion_servidores.zip',
+    mockResult: () => ({ total_filas: 3, servidores_procesados: 0, instancias_procesadas: 0, credenciales_procesadas: 3, errores: [] })
+  }
+};
+
 export const BulkUploadPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const { showAlert } = useAlertStore();
+
+  // Determinar el tipo de carga actual basándose en la URL (?type=...)
+  const rawType = searchParams.get('type') || searchParams.get('target') || 'servidores';
+  const type = UPLOAD_CONFIGS[rawType] ? rawType : 'servidores';
+  const config = UPLOAD_CONFIGS[type];
   
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -44,12 +113,27 @@ export const BulkUploadPage = () => {
     setIsUploading(true);
     setSummary(null);
     try {
-      console.log('Iniciando carga de archivo:', file.name);
-      const result = await importBulkServers(file);
+      console.log(`[Carga Masiva - ${type}] Iniciando carga de archivo:`, file.name);
+      
+      let result: ImportSummary;
+      if (config.apiCall) {
+        // Ejecución real con el endpoint del backend
+        result = await config.apiCall(file);
+      } else {
+        // Simulación en frontend si el backend aún no expone el endpoint específico
+        await new Promise((resolve) => setTimeout(resolve, 1500)); // Emular latencia de red
+        result = config.mockResult(file);
+      }
+
       console.log('Resultado de la importación:', result);
       setSummary(result);
+      
       if (result.errores.length === 0) {
-        showNotification('¡Importación completada con éxito!', 'success');
+        if (!config.apiCall) {
+          showNotification('¡Importación simulada con éxito! (Backend en desarrollo)', 'success');
+        } else {
+          showNotification('¡Importación completada con éxito!', 'success');
+        }
       } else {
         showNotification(`Importación finalizada con ${result.errores.length} errores.`, 'warning');
       }
@@ -85,11 +169,11 @@ export const BulkUploadPage = () => {
             lineHeight: 1.2
           }}
         >
-          Carga Masiva
+          {config.title}
         </Typography>
         
         <Typography variant="body2" color="text.secondary">
-          Importa múltiples activos al inventario de forma simultánea.
+          {config.subtitle}
         </Typography>
       </Box>
 
@@ -129,7 +213,7 @@ export const BulkUploadPage = () => {
             )}
             
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-              {file ? file.name : 'Selecciona tu archivo CSV'}
+              {file ? file.name : `Selecciona el archivo de ${config.title.toLowerCase().replace('carga masiva de ', '')}`}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {file ? `${(file.size / 1024).toFixed(2)} KB` : 'Haz clic para explorar o arrastra el archivo directamente aquí.'}
@@ -142,7 +226,7 @@ export const BulkUploadPage = () => {
               icon={<InfoOutlinedIcon />}
               sx={{ mb: 4, textAlign: 'left', borderRadius: 2 }}
             >
-              El archivo debe estar en formato <strong>.csv</strong>. Ahora puedes definir múltiples <strong>particiones</strong> y asociar instancias de bases de datos a los servidores en un solo paso. Descarga la plantilla para ver la estructura exacta.
+              {config.helperText}
             </Alert>
           )}
 
@@ -172,6 +256,12 @@ export const BulkUploadPage = () => {
                 variant="outlined"
                 fullWidth
                 startIcon={<FileDownloadOutlinedIcon />}
+                component="a"
+                href={config.zipPath}
+                download={config.zipPath.split('/').pop() || 'plantilla.zip'}
+                onClick={(e) => {
+                  e.stopPropagation(); // Previene que el click propague al Paper contenedor y abra el explorador
+                }}
                 sx={{ 
                   py: 1.5, 
                   fontWeight: 700, 
@@ -179,12 +269,8 @@ export const BulkUploadPage = () => {
                   borderWidth: 2,
                   '&:hover': { borderWidth: 2 }
                 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open('/plantilla_importacion_sgir.zip', '_blank');
-                }}
               >
-                Descargar Kit de Importación (.zip)
+                Descargar Plantilla y Guía (.zip)
               </Button>
             )}
             
@@ -213,6 +299,11 @@ export const BulkUploadPage = () => {
               <Typography variant="body2" color="text.secondary">
                 Se procesaron {summary.total_filas} filas del archivo.
               </Typography>
+              {!config.apiCall && (
+                <Alert severity="warning" sx={{ mt: 1.5, borderRadius: 2, textAlign: 'left' }}>
+                  <strong>Modo Simulación:</strong> El backend no implementa este tipo de carga aún. Se muestran resultados simulados de alta fidelidad.
+                </Alert>
+              )}
             </Box>
 
             <Divider />

@@ -1,0 +1,28 @@
+nombre_servidor,direccion_ip,es_legacy,descripcion,nivel_criticidad,estado,particiones,nombre_dbms,nombre_instancia,puerto_db,tipo_acceso,usuario,password
+Sistema de Correspondencia Institucional,148.215.1.73,true,Red Hat 4.8.5-11,Alta,Activo,/,MySQL,Sistema_de_Correspondencia_Institucional,3306,SSH,mysql,50.MiLQSIC
+desadds.uaemex.mx,148.215.1.45,true,Linux RedHat AS,Baja,Activo,/,MySQL,desadds_uaemex_mx,3306,SSH,ddstomcat,xra32@:k
+Prod DDS,148.215.1.98,true,Red Hat Enterprise Linux AS release 4,Alta,Activo,/,Oracle,Prod_DDS,1521,SSH,oracle,k2!top@.l96
+desadds.uaemex.mx,148.215.1.45,true,Linux RedHat AS,Baja,Activo,/,Oracle,desadds_uaemex_mx,1521,SSH,oracle,oracledes
+wwwdb,148.215.1.39,false,Red Hat Enterprise Linux Server release 6.7 (Santiago),Alta,Activo,/,MySQL,wwwdb,3306,SSH,mysql,My5qLPro6.
+Repositorio,148.215.1.33,true,Red Hat Enterprise Linux Server release 5.6 (Tikanga),Alta,Activo,/,MySQL,Repositorio,3306,SSH,mysql,Us3RMy5q!
+srvmysql,172.17.154.16,false,Red Hat Enterprise Linux Server release 6.3 (Santiago) x86_64 = Arquitectura de 64 bits,Baja,Activo,/,MySQL,srvmysql,3306,SSH,mysql,U5MySQLD3s@
+ca-fise.uaemex.mx,172.17.154.52,false,Red Hat Enterprise Linux Server Release 6.5 (Santiago) x86_64 = Arquitectura de 64 bits.,Baja,Activo,/,MySQL,ca-fise_uaemex_mx,3306,SSH,mysql,My5Q!f1S3
+Moodle,148.215.1.56,false,Red Hat Linux 7,Media,Activo,/,MySQL,Moodle,3306,SSH,usrbd,B@s3D4t0s.
+srvmysql,148.215.1.90,false,Red Hat Enterprise Linux Server release 6.5 (Santiago): x86_64 = Arquitectura de 64 bits,Alta,Activo,/,MySQL,srvmysql,3306,SSH,mysql,U5MySQL.Pr@
+kayako,148.215.1.48,false,Red Hat Enterprise Linux Server release 6.6 (Santiago),Alta,Activo,/,MySQL,kayako,3306,SSH,mysql,Myskl500p
+bpm_db,172.17.154.59,false,"Red Hat Enterprise Linux Server release 6.5 (Santiago) 64 bits, Ingles, SELinux-Enforcing, Firewall-Habilitado",Alta,Activo,/,MySQL,bpm_db,3306,SSH,mysql,Us3r%My5qL
+Nuevo Portal,148.215.1.62,false,Red Hat Enterprise Linux Server release 7.4 (Maipo),Alta,Activo,/,MySQL,Nuevo_Portal,3306,SSH,areabd,B@s3-D4t0s
+srvbase,148.215.1.25,false,Red Hat Enterprise Linux Server release 6.5,Alta,Activo,/,MySQL,srvbase,3306,SSH,areabd,4r3@Bd*Prod
+srvmovil,148.215.1.55,false,Red Hat Enterprise Linux Server release 6.3 (Santiago),Alta,Activo,/,MySQL,srvmovil,3306,SSH,mysql,W1sQL55
+Svr-148.215.1.145,148.215.1.145,false,Red Hat Enterprise Linux Server release 7.2 (Maipo),Alta,Activo,/,MySQL,Svr-148_215_1_145,3306,SSH,mysql,MySq!SO2019
+Limesurvey,148.215.109.120,false,Ubuntu 18.04.3 LTS,Alta,Activo,/,MySQL,Limesurvey,3306,SSH,mysql,4Dm!n120
+Activos (SIGAT),148.215.1.188,false,Red Hat Enterprise Linux Server release 7.7 (Maipo),Alta,Activo,/,MySQL,Activos_(SIGAT),3306,SSH,mysql,Mb@4c3Dat$x
+Encuentas,148.215.109.172,false,CentOS Linux release 7.9.2009 (Core),Alta,Activo,/,MySQL,Encuentas,3306,SSH,admin,Passw0Rd.
+dbcitas,148.215.109.170,false,Red Hat Enterprise Linux Server release 7.9 (Maipo),Alta,Activo,/,MySQL,dbcitas,3306,SSH,admin,Passw0rd.
+Svr-148.215.1.164,148.215.1.164,false,Red Hat Enterprise Linux Server release 7.7 (Maipo),Alta,Activo,/,MySQL,Svr-148_215_1_164,3306,SSH,mysql,My4w.164
+Exclusivo para Joomlas (Portal UAEMex),148.215.109.242,false,Red Hat Enterprise Linux release 9.3 (Plow),Alta,Activo,/,MySQL,Exclusivo_para_Joomlas_(Portal_UAEMex),3306,SSH,areabd,B@s3#my8s3r!
+Svr-148.215.109.215,148.215.109.215,false,Red Hat Enterprise Linux release 9.2 (Plow),Alta,Activo,/,MySQL,Svr-148_215_109_215,3306,SSH,areabd,B@s3*s3rm8!
+FISE,148.215.109.153,false,Red Hat,Alta,Activo,/,MySQL,FISE,3306,SSH,admbd,B@5e#4dm1*
+Expediente Mongo DB,148.215.53.7,false,Rocky Linux,Alta,Activo,/,MongoDB,Expediente_Mongo_DB,27017,SSH,userbd,4dm#m0ndb*
+SEPBR,148.215.109.241,false,Linux,Alta,Activo,/,MySQL,SEPBR,3306,SSH,areabd,4r3@Bd*4dm.
+DBSICOINS,148.215.154.3,false,Rocky Linux 9.6,Alta,Activo,/,MySQL,DBSICOINS,3306,SSH,admbd,4dmBDMy5Ql.vs
