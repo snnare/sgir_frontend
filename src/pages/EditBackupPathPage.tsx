@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, CircularProgress, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, Skeleton, Stack } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FormPageLayout } from '../components/FormPageLayout';
 import { BackupPathForm } from '../components/BackupPathForm';
@@ -67,9 +67,21 @@ export const EditBackupPathPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
-      </Box>
+      <FormPageLayout
+        title="Editar Ruta de Respaldo"
+        subtitle="Cargando configuración de la ruta física..."
+        maxWidth="sm"
+        backTo="/backups/rutas"
+      >
+        <Stack spacing={3} sx={{ py: 2 }}>
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={48} variant="rounded" sx={{ mt: 2 }} />
+        </Stack>
+      </FormPageLayout>
     );
   }
 

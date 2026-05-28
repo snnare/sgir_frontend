@@ -250,7 +250,7 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
             '&:hover': { bgcolor: 'text.secondary' }
           }}
         >
-          {isEdit ? 'Guardar Cambios' : 'Crear Política'}
+          {isEdit ? 'Guardar' : 'Crear Política'}
         </Button>
       </Stack>
     </Box>

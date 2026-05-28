@@ -181,10 +181,17 @@ export const EditCredentialPage = () => {
             fullWidth
             variant="contained"
             disabled={saving}
-            startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
-            sx={{ py: 1.5, fontWeight: 700, mt: 2 }}
+            startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+            sx={{ 
+              py: 1.5, 
+              fontWeight: 700, 
+              mt: 2,
+              bgcolor: 'text.primary',
+              color: 'background.paper',
+              '&:hover': { bgcolor: 'grey.800' }
+            }}
           >
-            {saving ? 'Guardando Cambios...' : 'Guardar Cambios'}
+            {saving ? 'Procesando...' : 'Guardar'}
           </Button>
         </Stack>
       </Box>

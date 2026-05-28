@@ -4,8 +4,9 @@ import {
   Box, Typography, Stack, Paper, CircularProgress, 
   Button, Grid, Chip, Table, TableBody, 
   TableCell, TableHead, TableRow, LinearProgress, Divider, Tooltip, IconButton,
-  TableContainer
+  TableContainer, Skeleton
 } from '@mui/material';
+import { useAlertStore } from '../store/useAlertStore';
 import EditIcon from '@mui/icons-material/Edit';
 import SpeedIcon from '@mui/icons-material/Speed';
 import MemoryIcon from '@mui/icons-material/Memory';
@@ -35,6 +36,7 @@ export const ServerDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showNotification } = useNotificationStore();
+  const { showAlert } = useAlertStore();
   
   // Stores globales
   const { 
@@ -183,7 +185,11 @@ export const ServerDetailsPage = () => {
         // Error de diagnóstico crítico: No pudimos resolver la información del servidor
         const errorMsg = 'Error crítico: No se pudieron obtener los datos generales del servidor.';
         showNotification(errorMsg, 'error');
-        alert(errorMsg);
+        showAlert({
+          title: 'Error de Diagnóstico',
+          description: 'No se pudieron recuperar los detalles técnicos del servidor. Por favor, intente de nuevo o contacte a soporte.',
+          severity: 'error'
+        });
         navigate('/');
         return;
       }
@@ -221,12 +227,16 @@ export const ServerDetailsPage = () => {
     } catch (err: any) {
       console.error('[ServerDetails] Error loading data:', err);
       showNotification('Error al consultar información técnica del servidor', 'error');
-      alert('Error general: Falló la inicialización paralela de observabilidad en el servidor.');
+      showAlert({
+        title: 'Error de Inicialización',
+        description: 'Falló la inicialización paralela de observabilidad en el servidor.',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id, fetchCriticalities, fetchStatuses, fetchDBLiveMetricsUnified, dbmsList.length, fetchDbmsList, getParsedMetrics, showNotification, criticalities.length, statuses.length, dbLiveMetricsUnified, navigate]);
+  }, [id, fetchCriticalities, fetchStatuses, fetchDBLiveMetricsUnified, dbmsList.length, fetchDbmsList, getParsedMetrics, showNotification, criticalities.length, statuses.length, dbLiveMetricsUnified, navigate, showAlert]);
 
   useEffect(() => {
     loadServerData();
@@ -234,8 +244,46 @@ export const ServerDetailsPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
+      <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
+        {/* Skeleton Header */}
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={{ width: '60%' }}>
+            <Skeleton width={120} height={24} sx={{ mb: 1 }} />
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+              <Skeleton width={250} height={48} />
+              <Skeleton width={120} height={32} />
+            </Stack>
+            <Skeleton width="100%" height={20} sx={{ mt: 1 }} />
+          </Box>
+          <Skeleton width={100} height={40} variant="rounded" />
+        </Box>
+
+        {/* Skeleton Metadata Box */}
+        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 4 }}>
+          <Stack direction="row" spacing={3} sx={{ alignItems: 'center' }}>
+            <Skeleton width={150} height={24} />
+            <Skeleton width={150} height={24} />
+            <Skeleton width={150} height={24} />
+          </Stack>
+        </Paper>
+
+        {/* Skeleton Main Grid */}
+        <Grid container spacing={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, height: 280 }}>
+              <Skeleton width="50%" height={28} sx={{ mb: 2 }} />
+              <Skeleton width="100%" height={40} sx={{ mb: 1 }} />
+              <Skeleton width="100%" height={40} sx={{ mb: 1 }} />
+              <Skeleton width="100%" height={40} />
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, height: 280 }}>
+              <Skeleton width="30%" height={28} sx={{ mb: 2 }} />
+              <Skeleton variant="rectangular" width="100%" height={160} />
+            </Paper>
+          </Grid>
+        </Grid>
       </Box>
     );
   }

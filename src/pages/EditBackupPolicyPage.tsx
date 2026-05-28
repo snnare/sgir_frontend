@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Typography, Button, CircularProgress } from '@mui/material';
+import { Box, Typography, Button, Skeleton, Stack } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BackupPolicyForm } from '../components/BackupPolicyForm';
 import { useBackupStore } from '../store/useBackupStore';
@@ -27,9 +27,22 @@ export const EditBackupPolicyPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <CircularProgress />
-      </Box>
+      <FormPageLayout
+        title="Editar Política"
+        subtitle="Cargando configuración de la política..."
+        backTo="/backups/politicas"
+        backLabel="Volver al listado"
+        maxWidth="sm"
+      >
+        <Stack spacing={3} sx={{ py: 2 }}>
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={56} variant="rounded" />
+          <Skeleton height={48} variant="rounded" sx={{ mt: 2 }} />
+        </Stack>
+      </FormPageLayout>
     );
   }
 
