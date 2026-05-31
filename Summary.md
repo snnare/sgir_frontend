@@ -57,28 +57,65 @@ Este documento sirve como bitácora detallada de todo el trabajo técnico y visu
 Para erradicar la percepción de bloqueos en la interfaz y eliminar el uso de indicadores circulares estáticos (`CircularProgress`), desarrollamos plantillas esqueléticas (`Skeleton` de Material-UI) que replican de forma fiel la estructura geométrica de cada vista en carga:
 * **Layouts de Tabla**: Implementados en `BackupPathsPage.tsx`, `CredentialsPage.tsx` y `SearchAssetsPage.tsx`, dibujando cabeceras y 4 filas simuladas con stacks de botones redondeados.
 * **Layouts de Tarjeta / Métrica**: Diseñados en `HomePage.tsx` y `BackupPoliciesPage.tsx`, proyectando rectángulos de KPIs fijos y grillas adaptables de 4 columnas para emular los paneles del Dashboard.
-* **Layouts de Formulario**: Integrados en `EditBackupPathPage.tsx`, `EditBackupPolicyPage.tsx`, `EditCredentialPage.tsx` y `UpdateServerInfoPage.tsx` dibujando rectángulos que imitan la disposición de los inputs y botones de envío.
-
-### G. Estandarización de Botones a "Guardar"
+* **Layouts de Formulario**: Integrados en `EditBackupPathPage.tsx`, `EditBackupPolicyPage.tsx`, `EditCredentialPage.tsx` y `UpdateServerInfoPage### G. Estandarización de Botones a "Guardar"
 * Modificamos todos los botones principales de envío en los formularios editables del sistema (`BackupPathForm`, `BackupPolicyForm`, `EditCredentialPage`, `UpdateServerInfoPage`) para utilizar la etiqueta única y simplificada de **`"Guardar"`** (y **`"Procesando..."`** al guardar), homogeneizando el contraste con la paleta tipográfica y sombras del proyecto.
+
+### H. Carga Masiva Global y Kit Completo Unificado
+* **Enrutamiento por Defecto**: Rediseñamos el comportamiento inicial de `/bulk-upload`. Si el usuario ingresa a la URL limpia sin query parameters (`?type=...`), el componente ahora inicializa por defecto la interfaz de **Carga Masiva Global (Kit Completo)**, ofreciendo una experiencia centralizada de descarga y administración.
+* **Diccionario de Configuraciones**: Agregamos la configuración `completo` al mapeo dinámico de `BulkUploadPage.tsx`, la cual integra descargas específicas, descripciones orientadas a la inicialización global del sistema y simulaciones de alta fidelidad.
+
+### I. Empaquetado de Plantillas Planas (Solo Guía + CSV)
+* **Estructura sin Carpetas**: Re-diseñamos el empaquetado de todos los archivos `.zip` en `public/templates/` utilizando la bandera `-j` de `zip` para descartar subcarpetas. Al extraerse, los recursos (la guía `.md` leída desde el recién renombrado directorio `guias/` y el `.csv` de `plantillas/`) se extraen directamente en la raíz de la descarga sin crear subcarpetas, garantizando un desempaquetado limpio y directo ("guia + csv" únicamente).
+* **Kit Completo Plano**: Compilamos `kit_completo.zip` unificando las 6 guías y plantillas CSV en formato plano directamente en su raíz.
+
+### J. Resoluciones de Bugs Operativos en Carga Masiva
+* **Bypass de React Router en Descargas**: Sustituimos el evento de clic con `window.open` del botón de descarga por un componente ancla nativo (`component="a"`, `href` y `download`). Esto fuerza al navegador a ejecutar la descarga en segundo plano y evita que React Router intercepte la URL y redirija erróneamente al SRE a la página principal (`HomePage.tsx`).
+* **Bloqueo de Burbujeo de Eventos (Event Bubbling)**: Inyectamos `e.stopPropagation()` en el botón de descarga del CSV para prevenir que el evento de clic propague hacia el componente `<Paper>` padre (el cual tiene asignada la apertura del explorador de carga), eliminando el molesto comportamiento que desplegaba la selección de archivos locales al presionar el botón de descarga.
+
+### K. Integraciones y Refactorizaciones en la Barra Lateral (Sidebar)
+* **Acceso Global a Carga Masiva**: Agregamos una nueva opción permanente `Carga Masiva` en el pie de página (*Footer*) del Sidebar (abajo de Perfil y antes del divider) utilizando el icono `CloudUploadIcon`, permitiendo una navegación reactiva hacia `/bulk-upload` en cualquier momento.
+* **Mejora de Iconografía SRE**: Sustituimos el icono genérico de subida de la carpeta `"Respaldos"` por **`SettingsBackupRestoreIcon`**, alineándose perfectamente con la semántica operativa de programación, retención e historial de respaldos.
+
+### L. Doble Vista en Inventario y Buscador Profundo (`SearchAssetsPage.tsx`)
+* **Doble Visualización (Detallada vs. Comprimida)**: Alterna entre ver cada BD de forma individualizada (con IP de servidor abajo) o agrupada por host e instancia RDBMS (con conteo total de esquemas, motor y peso total sumado en MB/GB).
+  * **Vista Detallada**: Cada base de datos representa una fila en la tabla, reordenado con la columna `Servidor / IP` en primer lugar, mostrando la **IP en negritas y formato monoespaciado** y el nombre del Host en la parte inferior.
+  * **Vista Comprimida**: Agrupa reactivamente los activos por Host e Instancia DBMS, realizando agregación computada del conteo de bases de datos internas y el peso total acumulado en megabytes/gigabytes. Muestra la estampa temporal de la última sincronización (`lastSyncTime`) de forma dinámica.
+* **Búsqueda Bidireccional Profunda**: Modificamos el algoritmo de búsqueda de la vista comprimida. Ahora inspecciona recursivamente la lista interna de bases de datos (`bases_de_datos.some(...)`) de cada instancia, permitiendo al SRE encontrar inmediatamente el Host que hospeda un esquema particular digitando sólo su nombre en el buscador general.
+
+### M. Descarga de Reportes CSV/PDF con Inyección JWT (`SearchAssetsPage.tsx`)
+* **Integración de Reportes**: Transformamos el botón de Reportes en un menú desplegable interactivo (`DownloadIcon` + `KeyboardArrowDownIcon`) con dos opciones:
+  * **PDF (UAEMex)**: Primera opción, asociada a `PictureAsPdfIcon` y subtítulo *"A4 UAEMex"*.
+  * **Crudo (CSV)**: Segunda opción, asociada a `StorageIcon` y subtítulo *"Excel"*.
+* **Descarga Autenticada con Blob**: Ambos botones ejecutan peticiones Axios del lado del cliente (`api.get` con `responseType: 'blob'`), inyectando de forma segura y automatizada el token Bearer JWT activo del usuario. Al resolverse, gatilla una descarga binaria nativa en el navegador con un nombre de archivo dinámico basado en la fecha (ej. `reporte_activos_YYYY-MM-DD.pdf`).
+
+### N. Importador Rápido de Crontab en Alta de Políticas (`BackupPolicyForm.tsx`)
+* **Importación Directa**: Añadimos el nuevo campo de texto **"Expresión Crontab de Importación Rápida"** inmediatamente después de la Descripción en el alta y edición de políticas.
+* **Parser y Saneamiento**: Desarrollamos un algoritmo inteligente en frontend que analiza la expresión crontab (soportando formato estándar de 5 campos y formato corto de 4/3 campos + comando). Al pegar la línea, rellena de forma reactiva y en tiempo real:
+  * **Expresión Cron** y sincroniza el selector de Planificación Rápida.
+  * **Ruta del Script** de respaldo.
+  * **Hora de Ejecución** (convirtiendo valores al formato estándar `HH:MM:SS`, ej. `04:00:00`).
+  * **Días de la semana** de ejecución.
+  * **Frecuencia** en horas estimada del crontab.
+* **Solución al Overlapping de Labels (MUI)**: Integramos la suscripción reactiva mediante `watch()` de React Hook Form y aplicamos `InputLabelProps={{ shrink: true }}` de forma permanente en todos los campos autocompletados. Esto asegura que la etiqueta de los TextFields se mantenga flotando perfectamente en el borde superior, evitando solapamientos estéticos con placeholders o datos importados.
 
 ---
 
 ## 2. 📁 Estado del Repositorio de Git
 
 ### Cambios Commiteados y Enviados (Push exitoso a Github)
-* **Commit `370b8be`**: Refactorización del sistema de alertas modales (`AlertDialog`), Skeletons principales (`ServerDetailsPage`, `EditBackupPathPage`, `EditBackupPolicyPage`) y estandarización del botón guardar.
-* **Commit `9f1798a`**: Migración de las alertas nativas y confirmaciones de eliminación (`window.confirm`) a `ConfirmDialog` en `src/pages/CredentialsPage.tsx`.
+* **Commit `673afc1`**: `feat: implementacion de plantillas dinamicas en carga masiva y resolucion de bugs de descarga y propagacion` (Agrupa todas las plantillas planas, enrutamiento dinámico inicial y resolución de bugs).
+* **Commit `43253e3`**: `cambios en imports y correcciones` (Consolida la estructura de transiciones Skeletons del Dashboard y Formularios).
+* **Commit `370b8be`**: `refactor: replace browser alerts with AlertDialog, replace spinners with Skeletons, and standardize submit buttons`
+* **Commit `9f1798a`**: `refactor: migrate CredentialsPage delete to ConfirmDialog and implement skeletal load rows in policies and credentials pages`
 
 ### Cambios Locales en Working Directory (Staged / Uncommitted - Listo para la siguiente sesión)
 Los siguientes archivos han sido modificados, completamente validados a nivel de tipo (`pnpm tsc --noEmit` exitoso) y empaquetados en producción (`pnpm run build` exitoso), pero **NO han sido commiteados ni enviados a Git**, según las instrucciones:
-1. `src/components/BackupPolicyForm.tsx` (Planificador de Cron Rápido).
-2. `src/pages/EditCredentialPage.tsx` (Test de conexión inline con resolución de motores DBMS).
-3. `src/pages/BackupPathsPage.tsx` (Skeletal loader de tablas y métricas).
-4. `src/pages/HomePage.tsx` (Skeletal loader de Dashboard de alto rendimiento).
-5. `src/pages/SearchAssetsPage.tsx` (Skeletal loader de inventario de bases de datos y alerta unificada).
-6. `src/pages/UpdateServerInfoPage.tsx` (Skeletal loader de edición de servidor y estandarización de botón principal).
-7. `src/pages/BackupPoliciesPage.tsx` (Skeletal loader de listado de políticas).
+1. `src/components/Sidebar.tsx` (Enlace de carga masiva en footer, importación de iconos y cambio del icono de respaldos).
+2. `src/pages/BulkUploadPage.tsx` (Mapeo de la configuración completo e inicialización de fallback dinámico).
+3. `src/pages/SearchAssetsPage.tsx` (Doble vista interactiva, buscador recursivo interno de BDs, y descarga de reportes PDF/CSV con token JWT).
+4. `src/components/BackupPolicyForm.tsx` (Importador rápido de Crontab temporal/rutas y prevención de solapamiento de etiquetas MUI).
+5. `README.md` (Documentación del switch de vistas, buscador recursivo, descargas binarias y parser crontab).
+6. `Summary.md` (Bitácora consolidada de desarrollo actualizada).
 
 ---
 

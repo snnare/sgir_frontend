@@ -12,7 +12,8 @@ import {
     BackupDiscoveryResponseSchema, type BackupDiscoveryResponse,
     MonitoringSessionSchema, type MonitoringSession,
     MonitoringSessionDetailSchema, type MonitoringSessionDetail,
-    type MonitoringCreateInput, type ParsedDBLiveMetrics
+    type MonitoringCreateInput, type ParsedDBLiveMetrics,
+    GlobalBackupDiscoveryResponseSchema, type GlobalBackupDiscoveryResponse
 } from './types';
 import { z } from 'zod';
 
@@ -115,8 +116,18 @@ export const discoverBackups = async (serverId: number, credId: number, pathId: 
     return BackupDiscoveryResponseSchema.parse(data);
 };
 
+export const discoverInstanceBackups = async (instanceId: number, credId: number, pathId: number): Promise<BackupDiscoveryResponse> => {
+    const { data } = await api.post(`/m3/inventory/discover-backups/${instanceId}/${credId}/${pathId}`);
+    return BackupDiscoveryResponseSchema.parse(data);
+};
+
+export const discoverAllBackups = async (): Promise<GlobalBackupDiscoveryResponse> => {
+    const { data } = await api.post('/m3/inventory/discover-all-backups');
+    return GlobalBackupDiscoveryResponseSchema.parse(data);
+};
+
 export const getDBLiveCache = async (): Promise<Record<number, string | ParsedDBLiveMetrics>> => {
-    const { data } = await api.get('/sgir/v1/m1/db/live-cache');
+    const { data } = await api.get('/m1/db/live-cache');
     return data;
 };
 

@@ -11,6 +11,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { BackButton } from '../components/BackButton';
 import { useState, useRef } from 'react';
 import { importBulkServers } from '../api/infrastructureService';
+import { importBulkBackupPaths } from '../api/backupService';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { useAlertStore } from '../store/useAlertStore';
 import type { ImportSummary } from '../api/types';
@@ -42,6 +43,7 @@ const UPLOAD_CONFIGS: Record<string, UploadConfig> = {
     description: 'Registra directorios locales y almacenamiento de red en bloque para habilitar de inmediato las políticas de respaldo y monitoreo.',
     helperText: 'El archivo debe estar en formato .csv. Asegúrate de configurar correctamente los puntos de montaje absolutos de Linux y sus alias descriptivos.',
     zipPath: '/templates/importacion_rutas.zip',
+    apiCall: importBulkBackupPaths,
     mockResult: () => ({ total_filas: 4, servidores_procesados: 0, instancias_procesadas: 0, credenciales_procesadas: 0, errores: [] })
   },
   'bases-datos': {
@@ -75,6 +77,14 @@ const UPLOAD_CONFIGS: Record<string, UploadConfig> = {
     helperText: 'El archivo debe estar en formato .csv. El backend encriptará las contraseñas al vuelo de forma totalmente transparente.',
     zipPath: '/templates/importacion_servidores.zip',
     mockResult: () => ({ total_filas: 3, servidores_procesados: 0, instancias_procesadas: 0, credenciales_procesadas: 3, errores: [] })
+  },
+  completo: {
+    title: 'Carga Masiva Global (Kit Completo)',
+    subtitle: 'Administra y descarga todas las plantillas e instructivos del sistema.',
+    description: 'Inicializa y carga todos tus activos en lote descargando el kit unificado con todas las plantillas de datos y sus respectivas guías en un solo paso.',
+    helperText: 'El archivo descargado contiene los 5 CSV de plantilla listos para usar y las 5 guías explicativas detalladas en formato plano sin carpetas.',
+    zipPath: '/templates/kit_completo.zip',
+    mockResult: () => ({ total_filas: 15, servidores_procesados: 5, instancias_procesadas: 5, credenciales_procesadas: 5, errores: [] })
   }
 };
 
@@ -85,8 +95,8 @@ export const BulkUploadPage = () => {
   const { showAlert } = useAlertStore();
 
   // Determinar el tipo de carga actual basándose en la URL (?type=...)
-  const rawType = searchParams.get('type') || searchParams.get('target') || 'servidores';
-  const type = UPLOAD_CONFIGS[rawType] ? rawType : 'servidores';
+  const rawType = searchParams.get('type') || searchParams.get('target') || 'completo';
+  const type = UPLOAD_CONFIGS[rawType] ? rawType : 'completo';
   const config = UPLOAD_CONFIGS[type];
   
   const [file, setFile] = useState<File | null>(null);
@@ -308,20 +318,50 @@ export const BulkUploadPage = () => {
 
             <Divider />
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2, textAlign: 'center' }}>
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main' }}>{summary.servidores_procesados}</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>Servidores</Typography>
-              </Box>
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main' }}>{summary.instancias_procesadas}</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>Instancias</Typography>
-              </Box>
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main' }}>{summary.credenciales_procesadas}</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>Credenciales</Typography>
-              </Box>
-            </Box>
+            {(() => {
+              const getMetrics = () => {
+                switch (type) {
+                  case 'rutas':
+                    return [{ label: 'Rutas Importadas', value: summary.rutas_procesadas ?? 0 }];
+                  case 'bases-datos':
+                    return [{ label: 'Bases de Datos', value: summary.bases_procesadas ?? 0 }];
+                  case 'politicas':
+                    return [{ label: 'Políticas creadas', value: summary.politicas_procesadas ?? 0 }];
+                  case 'asignaciones':
+                    return [{ label: 'Asignaciones', value: summary.asignaciones_procesadas ?? 0 }];
+                  case 'credenciales':
+                    return [{ label: 'Credenciales', value: summary.credenciales_procesadas ?? 0 }];
+                  case 'servidores':
+                  case 'completo':
+                  default:
+                    return [
+                      { label: 'Servidores', value: summary.servidores_procesados ?? 0 },
+                      { label: 'Instancias', value: summary.instancias_procesadas ?? 0 },
+                      { label: 'Credenciales', value: summary.credenciales_procesadas ?? 0 }
+                    ];
+                }
+              };
+              const metrics = getMetrics();
+              return (
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: `repeat(${metrics.length}, 1fr)`, 
+                  gap: 2, 
+                  textAlign: 'center' 
+                }}>
+                  {metrics.map((m, idx) => (
+                    <Box key={idx}>
+                      <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main' }}>
+                        {m.value}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>
+                        {m.label}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              );
+            })()}
 
             {summary.errores.length > 0 && (
               <Box>

@@ -1,7 +1,7 @@
 import { Box, Typography, Stack, Divider, IconButton, Collapse, Switch, Tooltip, CircularProgress } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
-import BackupIcon from '@mui/icons-material/Backup';
+import SettingsBackupRestoreIcon from '@mui/icons-material/SettingsBackupRestore';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import SearchIcon from '@mui/icons-material/Search';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -15,6 +15,8 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useShallow } from 'zustand/react/shallow';
 import { useLocation } from 'react-router-dom';
 import { SidebarItem } from './SidebarItem';
 import { useThemeStore } from '../store/useThemeStore';
@@ -30,9 +32,22 @@ interface SidebarProps {
 
 export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
   const location = useLocation();
-  const { mode, toggleTheme } = useThemeStore();
-  const { schedulerStatus, fetchSchedulerStatus, pauseMonitoring, resumeMonitoring, loading: monitoringLoading } = useMonitoringStore();
-  const { user } = useAuthStore();
+  
+  // Select only the needed values from stores to avoid unrelated re-renders
+  const mode = useThemeStore((state) => state.mode);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
+  
+  const { schedulerStatus, fetchSchedulerStatus, pauseMonitoring, resumeMonitoring, monitoringLoading } = useMonitoringStore(
+    useShallow((state) => ({
+      schedulerStatus: state.schedulerStatus,
+      fetchSchedulerStatus: state.fetchSchedulerStatus,
+      pauseMonitoring: state.pauseMonitoring,
+      resumeMonitoring: state.resumeMonitoring,
+      monitoringLoading: state.loading,
+    }))
+  );
+  
+  const user = useAuthStore((state) => state.user);
   const { showNotification } = useNotificationStore();
   const [isHovered, setIsHovered] = useState(false);
   const [backupsExpanded, setBackupsExpanded] = useState(false);
@@ -201,7 +216,7 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
         
         {/* Grupo de Respaldos */}
         <SidebarItem 
-          icon={<BackupIcon fontSize="small" />} 
+          icon={<SettingsBackupRestoreIcon fontSize="small" />} 
           label="Respaldos" 
           onClick={handleBackupsToggle}
           active={location.pathname.startsWith('/backups')} 
@@ -289,6 +304,13 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
           label="Perfil" 
           to="/profile" 
           active={location.pathname === '/profile'} 
+          open={isExpanded} 
+        />
+        <SidebarItem 
+          icon={<CloudUploadIcon fontSize="small" />} 
+          label="Carga Masiva" 
+          to="/bulk-upload" 
+          active={location.pathname === '/bulk-upload'} 
           open={isExpanded} 
         />
         <Divider sx={{ my: 1.5 }} />

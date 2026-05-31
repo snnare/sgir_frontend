@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Box, Typography, Paper, Stack, Divider, IconButton, Checkbox, Tooltip, CircularProgress } from '@mui/material';
 import SpeedIcon from '@mui/icons-material/Speed';
 import MemoryIcon from '@mui/icons-material/Memory';
@@ -24,7 +24,7 @@ interface ServerCardProps {
   onToggleSelect?: (id: number) => void;
 }
 
-export const ServerCard = ({ 
+export const ServerCard = memo(({ 
   server, 
   healthStatus,
   onEdit,
@@ -36,8 +36,11 @@ export const ServerCard = ({
   const navigate = useNavigate();
   const [instances, setInstances] = useState<Instance[]>([]);
   const [instancesLoading, setInstancesLoading] = useState(false);
-  const { dbmsList, fetchDbmsList } = useInfrastructureStore();
-  const { dbLiveMetricsUnified } = useMonitoringStore();
+  
+  // Select fine-grained state to prevent massive re-render cascades
+  const dbmsList = useInfrastructureStore((state) => state.dbmsList);
+  const fetchDbmsList = useInfrastructureStore((state) => state.fetchDbmsList);
+  const dbLiveMetricsUnified = useMonitoringStore((state) => state.dbLiveMetricsUnified);
 
   useEffect(() => {
     if (dbmsList.length === 0) {
@@ -338,4 +341,4 @@ export const ServerCard = ({
       </Stack>
     </Paper>
   );
-};
+});

@@ -53,9 +53,9 @@ export const AlertDialog = () => {
         }
       }}
     >
-      <DialogTitle sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, pt: 3 }}>
+      <DialogTitle component="div" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, pt: 3 }}>
         {getIcon()}
-        <Typography variant="h5" sx={{ fontWeight: 800, textAlign: 'center', letterSpacing: '-0.02em', mt: 1 }}>
+        <Typography component="div" variant="h5" sx={{ fontWeight: 800, textAlign: 'center', letterSpacing: '-0.02em', mt: 1 }}>
           {title}
         </Typography>
       </DialogTitle>

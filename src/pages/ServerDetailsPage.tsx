@@ -16,21 +16,28 @@ import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import KeyIcon from '@mui/icons-material/Key';
 
 import { 
   getServerById, 
   getPartitionsByServer, 
-  getInstancesByServer 
+  getInstancesByServer,
+  getCredentialsByServer
 } from '../api/infrastructureService';
 import { 
   getHealthStatus, 
   getAlertsByServer 
 } from '../api/monitoringService';
-import { type Server, type PartitionResponse, type Instance, type Alert as SystemAlert, type HealthStatus, type ParsedDBLiveMetrics } from '../api/types';
+import { 
+  type Server, type PartitionResponse, type Instance, 
+  type Alert as SystemAlert, type HealthStatus, type ParsedDBLiveMetrics,
+  type CredentialEnriched
+} from '../api/types';
 import { useInfrastructureStore } from '../store/useInfrastructureStore';
 import { useMonitoringStore } from '../store/useMonitoringStore';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { BackButton } from '../components/BackButton';
+import { useShallow } from 'zustand/react/shallow';
 
 export const ServerDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +45,7 @@ export const ServerDetailsPage = () => {
   const { showNotification } = useNotificationStore();
   const { showAlert } = useAlertStore();
   
-  // Stores globales
+  // Stores globales con selectors y useShallow
   const { 
     criticalities, 
     statuses, 
@@ -46,12 +53,26 @@ export const ServerDetailsPage = () => {
     fetchCriticalities, 
     fetchStatuses, 
     fetchDbmsList 
-  } = useInfrastructureStore();
+  } = useInfrastructureStore(
+    useShallow((state) => ({
+      criticalities: state.criticalities,
+      statuses: state.statuses,
+      dbmsList: state.dbmsList,
+      fetchCriticalities: state.fetchCriticalities,
+      fetchStatuses: state.fetchStatuses,
+      fetchDbmsList: state.fetchDbmsList
+    }))
+  );
 
   const { 
     dbLiveMetricsUnified, 
     fetchDBLiveMetricsUnified 
-  } = useMonitoringStore();
+  } = useMonitoringStore(
+    useShallow((state) => ({
+      dbLiveMetricsUnified: state.dbLiveMetricsUnified,
+      fetchDBLiveMetricsUnified: state.fetchDBLiveMetricsUnified
+    }))
+  );
 
   // Estados locales reales
   const [loading, setLoading] = useState(true);
@@ -61,6 +82,7 @@ export const ServerDetailsPage = () => {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [alerts, setAlerts] = useState<SystemAlert[]>([]);
   const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [credentials, setCredentials] = useState<CredentialEnriched[]>([]);
 
   // Historiales para las sparklines en vivo
   const [cpuHistory, setCpuHistory] = useState<number[]>([15, 22, 28, 35, 42, 38, 45, 48, 41, 45]);
@@ -125,7 +147,9 @@ export const ServerDetailsPage = () => {
       if (criticalities.length === 0) catalogPromises.push(fetchCriticalities());
       if (statuses.length === 0) catalogPromises.push(fetchStatuses());
       if (dbmsList.length === 0) catalogPromises.push(fetchDbmsList());
-      if (Object.keys(dbLiveMetricsUnified).length === 0) catalogPromises.push(fetchDBLiveMetricsUnified());
+      
+      const dbLiveMetricsInStore = useMonitoringStore.getState().dbLiveMetricsUnified;
+      if (Object.keys(dbLiveMetricsInStore).length === 0) catalogPromises.push(fetchDBLiveMetricsUnified());
 
       if (catalogPromises.length > 0) {
         await Promise.all(catalogPromises);
@@ -170,12 +194,19 @@ export const ServerDetailsPage = () => {
         return [] as SystemAlert[];
       });
 
+      // Credenciales registradas
+      const credentialsPromise = getCredentialsByServer(sId).catch(err => {
+        console.warn('[ServerDetails] No se pudieron obtener credenciales:', err);
+        return [] as CredentialEnriched[];
+      });
+
       // 4. Ejecutar todas las llamadas de datos requeridas en paralelo
-      const [serverData, healthData, partitionsData, alertsData] = await Promise.all([
+      const [serverData, healthData, partitionsData, alertsData, credentialsData] = await Promise.all([
         serverPromise,
         healthPromise,
         partitionsPromise,
-        alertsPromise
+        alertsPromise,
+        credentialsPromise
       ]);
 
       // 5. Asignar los estados locales o globales
@@ -197,6 +228,7 @@ export const ServerDetailsPage = () => {
       setPartitions(partitionsData);
       setHealth(healthData);
       setAlerts(alertsData);
+      setCredentials(credentialsData);
 
       // Si obtuvimos métricas en vivo reales, las guardamos en el store local para actualizar el caché
       if (healthData) {
@@ -236,7 +268,7 @@ export const ServerDetailsPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id, fetchCriticalities, fetchStatuses, fetchDBLiveMetricsUnified, dbmsList.length, fetchDbmsList, getParsedMetrics, showNotification, criticalities.length, statuses.length, dbLiveMetricsUnified, navigate, showAlert]);
+  }, [id, fetchCriticalities, fetchStatuses, fetchDBLiveMetricsUnified, dbmsList.length, fetchDbmsList, getParsedMetrics, showNotification, criticalities.length, statuses.length, navigate, showAlert]);
 
   useEffect(() => {
     loadServerData();
@@ -800,52 +832,114 @@ export const ServerDetailsPage = () => {
           </Paper>
         </Grid>
 
-        {/* PARTE DE LA DERECHA: ALERTA Y CRONOLOGÍA */}
+        {/* PARTE DE LA DERECHA: CREDENCIALES Y ALERTAS */}
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper variant="outlined" sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <BugReportIcon color="primary" /> Alertas del Servidor (Últimas 24h)
-            </Typography>
+          <Stack spacing={3}>
+            {/* LLAVERO DE CREDENCIALES COMPACTO */}
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif' }}>
+                <KeyIcon color="primary" /> Credenciales Registradas
+              </Typography>
 
-            {alerts.length === 0 ? (
-              <Box sx={{ py: 6, textAlign: 'center', bgcolor: 'action.hover', borderRadius: 2 }}>
-                <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
-                  No se han registrado incidencias de severidad en las últimas 24 horas.
-                </Typography>
-              </Box>
-            ) : (
-              <Stack spacing={2}>
-                {alerts.map((alert) => (
-                  <Paper 
-                    variant="outlined" 
-                    key={alert.id_alerta}
-                    sx={{ 
-                      p: 2, 
-                      borderRadius: 2, 
-                      borderLeft: '4px solid', 
-                      borderLeftColor: alert.id_nivel_alerta === 1 ? 'error.main' : 'warning.main',
-                      bgcolor: 'action.hover'
-                    }}
-                  >
-                    <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              {credentials.length === 0 ? (
+                <Box sx={{ py: 3, textAlign: 'center', bgcolor: 'action.hover', borderRadius: 2 }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
+                    No hay credenciales registradas.
+                  </Typography>
+                </Box>
+              ) : (
+                <Stack spacing={1.5}>
+                  {credentials.map((cred) => (
+                    <Paper 
+                      variant="outlined" 
+                      key={cred.id_credencial}
+                      onClick={() => navigate(`/credenciales/editar/${cred.id_credencial}`)}
+                      sx={{ 
+                        p: 1.5, 
+                        borderRadius: 2.5, 
+                        bgcolor: 'action.hover',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderColor: 'divider',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          bgcolor: 'action.selected',
+                          borderColor: 'primary.light',
+                          transform: 'translateY(-1px)'
+                        }
+                      }}
+                    >
+                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                        <KeyIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: '"JetBrains Mono", monospace' }}>
+                            {cred.usuario}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            Tipo: {cred.tipo.nombre_tipo}
+                          </Typography>
+                        </Box>
+                      </Stack>
                       <Chip 
-                        label={alert.id_nivel_alerta === 1 ? 'CRÍTICO' : 'ADVERTENCIA'} 
+                        label={cred.estado.nombre_estado.toUpperCase()} 
                         size="small" 
-                        color={alert.id_nivel_alerta === 1 ? 'error' : 'warning'} 
-                        sx={{ fontWeight: 900, height: 18, fontSize: '0.55rem' }} 
+                        color={cred.estado.id_estado === 1 ? 'success' : 'default'} 
+                        sx={{ fontWeight: 900, fontSize: '0.55rem', height: 18 }} 
                       />
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-                        {alert.fecha_alerta ? new Date(alert.fecha_alerta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Paper>
+
+            {/* ALERTAS */}
+            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, fontFamily: 'Outfit, sans-serif' }}>
+                <BugReportIcon color="primary" /> Alertas del Servidor (Últimas 24h)
+              </Typography>
+
+              {alerts.length === 0 ? (
+                <Box sx={{ py: 6, textAlign: 'center', bgcolor: 'action.hover', borderRadius: 2 }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ fontWeight: 600 }}>
+                    No se han registrado incidencias de severidad en las últimas 24 horas.
+                  </Typography>
+                </Box>
+              ) : (
+                <Stack spacing={2}>
+                  {alerts.map((alert) => (
+                    <Paper 
+                      variant="outlined" 
+                      key={alert.id_alerta}
+                      sx={{ 
+                        p: 2, 
+                        borderRadius: 2, 
+                        borderLeft: '4px solid', 
+                        borderLeftColor: alert.id_nivel_alerta === 1 ? 'error.main' : 'warning.main',
+                        bgcolor: 'action.hover'
+                      }}
+                    >
+                      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Chip 
+                          label={alert.id_nivel_alerta === 1 ? 'CRÍTICO' : 'ADVERTENCIA'} 
+                          size="small" 
+                          color={alert.id_nivel_alerta === 1 ? 'error' : 'warning'} 
+                          sx={{ fontWeight: 900, height: 18, fontSize: '0.55rem' }} 
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                          {alert.fecha_alerta ? new Date(alert.fecha_alerta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </Typography>
+                      </Stack>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.4 }}>
+                        {alert.descripcion}
                       </Typography>
-                    </Stack>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.4 }}>
-                      {alert.descripcion}
-                    </Typography>
-                  </Paper>
-                ))}
-              </Stack>
-            )}
-          </Paper>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Paper>
+          </Stack>
         </Grid>
       </Grid>
     </Box>

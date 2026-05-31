@@ -12,6 +12,78 @@ import { useBackupStore } from '../store/useBackupStore';
 import { useNotificationStore } from './GlobalNotification';
 import { BackupPolicyCreateSchema, type BackupPolicyCreateInput, type BackupPolicy } from '../api/types';
 
+// Helper para parsear líneas de crontab y extraer campos clave
+const parseCrontabLine = (line: string) => {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+
+  const parts = trimmed.split(/\s+/);
+  if (parts.length < 2) return null;
+
+  // Determinar número de campos cron antes del comando
+  let cronFieldsCount = 5;
+  if (parts.length === 5) {
+    cronFieldsCount = 4;
+  } else if (parts.length === 4) {
+    cronFieldsCount = 3;
+  } else if (parts.length >= 6) {
+    cronFieldsCount = 5;
+  }
+
+  const cronParts = parts.slice(0, cronFieldsCount);
+  const commandParts = parts.slice(cronFieldsCount);
+  const command = commandParts.join(' ');
+  const cronExpr = cronParts.join(' ');
+
+  let hourStr = '';
+  let dayOfWeekStr = '';
+  let frequency = 24;
+
+  if (cronFieldsCount === 5) {
+    const [min, hour, , , dow] = cronParts;
+    
+    if (hour !== '*' && !hour.includes('/') && !hour.includes(',') && !hour.includes('-')) {
+      const h = parseInt(hour, 10);
+      const m = min !== '*' ? parseInt(min, 10) : 0;
+      if (!isNaN(h) && !isNaN(m)) {
+        hourStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
+      }
+    } else if (hour.startsWith('*/')) {
+      const freq = parseInt(hour.substring(2), 10);
+      if (!isNaN(freq)) frequency = freq;
+    } else if (hour === '*') {
+      frequency = 1;
+    }
+
+    if (dow !== '*') {
+      dayOfWeekStr = dow;
+    }
+  } else if (cronFieldsCount === 4) {
+    const [hour, , , dow] = cronParts;
+    
+    if (hour !== '*' && !hour.includes('/') && !hour.includes(',') && !hour.includes('-')) {
+      const h = parseInt(hour, 10);
+      if (!isNaN(h)) {
+        hourStr = `${h.toString().padStart(2, '0')}:00:00`;
+      }
+    } else if (hour === '*') {
+      frequency = 1;
+    }
+
+    if (dow !== '*') {
+      dayOfWeekStr = dow;
+    }
+  }
+
+  return {
+    cronExpr,
+    command,
+    hourStr,
+    dayOfWeekStr,
+    frequency
+  };
+};
+
 const BACKUP_TYPES = [
   { id: 1, name: 'Completo' },
   { id: 2, name: 'Incremental' },
@@ -30,6 +102,33 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
   const { showNotification } = useNotificationStore();
 
   const [cronPreset, setCronPreset] = useState<string>('custom');
+  const [crontabInput, setCrontabInput] = useState<string>('');
+
+  const handleCrontabInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCrontabInput(val);
+    
+    const parsed = parseCrontabLine(val);
+    if (parsed) {
+      if (parsed.cronExpr) {
+        setValue('expression_cron', parsed.cronExpr);
+        setCronPreset(getPresetFromCron(parsed.cronExpr));
+      }
+      if (parsed.command) {
+        setValue('script_path', parsed.command);
+      }
+      if (parsed.hourStr) {
+        setValue('hora_ejecuccion', parsed.hourStr);
+      }
+      if (parsed.dayOfWeekStr) {
+        setValue('dias_semana', parsed.dayOfWeekStr);
+      }
+      if (parsed.frequency) {
+        setValue('frecuencia_horas', parsed.frequency);
+      }
+      showNotification('Campos auto-completados desde la línea de crontab', 'success');
+    }
+  };
 
   const getPresetFromCron = (cron: string): string => {
     if (!cron) return 'custom';
@@ -61,6 +160,7 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors }
   } = useForm<BackupPolicyCreateInput>({
     resolver: zodResolver(BackupPolicyCreateSchema) as any,
@@ -77,6 +177,9 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
       id_estado_politica: 1,
     }
   });
+
+  // Observa los cambios del formulario para forzar el re-render de React y permitir que MUI contraiga (shrink) las etiquetas automáticamente
+  watch();
 
   useEffect(() => {
     if (initialData) {
@@ -137,6 +240,16 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
           helperText={errors.descripcion?.message}
         />
 
+        <TextField
+          fullWidth
+          id="crontab_input"
+          label="Expresión Crontab de Importación Rápida"
+          placeholder="ej. * * * 4 backup.sh o 0 4 * * 1-5 /var/scripts/backup.sh"
+          value={crontabInput}
+          onChange={handleCrontabInputChange}
+          helperText="Pega una línea de crontab válida para auto-llenar los campos automáticamente"
+        />
+
         {/* Fila de Parámetros Numéricos */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <TextField
@@ -153,7 +266,8 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
                     <AccessTimeIcon fontSize="small" />
                   </InputAdornment>
                 ),
-              }
+              },
+              inputLabel: { shrink: true }
             }}
             {...register('frecuencia_horas', { valueAsNumber: true })}
             error={!!errors.frecuencia_horas}
@@ -173,7 +287,8 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
                     <HistoryIcon fontSize="small" />
                   </InputAdornment>
                 ),
-              }
+              },
+              inputLabel: { shrink: true }
             }}
             {...register('retencion_dias', { valueAsNumber: true })}
             error={!!errors.retencion_dias}
@@ -212,7 +327,8 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
             slotProps={{
               input: {
                 readOnly: cronPreset !== 'custom'
-              }
+              },
+              inputLabel: { shrink: true }
             }}
             {...register('expression_cron')}
             error={!!errors.expression_cron}
@@ -223,6 +339,9 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
             id="hora_ejecuccion"
             label="Hora de Ejecución"
             placeholder="ej. 04:00:00"
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
             {...register('hora_ejecuccion')}
             error={!!errors.hora_ejecuccion}
             helperText={errors.hora_ejecuccion?.message || "Formato de hora de 24h (HH:MM:SS)"}
@@ -235,6 +354,9 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
             id="dias_semana"
             label="Días de la Semana"
             placeholder="ej. 1,2,3,4,5 o L,M,M,J,V"
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
             {...register('dias_semana')}
             error={!!errors.dias_semana}
             helperText={errors.dias_semana?.message || "Lista de días separados por comas"}
@@ -244,6 +366,9 @@ export const BackupPolicyForm = ({ initialData, isEdit = false }: Props) => {
             id="script_path"
             label="Ruta del Script de Respaldo"
             placeholder="ej. /var/scripts/backup_mysql.sh"
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
             {...register('script_path')}
             error={!!errors.script_path}
             helperText={errors.script_path?.message || "Ubicación del ejecutable o script en el host"}

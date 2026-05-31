@@ -38,6 +38,13 @@ export const EditCredentialPage = () => {
     formState: { errors },
   } = useForm<CredentialUpdateInput>({
     resolver: zodResolver(CredentialUpdateSchema),
+    defaultValues: {
+      id_servidor: '' as any,
+      id_tipo_acceso: '' as any,
+      usuario: '',
+      password: '',
+      id_estado_credencial: '' as any,
+    }
   });
 
   useEffect(() => {

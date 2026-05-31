@@ -269,16 +269,24 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
                 const { servers } = useInfrastructureStore.getState();
                 
                 if (servers.length > 0) {
-                    await Promise.all(servers.map(async (server) => {
-                        try {
-                            const individualData = await getHealthStatus(server.id_servidor);
-                            set((state) => ({
-                                liveMetrics: { ...state.liveMetrics, [server.id_servidor]: individualData }
-                            }));
-                        } catch (err) {
-                            console.error(`[MonitoringStore] Error fetching for server ${server.id_servidor}:`, err);
+                    const newMetrics = { ...useMonitoringStore.getState().liveMetrics };
+                    // Process in batches of 4 to avoid browser HTTP connection pool congestion
+                    const batchSize = 4;
+                    for (let i = 0; i < servers.length; i += batchSize) {
+                        const batch = servers.slice(i, i + batchSize);
+                        await Promise.all(batch.map(async (server) => {
+                            try {
+                                const individualData = await getHealthStatus(server.id_servidor);
+                                newMetrics[server.id_servidor] = individualData;
+                            } catch (err) {
+                                console.error(`[MonitoringStore] Error fetching for server ${server.id_servidor}:`, err);
+                            }
+                        }));
+                        if (i + batchSize < servers.length) {
+                            await new Promise((resolve) => setTimeout(resolve, 100));
                         }
-                    }));
+                    }
+                    set({ liveMetrics: newMetrics });
                     return;
                 }
             }

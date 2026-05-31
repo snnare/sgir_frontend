@@ -24,20 +24,47 @@ import { useNotificationStore } from '../components/GlobalNotification';
 import { FilterBar } from '../components/FilterBar';
 import { FloatingActionGroup } from '../components/FloatingActionGroup';
 
+import { useShallow } from 'zustand/react/shallow';
+
 export const HomePage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { 
-    servers, loading, fetchServers, 
-    fetchCriticalities, criticalities
-  } = useInfrastructureStore();
-  const { 
-    schedulerStatus, liveMetrics: healthCache, alerts,
-    fetchSchedulerStatus, fetchAlertsToday,
-    pauseMonitoring, resumeMonitoring, fetchLiveCache,
-    fetchDBLiveMetricsUnified
-  } = useMonitoringStore();
-  const { user } = useAuthStore();
+  
+  const { servers, loading, fetchServers, fetchCriticalities, criticalities } = useInfrastructureStore(
+    useShallow((state) => ({
+      servers: state.servers,
+      loading: state.loading,
+      fetchServers: state.fetchServers,
+      fetchCriticalities: state.fetchCriticalities,
+      criticalities: state.criticalities,
+    }))
+  );
+
+  const {
+    schedulerStatus,
+    healthCache,
+    alerts,
+    fetchSchedulerStatus,
+    fetchAlertsToday,
+    pauseMonitoring,
+    resumeMonitoring,
+    fetchLiveCache,
+    fetchDBLiveMetricsUnified,
+  } = useMonitoringStore(
+    useShallow((state) => ({
+      schedulerStatus: state.schedulerStatus,
+      healthCache: state.liveMetrics,
+      alerts: state.alerts,
+      fetchSchedulerStatus: state.fetchSchedulerStatus,
+      fetchAlertsToday: state.fetchAlertsToday,
+      pauseMonitoring: state.pauseMonitoring,
+      resumeMonitoring: state.resumeMonitoring,
+      fetchLiveCache: state.fetchLiveCache,
+      fetchDBLiveMetricsUnified: state.fetchDBLiveMetricsUnified,
+    }))
+  );
+
+  const user = useAuthStore((state) => state.user);
   const { showNotification } = useNotificationStore();
   const { confirmAction } = useConfirmStore();
   

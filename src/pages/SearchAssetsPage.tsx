@@ -14,6 +14,12 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
 import DnsIcon from '@mui/icons-material/Dns';
 import InfoIcon from '@mui/icons-material/Info';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import ViewCompactIcon from '@mui/icons-material/ViewCompact';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import DownloadIcon from '@mui/icons-material/Download';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import api from '../api/client';
 import { getAssets, discoverAllInventory } from '../api/infrastructureService';
 import { type Asset, type GlobalDiscoveryResponse } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
@@ -32,6 +38,22 @@ export const SearchAssetsPage = () => {
   const menuOpen = Boolean(anchorEl);
   const [globalResult, setGlobalResult] = useState<GlobalDiscoveryResponse | null>(null);
   const [resultDialogOpen, setResultDialogOpen] = useState(false);
+
+  // Estados para soportar vista detallada vs comprimida y fecha de actualización
+  const [viewMode, setViewMode] = useState<'detailed' | 'compressed'>('detailed');
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
+
+  // Estados para el menú de descargas de Reporte
+  const [reportAnchorEl, setReportAnchorEl] = useState<null | HTMLElement>(null);
+  const reportMenuOpen = Boolean(reportAnchorEl);
+
+  const handleReportClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setReportAnchorEl(event.currentTarget);
+  };
+
+  const handleReportClose = () => {
+    setReportAnchorEl(null);
+  };
 
   const { showNotification } = useNotificationStore();
   const { showAlert } = useAlertStore();
@@ -71,11 +93,58 @@ export const SearchAssetsPage = () => {
     setWizardOpen(true);
   };
 
+  const handleDownloadPDF = async () => {
+    handleReportClose();
+    showNotification('Generando reporte PDF (A4 UAEMex)...', 'info');
+    try {
+      const response = await api.get('/assets/pdf', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `reporte_activos_${new Date().toISOString().split('T')[0]}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showNotification('Reporte PDF descargado exitosamente', 'success');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      showAlert({
+        title: 'Error de Descarga',
+        description: 'No se pudo descargar el reporte PDF. Por favor, intente más tarde.',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleDownloadCSV = async () => {
+    handleReportClose();
+    showNotification('Generando reporte CSV (Crudo Excel)...', 'info');
+    try {
+      const response = await api.get('/assets/csv', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `reporte_activos_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showNotification('Reporte CSV descargado exitosamente', 'success');
+    } catch (error) {
+      console.error('Error downloading CSV:', error);
+      showAlert({
+        title: 'Error de Descarga',
+        description: 'No se pudo descargar el reporte CSV (Excel). Por favor, intente más tarde.',
+        severity: 'error'
+      });
+    }
+  };
+
   const fetchAllAssets = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getAssets();
       setAssets(data);
+      setLastSyncTime(new Date()); // Captura de fecha y hora tras sincronización exitosa
     } catch (error) {
       console.error('Error fetching assets:', error);
       showAlert({
@@ -86,7 +155,7 @@ export const SearchAssetsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [showNotification]);
+  }, [showNotification, showAlert]);
 
   useEffect(() => {
     fetchAllAssets();
@@ -103,43 +172,101 @@ export const SearchAssetsPage = () => {
   }, [assets]);
 
   const filteredData = useMemo(() => {
-    // Aplanamos la estructura para que cada base de datos sea una fila
-    const flattened = assets.flatMap(item => 
-      item.bases_de_datos.map(db => ({
-        ...item,
-        base_datos: db.nombre,
-        estado_bd: db.estado,
-        tamano_mb: db.tamano_mb,
-        id_composite: `${item.ip}-${item.instancia}-${db.nombre}`
-      }))
-    );
+    if (viewMode === 'detailed') {
+      // Vista detallada: cada base de datos es una fila
+      const flattened = assets.flatMap(item => 
+        item.bases_de_datos.map(db => ({
+          ...item,
+          base_datos: db.nombre,
+          estado_bd: db.estado,
+          tamano_mb: db.tamano_mb,
+          id_composite: `${item.ip}-${item.instancia}-${db.nombre}`
+        }))
+      );
 
-    return flattened.filter(item => {
-      const searchStr = searchTerm.toLowerCase();
-      const matchesSearch = 
-        (item.base_datos?.toLowerCase() || '').includes(searchStr) ||
-        item.ip.includes(searchStr) ||
-        item.motor.toLowerCase().includes(searchStr) ||
-        item.servidor.toLowerCase().includes(searchStr) ||
-        item.instancia.toLowerCase().includes(searchStr);
-      
-      const matchesDbms = 
-        dbmsFilter === 'all' || item.motor === dbmsFilter;
-      
-      return matchesSearch && matchesDbms;
-    });
-  }, [assets, searchTerm, dbmsFilter]);
+      return flattened.filter(item => {
+        const searchStr = searchTerm.toLowerCase();
+        const matchesSearch = 
+          (item.base_datos?.toLowerCase() || '').includes(searchStr) ||
+          item.ip.includes(searchStr) ||
+          item.motor.toLowerCase().includes(searchStr) ||
+          item.servidor.toLowerCase().includes(searchStr) ||
+          item.instancia.toLowerCase().includes(searchStr);
+        
+        const matchesDbms = 
+          dbmsFilter === 'all' || item.motor === dbmsFilter;
+        
+        return matchesSearch && matchesDbms;
+      });
+    } else {
+      // Vista comprimida: cada instancia es una fila
+      return assets
+        .map(item => {
+          const totalSize = item.bases_de_datos.reduce((sum, db) => sum + (db.tamano_mb || 0), 0);
+          return {
+            ...item,
+            total_db: item.bases_de_datos.length,
+            peso_total_mb: totalSize,
+            id_composite: `${item.ip}-${item.instancia}`
+          };
+        })
+        .filter(item => {
+          const searchStr = searchTerm.toLowerCase();
+          const matchesSearch = 
+            item.ip.includes(searchStr) ||
+            item.motor.toLowerCase().includes(searchStr) ||
+            item.servidor.toLowerCase().includes(searchStr) ||
+            item.instancia.toLowerCase().includes(searchStr) ||
+            item.bases_de_datos.some(db => db.nombre.toLowerCase().includes(searchStr));
+          
+          const matchesDbms = 
+            dbmsFilter === 'all' || item.motor === dbmsFilter;
+          
+          return matchesSearch && matchesDbms;
+        });
+    }
+  }, [assets, searchTerm, dbmsFilter, viewMode]);
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
       {/* --- 1. TITULO --- */}
-      <Box sx={{ mb: 4 }}>
-          <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
-          Inventario de Activos
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-          Búsqueda global y control centralizado de bases de datos y servidores.
-          </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+              <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
+              Inventario de Activos
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+              Búsqueda global y control centralizado de bases de datos y servidores.
+              </Typography>
+          </Box>
+          <Stack direction="row" spacing={0.5} sx={{ bgcolor: 'background.paper', p: 0.5, borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+            <Tooltip title="Vista Detallada (BDs)">
+              <IconButton 
+                onClick={() => setViewMode('detailed')}
+                color={viewMode === 'detailed' ? 'primary' : 'default'}
+                sx={{ 
+                  borderRadius: 2, 
+                  bgcolor: viewMode === 'detailed' ? 'action.selected' : 'transparent',
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+              >
+                <ViewListIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Vista Comprimida (Instancias)">
+              <IconButton 
+                onClick={() => setViewMode('compressed')}
+                color={viewMode === 'compressed' ? 'primary' : 'default'}
+                sx={{ 
+                  borderRadius: 2, 
+                  bgcolor: viewMode === 'compressed' ? 'action.selected' : 'transparent',
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+              >
+                <ViewCompactIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
       </Box>
 
       <DiscoveryWizard 
@@ -259,6 +386,52 @@ export const SearchAssetsPage = () => {
         searchPlaceholder="Buscar por base, IP, motor o servidor..."
         rightActions={
           <>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<DownloadIcon />}
+              endIcon={<KeyboardArrowDownIcon />}
+              onClick={handleReportClick}
+              sx={{
+                borderRadius: 2,
+                px: 3,
+                height: 40,
+                whiteSpace: 'nowrap',
+                fontWeight: 700
+              }}
+            >
+              Reporte
+            </Button>
+            <Menu
+              anchorEl={reportAnchorEl}
+              open={reportMenuOpen}
+              onClose={handleReportClose}
+              slotProps={{
+                paper: {
+                  sx: {
+                    borderRadius: 2,
+                    mt: 1,
+                    minWidth: 180,
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+                  }
+                }
+              }}
+              transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+            >
+              <MenuItem onClick={handleDownloadPDF}>
+                <ListItemIcon>
+                  <PictureAsPdfIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="PDF" secondary="A4 UAEMex" />
+              </MenuItem>
+              <MenuItem onClick={handleDownloadCSV}>
+                <ListItemIcon>
+                  <StorageIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Crudo (CSV)" secondary="Excel" />
+              </MenuItem>
+            </Menu>
             <Button 
               variant="contained" 
               startIcon={syncingAll ? <CircularProgress size={16} color="inherit" /> : <AutoAwesomeIcon />}
@@ -323,22 +496,46 @@ export const SearchAssetsPage = () => {
           <Table>
             <TableHead sx={{ bgcolor: 'action.hover' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 800 }}>Base de Datos</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
-                <TableCell sx={{ fontWeight: 800 }}>Instancia / Motor</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800 }}>Criticidad</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
+                {viewMode === 'detailed' ? (
+                  <>
+                    <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Base de Datos</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Instancia / Motor</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Criticidad</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
+                  </>
+                ) : (
+                  <>
+                    <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Tipo de RDBMS</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Total de DB</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>Peso Total</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Fecha Actualización</TableCell>
+                  </>
+                )}
                 <TableCell align="right" sx={{ width: 50 }} />
               </TableRow>
             </TableHead>
             <TableBody>
               {Array.from({ length: 4 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton width="60%" height={24} /></TableCell>
-                  <TableCell><Skeleton width="50%" height={24} /></TableCell>
-                  <TableCell><Skeleton width="70%" height={24} /></TableCell>
-                  <TableCell align="center"><Skeleton width={60} height={24} sx={{ mx: 'auto' }} /></TableCell>
-                  <TableCell align="center"><Skeleton width={50} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                  {viewMode === 'detailed' ? (
+                    <>
+                      <TableCell><Skeleton width="50%" height={24} /></TableCell>
+                      <TableCell><Skeleton width="60%" height={24} /></TableCell>
+                      <TableCell><Skeleton width="70%" height={24} /></TableCell>
+                      <TableCell align="center"><Skeleton width={60} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                      <TableCell align="center"><Skeleton width={50} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell><Skeleton width="60%" height={24} /></TableCell>
+                      <TableCell><Skeleton width="40%" height={24} /></TableCell>
+                      <TableCell align="center"><Skeleton width={40} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                      <TableCell align="right"><Skeleton width={80} height={24} sx={{ ml: 'auto' }} /></TableCell>
+                      <TableCell align="center"><Skeleton width={120} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                    </>
+                  )}
                   <TableCell align="right"><Skeleton width={28} height={28} variant="circular" sx={{ ml: 'auto' }} /></TableCell>
                 </TableRow>
               ))}
@@ -348,11 +545,23 @@ export const SearchAssetsPage = () => {
         <Table>
           <TableHead sx={{ bgcolor: 'action.hover' }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 800 }}>Base de Datos</TableCell>
-              <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
-              <TableCell sx={{ fontWeight: 800 }}>Instancia / Motor</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 800 }}>Criticidad</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
+              {viewMode === 'detailed' ? (
+                <>
+                  <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Base de Datos</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Instancia / Motor</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Criticidad</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
+                </>
+              ) : (
+                <>
+                  <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Tipo de RDBMS</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Total de DB</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>Peso Total</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Fecha Actualización</TableCell>
+                </>
+              )}
               <TableCell align="right" sx={{ width: 50 }}>
                 <Tooltip title="Actualizar Tabla">
                   <IconButton onClick={handleRefresh} size="small">
@@ -366,55 +575,125 @@ export const SearchAssetsPage = () => {
             {filteredData.length > 0 ? (
               filteredData.map((row) => (
                 <TableRow key={row.id_composite} hover>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                      <StorageIcon fontSize="small" color="primary" />
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.base_datos}</Typography>
-                        {row.tamano_mb !== null && (
-                          <Typography variant="caption" color="text.secondary">
-                            {row.tamano_mb?.toFixed(2)} MB
-                          </Typography>
-                        )}
-                      </Box>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.servidor}</Typography>
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-                      {row.ip}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.instancia}</Typography>
-                    <Typography variant="caption" color="primary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
-                      {row.motor}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip 
-                        label={row.criticidad}
-                        size="small"
-                        sx={{ 
-                            fontWeight: 700, 
+                  {viewMode === 'detailed' ? (
+                    <>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: '"JetBrains Mono", monospace' }}>
+                          {row.ip}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          {row.servidor}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                          <StorageIcon fontSize="small" color="primary" />
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>{(row as any).base_datos}</Typography>
+                            {(row as any).tamano_mb !== null && (
+                              <Typography variant="caption" color="text.secondary">
+                                {(row as any).tamano_mb?.toFixed(2)} MB
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.instancia}</Typography>
+                        <Typography variant="caption" color="primary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                          {row.motor}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip 
+                            label={row.criticidad}
+                            size="small"
+                            sx={{ 
+                                fontWeight: 700, 
+                                borderRadius: 1.5, 
+                                fontSize: '0.6rem',
+                                bgcolor: row.criticidad === 'Alta' ? 'error.lighter' : row.criticidad === 'Media' ? 'warning.lighter' : 'success.lighter',
+                                color: row.criticidad === 'Alta' ? 'error.dark' : row.criticidad === 'Media' ? 'warning.dark' : 'success.dark',
+                                border: '1px solid',
+                                borderColor: 'currentColor'
+                            }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip 
+                          label={(row as any).estado_bd} 
+                          size="small" 
+                          color={(row as any).estado_bd?.toLowerCase() === 'activo' || (row as any).estado_bd?.toLowerCase() === 'online' ? 'success' : 'default'}
+                          variant="outlined"
+                          sx={{ fontWeight: 700, borderRadius: 1.5, fontSize: '0.65rem' }}
+                        />
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell>
+                        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                          <DnsIcon fontSize="small" color="primary" />
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.servidor}</Typography>
+                            <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: 'text.secondary' }}>
+                              {row.ip}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.instancia}</Typography>
+                        <Chip 
+                          label={row.motor}
+                          size="small"
+                          sx={{ 
+                            fontWeight: 800, 
                             borderRadius: 1.5, 
                             fontSize: '0.6rem',
-                            bgcolor: row.criticidad === 'Alta' ? 'error.lighter' : row.criticidad === 'Media' ? 'warning.lighter' : 'success.lighter',
-                            color: row.criticidad === 'Alta' ? 'error.dark' : row.criticidad === 'Media' ? 'warning.dark' : 'success.dark',
+                            bgcolor: row.motor.toLowerCase().includes('oracle') ? 'error.lighter' : row.motor.toLowerCase().includes('mongo') ? 'success.lighter' : 'primary.lighter',
+                            color: row.motor.toLowerCase().includes('oracle') ? 'error.dark' : row.motor.toLowerCase().includes('mongo') ? 'success.dark' : 'primary.dark',
                             border: '1px solid',
-                            borderColor: 'currentColor'
-                        }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip 
-                      label={row.estado_bd} 
-                      size="small" 
-                      color={row.estado_bd.toLowerCase() === 'activo' || row.estado_bd.toLowerCase() === 'online' ? 'success' : 'default'}
-                      variant="outlined"
-                      sx={{ fontWeight: 700, borderRadius: 1.5, fontSize: '0.65rem' }}
-                    />
-                  </TableCell>
+                            borderColor: 'currentColor',
+                            textTransform: 'uppercase',
+                            mt: 0.5,
+                            display: 'inline-flex'
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip 
+                          label={`${(row as any).total_db} DBs`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ fontWeight: 700, borderRadius: 1.5, fontSize: '0.65rem' }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                          {(row as any).peso_total_mb > 1024 
+                            ? `${((row as any).peso_total_mb / 1024).toFixed(2)} GB`
+                            : `${(row as any).peso_total_mb.toFixed(2)} MB`
+                          }
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', justifyContent: 'center' }}>
+                          <CalendarTodayIcon sx={{ fontSize: '0.75rem', color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            {lastSyncTime.toLocaleDateString('es-ES', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Typography>
+                        </Stack>
+                      </TableCell>
+                    </>
+                  )}
                   <TableCell />
                 </TableRow>
               ))

@@ -7,7 +7,8 @@ import {
     BackupPathDetailsSchema, type BackupPathDetails,
     BackupHistorySchema, type BackupHistory,
     type BackupHistoryCreateInput,
-    PolicyAssetResponseSchema, type PolicyAssetResponse
+    PolicyAssetResponseSchema, type PolicyAssetResponse,
+    ImportSummarySchema, type ImportSummary
 } from './types';
 import { z } from 'zod';
 
@@ -72,4 +73,17 @@ export const getBackupHistory = async (): Promise<BackupHistory[]> => {
 export const createBackup = async (backupData: BackupHistoryCreateInput): Promise<BackupHistory> => {
     const { data } = await api.post('/crud/respaldos/', backupData);
     return BackupHistorySchema.parse(data);
+};
+
+export const importBulkBackupPaths = async (file: File): Promise<ImportSummary> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const { data } = await api.post('/crud/rutas-respaldo/import-bulk', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+
+    return ImportSummarySchema.parse(data);
 };

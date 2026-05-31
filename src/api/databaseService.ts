@@ -12,7 +12,7 @@ export const databaseService = {
      * Altamente optimizado para barras de estado generales y dashboards principales.
      */
     async getGlobalSummary(): Promise<DBGlobalSummary> {
-        const { data } = await api.get('/sgir/v1/m2/inventory/global-summary');
+        const { data } = await api.get('/m2/inventory/global-summary');
         return DBGlobalSummarySchema.parse(data);
     },
 
@@ -21,7 +21,7 @@ export const databaseService = {
      * desde la caché global en memoria.
      */
     async getLiveCacheInstances(): Promise<DBInstanceHealth[]> {
-        const { data } = await api.get('/sgir/v1/m2/inventory/live-cache');
+        const { data } = await api.get('/m2/inventory/live-cache');
         return z.array(DBInstanceHealthSchema).parse(data);
     },
 
@@ -29,7 +29,7 @@ export const databaseService = {
      * 3. Dispara un escaneo masivo (Auto-descubrimiento y recolección concurrente) en el backend.
      */
     async triggerDiscoverAll(): Promise<DBDiscoveryResponse> {
-        const { data } = await api.post('/sgir/v1/m2/inventory/discover-all');
+        const { data } = await api.post('/m2/inventory/discover-all');
         return DBDiscoveryResponseSchema.parse(data);
     },
 
@@ -37,7 +37,7 @@ export const databaseService = {
      * 4. Forzar la recolección manual/ad-hoc de métricas para una instancia específica.
      */
     async refreshInstanceMetrics(instanciaId: number): Promise<DBInstanceHealth> {
-        const { data } = await api.post(`/sgir/v1/m2/inventory/instance/${instanciaId}/refresh`);
+        const { data } = await api.post(`/m2/inventory/instance/${instanciaId}/refresh`);
         return DBInstanceHealthSchema.parse(data);
     }
 };

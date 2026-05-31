@@ -82,8 +82,28 @@ export const getCredentials = async (): Promise<CredentialEnriched[]> => {
 };
 
 export const getCredentialById = async (id: number): Promise<Credential> => {
-    const { data } = await api.get(`/crud/credenciales/${id}`);
-    return CredentialSchema.parse(data);
+    try {
+        const { data } = await api.get(`/crud/credenciales/${id}`);
+        return CredentialSchema.parse(data);
+    } catch (error) {
+        console.warn(`[getCredentialById] Direct fetch failed for ID ${id}. Falling back to list-based parsing...`, error);
+        try {
+            const allCreds = await getCredentials();
+            const found = allCreds.find((c) => c.id_credencial === id);
+            if (found) {
+                return {
+                    id_credencial: found.id_credencial,
+                    usuario: found.usuario,
+                    id_tipo_acceso: found.tipo.id_tipo_acceso,
+                    id_estado_credencial: found.estado.id_estado,
+                    id_servidor: found.id_servidor,
+                };
+            }
+        } catch (fallbackError) {
+            console.error('[getCredentialById] Fallback failed:', fallbackError);
+        }
+        throw error;
+    }
 };
 
 export const updateCredential = async (id: number, credentialData: CredentialUpdateInput): Promise<Credential> => {

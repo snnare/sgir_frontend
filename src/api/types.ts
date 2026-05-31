@@ -565,9 +565,13 @@ export const ImportErrorSchema = z.object({
 
 export const ImportSummarySchema = z.object({
     total_filas: z.number(),
-    servidores_procesados: z.number(),
-    instancias_procesadas: z.number(),
-    credenciales_procesadas: z.number(),
+    servidores_procesados: z.number().optional(),
+    instancias_procesadas: z.number().optional(),
+    credenciales_procesadas: z.number().optional(),
+    rutas_procesadas: z.number().optional(),
+    bases_procesadas: z.number().optional(),
+    politicas_procesadas: z.number().optional(),
+    asignaciones_procesadas: z.number().optional(),
     errores: z.array(ImportErrorSchema),
 });
 
@@ -635,5 +639,21 @@ export const ParsedDBLiveMetricsSchema = z.object({
     timestamp: z.number(),
 });
 export type ParsedDBLiveMetrics = z.infer<typeof ParsedDBLiveMetricsSchema>;
+
+export const GlobalBackupDiscoveryErrorSchema = z.object({
+    servidor: z.string(),
+    instancia: z.string().optional(),
+    ruta: z.string(),
+    error: z.string(),
+});
+export type GlobalBackupDiscoveryError = z.infer<typeof GlobalBackupDiscoveryErrorSchema>;
+
+export const GlobalBackupDiscoveryResponseSchema = z.object({
+    total_rutas_procesadas: z.number(),
+    total_respaldos_registrados: z.number(),
+    servidores_escaneados: z.array(z.string()),
+    errores: z.array(GlobalBackupDiscoveryErrorSchema),
+});
+export type GlobalBackupDiscoveryResponse = z.infer<typeof GlobalBackupDiscoveryResponseSchema>;
 
 

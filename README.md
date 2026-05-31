@@ -28,10 +28,14 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 
 ### 🏗️ Gestión de Inventario y Activos
 - **Inventario CMDB Real**: Búsqueda global enriquecida (`/inventory/assets`) que cruza Servidor -> Instancia -> Bases de Datos.
+  - **Doble Vista (Detallada vs. Comprimida)**: Alterna entre ver cada BD de forma individualizada (con IP de servidor abajo) o agrupada por host e instancia RDBMS (con conteo total de esquemas, motor y peso total sumado en MB/GB).
+  - **Buscador Inteligente**: Búsqueda reactiva que localiza instancias en la vista compacta analizando de forma recursiva los nombres de las bases de datos contenidas internamente.
+  - **Reportes Multiformato**: Descarga binaria autenticada con JWT para reportes planos en **CSV (Crudo Excel)** y estructurados en **PDF (A4 UAEMex)**.
 - **Auto-Descubrimiento de BD**: Wizard guiado para sincronizar automáticamente el inventario de bases de datos.
 - **Gestión de FileSystems (SSH)**: Administrador de almacenamiento que descubre particiones físicas y permite registrar discos específicos para monitoreo.
 - **Alcance de Monitoreo Selectivo**: Configuración granular para activar monitoreo de Host y Base de Datos de forma independiente.
 - **Módulo de Políticas**: Gestión completa (CRUD) de reglas de respaldo automatizado.
+  - **Importador de Crontab**: Formulario de alta provisto de un parser inteligente de crontab (estándar y corta de 4 campos) para auto-completar rutas, periodicidades, horas y días de forma reactiva, con saneamiento y prevención de solapamiento de etiquetas MUI (`InputLabelProps={{ shrink: true }}`).
 
 ### 🎨 Experiencia de Usuario (UI/UX)
 - **Componentes Estandarizados**:
