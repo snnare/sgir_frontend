@@ -183,8 +183,8 @@ export const discoverAllInventory = async (): Promise<GlobalDiscoveryResponse> =
     return GlobalDiscoveryResponseSchema.parse(data);
 };
 
-export const discoverFilesystems = async (serverId: number): Promise<FilesystemDiscoveryResponse> => {
-    const { data } = await api.post(`/m1/host/discover-filesystems/${serverId}`, {});
+export const discoverFilesystems = async (serverId: number, signal?: AbortSignal): Promise<FilesystemDiscoveryResponse> => {
+    const { data } = await api.post(`/m1/host/discover-filesystems/${serverId}`, {}, { signal });
     return FilesystemDiscoveryResponseSchema.parse(data);
 };
 

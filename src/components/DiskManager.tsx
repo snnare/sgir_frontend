@@ -8,6 +8,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import SyncIcon from '@mui/icons-material/Sync';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import axios from 'axios';
 import { discoverFilesystems, upsertPartition, getPartitionsByServer, deletePartition } from '../api/infrastructureService';
 import { type Filesystem, type PartitionResponse } from '../api/types';
 import { useNotificationStore } from './GlobalNotification';
@@ -27,14 +28,14 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
   
   const { showNotification } = useNotificationStore();
 
-  const fetchFilesystems = useCallback(async () => {
+  const fetchFilesystems = useCallback(async (signal?: AbortSignal) => {
     if (!serverId) return;
     
     setLoading(true);
     setError(null);
     try {
       const [discoveryRes, registeredRes] = await Promise.all([
-        discoverFilesystems(serverId),
+        discoverFilesystems(serverId, signal),
         getPartitionsByServer(serverId)
       ]);
       
@@ -53,6 +54,9 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
       setLabels(initialLabels);
       
     } catch (err: any) {
+      if (axios.isCancel(err) || err.name === 'CanceledError') {
+        return; // Silently ignore request abortion on unmount
+      }
       console.error(err);
       setError(err.response?.data?.detail || 'Error al conectar por SSH para descubrir discos. Verifique las credenciales.');
     } finally {
@@ -61,9 +65,13 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
   }, [serverId]);
 
   useEffect(() => {
+    const controller = new AbortController();
     if (serverId) {
-      fetchFilesystems();
+      fetchFilesystems(controller.signal);
     }
+    return () => {
+      controller.abort();
+    };
   }, [serverId, fetchFilesystems]);
 
   const handleLabelChange = (path: string, newLabel: string) => {
@@ -136,7 +144,7 @@ export const DiskManager = ({ serverId }: DiskManagerProps) => {
                 </Typography>
             </Stack>
             <Tooltip title="Volver a Escanear">
-                <IconButton onClick={fetchFilesystems} disabled={loading} size="small">
+                <IconButton onClick={() => fetchFilesystems()} disabled={loading} size="small">
                     <SyncIcon fontSize="small" />
                 </IconButton>
             </Tooltip>

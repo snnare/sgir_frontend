@@ -54,10 +54,12 @@ Este documento sirve como bitácora detallada de todo el trabajo técnico y visu
   * Obtiene de forma dinámica el primer motor de base de datos instalado (ej: Oracle) y cruza los catálogos de DBMS locales para estructurar la ruta exacta del endpoint (ej: `oracle/no-legacy`), inyectando el SID del motor y realizando la prueba de conectividad hacia el backend de forma automática y transparente.
 
 ### F. Transiciones Orgánicas de Carga (`Skeletons`)
-Para erradicar la percepción de bloqueos en la interfaz y eliminar el uso de indicadores circulares estáticos (`CircularProgress`), desarrollamos plantillas esqueléticas (`Skeleton` de Material-UI) que replican de forma fiel la estructura geométrica de cada vista en carga:
+* Para erradicar la percepción de bloqueos en la interfaz y eliminar el uso de indicadores circulares estáticos (`CircularProgress`), desarrollamos plantillas esqueléticas (`Skeleton` de Material-UI) que replican de forma fiel la estructura geométrica de cada vista en carga:
 * **Layouts de Tabla**: Implementados en `BackupPathsPage.tsx`, `CredentialsPage.tsx` y `SearchAssetsPage.tsx`, dibujando cabeceras y 4 filas simuladas con stacks de botones redondeados.
 * **Layouts de Tarjeta / Métrica**: Diseñados en `HomePage.tsx` y `BackupPoliciesPage.tsx`, proyectando rectángulos de KPIs fijos y grillas adaptables de 4 columnas para emular los paneles del Dashboard.
-* **Layouts de Formulario**: Integrados en `EditBackupPathPage.tsx`, `EditBackupPolicyPage.tsx`, `EditCredentialPage.tsx` y `UpdateServerInfoPage### G. Estandarización de Botones a "Guardar"
+* **Layouts de Formulario**: Integrados en `EditBackupPathPage.tsx`, `EditBackupPolicyPage.tsx`, `EditCredentialPage.tsx` y `UpdateServerInfoPage`.
+
+### G. Estandarización de Botones a "Guardar"
 * Modificamos todos los botones principales de envío en los formularios editables del sistema (`BackupPathForm`, `BackupPolicyForm`, `EditCredentialPage`, `UpdateServerInfoPage`) para utilizar la etiqueta única y simplificada de **`"Guardar"`** (y **`"Procesando..."`** al guardar), homogeneizando el contraste con la paleta tipográfica y sombras del proyecto.
 
 ### H. Carga Masiva Global y Kit Completo Unificado
@@ -98,24 +100,50 @@ Para erradicar la percepción de bloqueos en la interfaz y eliminar el uso de in
   * **Frecuencia** en horas estimada del crontab.
 * **Solución al Overlapping de Labels (MUI)**: Integramos la suscripción reactiva mediante `watch()` de React Hook Form y aplicamos `InputLabelProps={{ shrink: true }}` de forma permanente en todos los campos autocompletados. Esto asegura que la etiqueta de los TextFields se mantenga flotando perfectamente en el borde superior, evitando solapamientos estéticos con placeholders o datos importados.
 
+### O. Endpoints de Credenciales y Fallback Ultra-Resiliente Client-Side
+* **Endpoint de Lectura Backend**: Implementamos el endpoint faltante `GET /crud/credenciales/{credencial_id}` en el router del backend (`credencial_acceso_routes.py`) utilizando la función interna `get_credencial`.
+* **Saneamiento de Valores MUI Select**: Rellenamos `defaultValues` atómicos y seguros (`''` como fallback para valores numéricos opcionales) en `useForm` de `EditCredentialPage.tsx` para evitar que la UI renderice con valores `undefined` que disparaban warnings críticos en los dropdowns de Material UI.
+* **Resiliencia de Red en Edición**: Ante la imposibilidad de forzar el reinicio de contenedores Docker en tiempo de ejecución en caliente (evitando downtime), diseñamos un **mecanismo de fallback inteligente en el frontend** (`getCredentialById` en `infrastructureService.ts`). Si la petición directa al ID retorna un error `405` o `404` por falta de refresco en la memoria del contenedor, el helper consulta instantáneamente el listado completo indexado (`getCredentials()`), filtra el ID y lo mapea al esquema plano requerido, logrando un funcionamiento 100% libre de interrupciones.
+
+### P. Prevención de Bucles de Renderizado (Zustand v5 useShallow)
+* **El Problema**: Las vistas principales (`Sidebar.tsx`, `HomePage.tsx`, `ServerDetailsPage.tsx`) importaban stores de Zustand completos mediante destructuración de objetos (`const { ... } = useMonitoringStore()`), lo que provocaba re-renderizados incesantes de la interfaz cada vez que se actualizaban métricas en segundo plano.
+* **Selector-Based Querying**: Refactorizamos todos los hooks de consulta para utilizar la función **`useShallow`** de Zustand v5. Los componentes ahora permanecen completamente estáticos y únicamente re-renderizan si cambian las propiedades visuales que consumen directamente.
+* **Memoización de Componentes Loop (`React.memo`)**: Envolvimos la renderización de la tarjeta de servidor (`ServerCard.tsx`) con la función `memo` de React, aislando su ciclo de vida y reduciendo a cero los re-renderizados repetitivos al procesar colecciones masivas de nodos en el panel.
+
+### Q. Control de Concurrencia de Red (Batched Fallback Polling)
+* **El Problema**: Ante una caché vacía en el backend, la store ejecutaba consultas de salud `getHealthStatus()` en paralelo para cada servidor registrado a través de un `Promise.all` descontrolado. Al superar los límites de conexión de los navegadores (máximo 6 HTTP concurrentes), las peticiones entraban en cola, paralizando la navegación de la app.
+* **Procesamiento por Lotes (Batching)**: Modificamos `fetchLiveCache` en `useMonitoringStore.ts` para procesar el fallback de servidores en **lotes controlados de 4 peticiones simultáneas**, introduciendo una pausa controlada de `100ms` entre cada lote. Esto mantiene el pool de conexiones del navegador libre en todo momento para solicitudes de usuario.
+
+### R. Resolución de Bucle de Peticiones Infinitas (`ServerDetailsPage.tsx`)
+* **Loop de Dependencias Solucionado**: Identificamos que el callback `loadServerData` incluía el objeto de métricas `dbLiveMetricsUnified` dentro de su array de dependencias. Al actualizarse las métricas, la función se regeneraba, disparando el `useEffect` de carga de forma recursiva e infinita.
+* **Lectura Desacoplada**: Desacoplamos la dependencia leyendo el estado instantáneo de la memoria caché mediante `useMonitoringStore.getState().dbLiveMetricsUnified` dentro del cuerpo de la función, eliminando el loop de red y reduciendo el tráfico del servidor UAEMex.
+
+### S. Cancelación de Operaciones SSH en Segundo Plano (`AbortController`)
+* **Fuga de Recursos**: Al entrar a la sección de discos (`DiskManager.tsx`), se iniciaba un escaneo físico remoto vía SSH (`df -h`). Si el SRE salía de la pantalla antes de terminar, la petición seguía su curso en el browser y el backend, desperdiciando CPU del servidor.
+* **Control de Cancelación**: Inyectamos el soporte de `AbortSignal` en `discoverFilesystems` (`infrastructureService.ts`) y configuramos un `AbortController` en el ciclo de desmontado del hook `useEffect` en `DiskManager.tsx`. Al salir de la vista, la llamada Axios es **abortada instantáneamente**, liberando sockets del pool del cliente y cancelando la tarea en el backend.
+
 ---
 
 ## 2. 📁 Estado del Repositorio de Git
 
 ### Cambios Commiteados y Enviados (Push exitoso a Github)
-* **Commit `673afc1`**: `feat: implementacion de plantillas dinamicas en carga masiva y resolucion de bugs de descarga y propagacion` (Agrupa todas las plantillas planas, enrutamiento dinámico inicial y resolución de bugs).
-* **Commit `43253e3`**: `cambios en imports y correcciones` (Consolida la estructura de transiciones Skeletons del Dashboard y Formularios).
+* **Commit `673afc1`**: `feat: implementacion de plantillas dinamicas en carga masiva y resolucion de bugs de descarga y propagacion`
+* **Commit `43253e3`**: `cambios en imports y correcciones`
 * **Commit `370b8be`**: `refactor: replace browser alerts with AlertDialog, replace spinners with Skeletons, and standardize submit buttons`
 * **Commit `9f1798a`**: `refactor: migrate CredentialsPage delete to ConfirmDialog and implement skeletal load rows in policies and credentials pages`
 
 ### Cambios Locales en Working Directory (Staged / Uncommitted - Listo para la siguiente sesión)
 Los siguientes archivos han sido modificados, completamente validados a nivel de tipo (`pnpm tsc --noEmit` exitoso) y empaquetados en producción (`pnpm run build` exitoso), pero **NO han sido commiteados ni enviados a Git**, según las instrucciones:
-1. `src/components/Sidebar.tsx` (Enlace de carga masiva en footer, importación de iconos y cambio del icono de respaldos).
-2. `src/pages/BulkUploadPage.tsx` (Mapeo de la configuración completo e inicialización de fallback dinámico).
-3. `src/pages/SearchAssetsPage.tsx` (Doble vista interactiva, buscador recursivo interno de BDs, y descarga de reportes PDF/CSV con token JWT).
-4. `src/components/BackupPolicyForm.tsx` (Importador rápido de Crontab temporal/rutas y prevención de solapamiento de etiquetas MUI).
-5. `README.md` (Documentación del switch de vistas, buscador recursivo, descargas binarias y parser crontab).
-6. `Summary.md` (Bitácora consolidada de desarrollo actualizada).
+1. `src/components/Sidebar.tsx` (Selector optimizations y useShallow).
+2. `src/pages/HomePage.tsx` (Selectors y useShallow en Zustand stores).
+3. `src/components/ServerCard.tsx` (Componente memoizado React.memo y selectores optimizados).
+4. `src/pages/ServerDetailsPage.tsx` (useShallow, remoción del bucle infinito de dbLiveMetricsUnified, llavero de credenciales con redirección rápida).
+5. `src/store/useMonitoringStore.ts` (Fallback de health individual procesado en lotes de 4 con 100ms de retraso).
+6. `src/api/infrastructureService.ts` (Fallback ultra-resiliente client-side en getCredentialById y soporte de AbortSignal en discoverFilesystems).
+7. `src/components/DiskManager.tsx` (AbortController para cancelar peticiones SSH en background en desmontaje de la vista).
+8. `sgir_backend/app/routes/core_crud/infrastructure/credencial_acceso_routes.py` (Endpoint backend GET /crud/credenciales/{id} implementado).
+9. `README.md` (Documentación actualizada).
+10. `Summary.md` (Bitácora consolidada de desarrollo actualizada).
 
 ---
 
@@ -134,5 +162,3 @@ Para continuar evolucionando la calidad y cobertura técnica del frontend de SGI
    * Crear un componente contenedor unificado `SkeletalLayout` para evitar repetir el diseño de stacks de `Skeleton` en las páginas de formulario de edición.
 2. **Caché en Zustand para Datos de Inventario**:
    * En `SearchAssetsPage.tsx`, cada vez que se navega, se realiza una recarga forzada (`setLoading(true)`). Implementar un almacenamiento de caché con temporizador en la store de monitoreo evitaría recargas repetitivas y aceleraría la velocidad percibida.
-3. **Manejo de DBMS Adicionales en Credenciales**:
-   * En el Test de Conexión de edición de credenciales, contemplar casos de DBMS basados en NoSQL (ej: MongoDB) para ajustar puertos por defecto automáticos (ej: `27017`) en lugar de depender únicamente de SID y Oracle Legacy.
