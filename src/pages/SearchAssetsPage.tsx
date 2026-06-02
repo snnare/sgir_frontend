@@ -116,6 +116,29 @@ export const SearchAssetsPage = () => {
     }
   };
 
+  const handleDownloadPDFOffline = async () => {
+    handleReportClose();
+    showNotification('Generando reporte PDF Offline...', 'info');
+    try {
+      const response = await api.get('/assets/pdf-offline', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'reporte_inventario_dbs_offline.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showNotification('Reporte PDF Offline descargado exitosamente', 'success');
+    } catch (error) {
+      console.error('Error downloading PDF Offline:', error);
+      showAlert({
+        title: 'Error de Descarga',
+        description: 'No se pudo descargar el reporte PDF Offline. Por favor, intente más tarde.',
+        severity: 'error'
+      });
+    }
+  };
+
   const handleDownloadCSV = async () => {
     handleReportClose();
     showNotification('Generando reporte CSV (Crudo Excel)...', 'info');
@@ -421,9 +444,15 @@ export const SearchAssetsPage = () => {
             >
               <MenuItem onClick={handleDownloadPDF}>
                 <ListItemIcon>
-                  <PictureAsPdfIcon fontSize="small" color="primary" />
+                  <PictureAsPdfIcon fontSize="small" color="success" />
                 </ListItemIcon>
-                <ListItemText primary="PDF" secondary="A4 UAEMex" />
+                <ListItemText primary="PDF Online" secondary="Sincronización en vivo" />
+              </MenuItem>
+              <MenuItem onClick={handleDownloadPDFOffline}>
+                <ListItemIcon>
+                  <PictureAsPdfIcon fontSize="small" color="warning" />
+                </ListItemIcon>
+                <ListItemText primary="PDF (Offline)" secondary="Sin conexiones remotas" />
               </MenuItem>
               <MenuItem onClick={handleDownloadCSV}>
                 <ListItemIcon>
