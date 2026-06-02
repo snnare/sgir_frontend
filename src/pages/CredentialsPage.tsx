@@ -157,8 +157,6 @@ export const CredentialsPage = () => {
           { label: `Todas (${credentials.length})`, value: 'all' },
           { label: 'SSH', value: 1 },
           { label: 'Base de Datos', value: 2 },
-          { label: 'SFTP', value: 3 },
-          { label: 'API', value: 4 },
         ]}
         activeFilter={typeFilter}
         onFilterChange={setTypeFilter}

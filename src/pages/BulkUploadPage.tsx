@@ -11,7 +11,6 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { BackButton } from '../components/BackButton';
 import { useState, useRef } from 'react';
 import { importBulkServers } from '../api/infrastructureService';
-import { importBulkBackupPaths } from '../api/backupService';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { useAlertStore } from '../store/useAlertStore';
 import type { ImportSummary } from '../api/types';
@@ -43,7 +42,6 @@ const UPLOAD_CONFIGS: Record<string, UploadConfig> = {
     description: 'Registra directorios locales y almacenamiento de red en bloque para habilitar de inmediato las políticas de respaldo y monitoreo.',
     helperText: 'El archivo debe estar en formato .csv. Asegúrate de configurar correctamente los puntos de montaje absolutos de Linux y sus alias descriptivos.',
     zipPath: '/templates/importacion_rutas.zip',
-    apiCall: importBulkBackupPaths,
     mockResult: () => ({ total_filas: 4, servidores_procesados: 0, instancias_procesadas: 0, credenciales_procesadas: 0, errores: [] })
   },
   'bases-datos': {

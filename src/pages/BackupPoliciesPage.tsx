@@ -18,7 +18,6 @@ import { useConfirmStore } from '../store/useConfirmStore';
 import { MetricCard } from '../components/MetricCard';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import HistoryIcon from '@mui/icons-material/History';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { FloatingActionGroup } from '../components/FloatingActionGroup';
 import { FilterBar } from '../components/FilterBar';
 import { type BackupPolicy } from '../api/types';
@@ -372,12 +371,6 @@ export const BackupPoliciesPage = () => {
 
       <FloatingActionGroup 
         items={[
-          {
-            label: "Carga Masiva",
-            icon: <CloudUploadIcon />,
-            color: "secondary",
-            onClick: () => navigate('/bulk-upload?type=politicas')
-          },
           {
             label: "Nueva Política",
             icon: <AddIcon />,

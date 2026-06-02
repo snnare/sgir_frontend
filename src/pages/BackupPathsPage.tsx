@@ -11,7 +11,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchOffIcon from '@mui/icons-material/SearchOff';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import StorageIcon from '@mui/icons-material/Storage';
 import DnsIcon from '@mui/icons-material/Dns';
 import CloudQueueIcon from '@mui/icons-material/CloudQueue';
@@ -362,12 +361,6 @@ export const BackupPathsPage = () => {
 
       <FloatingActionGroup 
         items={[
-          {
-            label: "Carga Masiva",
-            icon: <CloudUploadIcon />,
-            color: "secondary",
-            onClick: () => navigate('/bulk-upload?type=rutas')
-          },
           {
             label: "Nueva Ruta",
             icon: <AddIcon />,

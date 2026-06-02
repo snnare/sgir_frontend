@@ -35,6 +35,7 @@ export const EditCredentialPage = () => {
     handleSubmit,
     reset,
     getValues,
+    watch,
     formState: { errors },
   } = useForm<CredentialUpdateInput>({
     resolver: zodResolver(CredentialUpdateSchema),
@@ -205,6 +206,7 @@ export const EditCredentialPage = () => {
             select
             fullWidth
             label="Servidor"
+            value={watch('id_servidor') ?? ''}
             {...register('id_servidor', { valueAsNumber: true })}
             error={!!errors.id_servidor}
             helperText={errors.id_servidor?.message}
@@ -222,6 +224,7 @@ export const EditCredentialPage = () => {
             select
             fullWidth
             label="Tipo de Acceso"
+            value={watch('id_tipo_acceso') ?? ''}
             {...register('id_tipo_acceso', { valueAsNumber: true })}
             error={!!errors.id_tipo_acceso}
             helperText={errors.id_tipo_acceso?.message}
@@ -269,6 +272,7 @@ export const EditCredentialPage = () => {
             select
             fullWidth
             label="Estado"
+            value={watch('id_estado_credencial') ?? ''}
             {...register('id_estado_credencial', { valueAsNumber: true })}
           >
             <MenuItem value={1}>Activo</MenuItem>
