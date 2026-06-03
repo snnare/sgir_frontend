@@ -150,6 +150,7 @@ export const ServerForm = ({
           puerto: Number(puerto),
           id_dbms: Number(dbmsId),
           id_estado: 1, // Activo
+          id_estado_instancia: 1, // Retrocompatibilidad
           parametros_conexion: isOracle && sid.trim() ? { sid: sid.trim() } : {}
         };
         console.log("LOG: [ServerForm - Wizard] Mandando sid en parametros_conexion:", isOracle && sid.trim() ? sid.trim() : "ninguno");
@@ -180,6 +181,7 @@ export const ServerForm = ({
             id_servidor: newServer.id_servidor,
             id_dbms: Number(dbmsId),
             id_estado: 1, // Activo
+            id_estado_instancia: 1, // Retrocompatibilidad
             parametros_conexion: isOracle && sid.trim() ? { sid: sid.trim() } : {}
           };
           console.log("LOG: [ServerForm - Standalone] Mandando sid en parametros_conexion:", isOracle && sid.trim() ? sid.trim() : "ninguno");

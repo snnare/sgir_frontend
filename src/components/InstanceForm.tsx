@@ -105,6 +105,7 @@ export const InstanceForm = () => {
       id_servidor: Number(serverId),
       id_dbms: Number(dbmsId),
       id_estado: Number(estado),
+      id_estado_instancia: Number(estado),
       parametros_conexion
     };
 
