@@ -104,9 +104,13 @@ export const InstanceForm = () => {
       puerto: Number(puerto),
       id_servidor: Number(serverId),
       id_dbms: Number(dbmsId),
-      id_estado_instancia: Number(estado),
+      id_estado: Number(estado),
       parametros_conexion
     };
+
+    if (isOracle) {
+      console.log("LOG: [InstanceForm] Mandando sid en parametros_conexion:", parametros_conexion?.sid || "ninguno");
+    }
 
     try {
       await createInstance(payload);

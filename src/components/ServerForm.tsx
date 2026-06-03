@@ -149,9 +149,10 @@ export const ServerForm = ({
           nombre_instancia: nombreInstancia.trim() || `${data.nombre_servidor}_${selectedDbmsObj?.nombre_dbms.replace(/\s+/g, '')}`,
           puerto: Number(puerto),
           id_dbms: Number(dbmsId),
-          id_estado_instancia: 1, // Activo
-          sid: isOracle && sid.trim() ? sid.trim() : undefined
+          id_estado: 1, // Activo
+          parametros_conexion: isOracle && sid.trim() ? { sid: sid.trim() } : {}
         };
+        console.log("LOG: [ServerForm - Wizard] Mandando sid en parametros_conexion:", isOracle && sid.trim() ? sid.trim() : "ninguno");
       }
       setLoading(true);
       try {
@@ -178,9 +179,10 @@ export const ServerForm = ({
             puerto: Number(puerto),
             id_servidor: newServer.id_servidor,
             id_dbms: Number(dbmsId),
-            id_estado_instancia: 1, // Activo
-            parametros_conexion: isOracle && sid.trim() ? { sid: sid.trim() } : null
+            id_estado: 1, // Activo
+            parametros_conexion: isOracle && sid.trim() ? { sid: sid.trim() } : {}
           };
+          console.log("LOG: [ServerForm - Standalone] Mandando sid en parametros_conexion:", isOracle && sid.trim() ? sid.trim() : "ninguno");
           
           await createInstance(instancePayload);
           showNotification('Servidor e instancia DBMS registrados correctamente', 'success');

@@ -117,7 +117,7 @@ export const InstanceSchema = z.object({
     puerto: z.number(),
     id_servidor: z.number(),
     id_dbms: z.number(),
-    id_estado_instancia: z.number(),
+    id_estado: z.number(),
     fecha_inicio: z.string().optional(),
     parametros_conexion: z.record(z.string(), z.any()).nullable().optional(),
 });
