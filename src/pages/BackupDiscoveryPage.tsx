@@ -671,7 +671,7 @@ export const BackupDiscoveryPage = () => {
                 <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>
                   {mode === 'server' 
                     ? (result as ServerBackupDiscoveryResponse).peso 
-                    : `${(result as BackupDiscoveryResponse).total_peso_mb.toFixed(2)} MB`}
+                    : `${(result as BackupDiscoveryResponse).total_peso_mb?.toFixed(2) ?? '0.00'} MB`}
                 </Typography>
               </Paper>
             </Grid>
