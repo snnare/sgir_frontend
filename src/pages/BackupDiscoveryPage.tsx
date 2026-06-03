@@ -21,7 +21,6 @@ import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import DnsOutlinedIcon from '@mui/icons-material/DnsOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import TerminalIcon from '@mui/icons-material/Terminal';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import CheckIcon from '@mui/icons-material/Check';
@@ -71,7 +70,6 @@ export const BackupDiscoveryPage = () => {
   const [sortBy, setSortBy] = useState<'nombre' | 'tamano_mb' | 'fecha_modificacion'>('fecha_modificacion');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [copiedFileIdx, setCopiedFileIdx] = useState<number | null>(null);
-  const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
 
   // 1. Cargar servidores al inicio
   useEffect(() => {
@@ -132,39 +130,7 @@ export const BackupDiscoveryPage = () => {
     setSelectedInstanceId('');
   }, [selectedServerId, showNotification]);
 
-  // 3. Simulación de Logs SRE de terminal interactiva durante el escaneo
-  useEffect(() => {
-    let timerId: any;
-    if (discovering) {
-      setConsoleLogs([]);
-      
-      const logs = [
-        "Iniciando comunicación con el orquestador...",
-        "Estableciendo sesión SSH segura con el servidor físico...",
-        "Autenticando credenciales de acceso administrativo...",
-        "Cargando directorios y buscando puntos de montaje...",
-        "Escaneando archivos físicos (.sql, .dmp, .gz, .tar)...",
-        "Validando sumas de verificación e integridad de metadatos...",
-        "Procesando de forma atómica coincidencias encontradas...",
-        "Sincronizando información con la base de datos central...",
-        "Generando estructura final y reportes ejecutivos..."
-      ];
-      
-      let currentIdx = 0;
-      const addNextLog = () => {
-        if (currentIdx < logs.length) {
-          const time = new Date().toLocaleTimeString();
-          setConsoleLogs(prev => [...prev, `[${time}] [SSH-AGENT] ${logs[currentIdx]}`]);
-          currentIdx++;
-          timerId = setTimeout(addNextLog, 250 + Math.random() * 200);
-        }
-      };
-      addNextLog();
-    } else {
-      setConsoleLogs([]);
-    }
-    return () => clearTimeout(timerId);
-  }, [discovering]);
+
 
   const handleStartDiscovery = async () => {
     if (mode === 'global') {
@@ -636,81 +602,6 @@ export const BackupDiscoveryPage = () => {
         </Paper>
       )}
 
-      {/* Terminal Interactivo de Consola SRE */}
-      {discovering && (
-        <Paper 
-          variant="outlined" 
-          sx={{ 
-            p: 2.5, 
-            mb: 4, 
-            bgcolor: '#0a0d16', 
-            borderColor: '#1e293b', 
-            borderRadius: 3.5,
-            boxShadow: 'inset 0 4px 18px rgba(0,0,0,0.85), 0 8px 30px rgba(0,0,0,0.2)'
-          }}
-        >
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 2 }}>
-            <TerminalIcon sx={{ color: '#10b981', fontSize: 20 }} />
-            <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.05em' }}>
-              SSH AGENT CONSOLE - LOGS DE ACTIVIDAD
-            </Typography>
-            <Box sx={{ ml: 'auto', display: 'flex', gap: 0.8 }}>
-              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#ef4444' }} />
-              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#eab308' }} />
-              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#22c55e' }} />
-            </Box>
-          </Stack>
-          
-          <Box sx={{ 
-            fontFamily: '"JetBrains Mono", monospace', 
-            fontSize: '0.8rem', 
-            color: '#34d399', 
-            minHeight: 140, 
-            maxHeight: 220, 
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0.5,
-            '&::-webkit-scrollbar': { width: 6 },
-            '&::-webkit-scrollbar-thumb': { bgcolor: '#1e293b', borderRadius: 3 }
-          }}>
-            {consoleLogs.map((log, index) => (
-              <Box key={index} sx={{ py: 0.1, animation: 'fadeIn 0.2s ease-out' }}>
-                {log}
-              </Box>
-            ))}
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ color: '#60a5fa', marginRight: 8 }}>$</span>
-              <span>Ejecutando proceso de barrido reactivo...</span>
-              <Box sx={{ 
-                display: 'inline-block', 
-                width: 8, 
-                height: 15, 
-                bgcolor: '#34d399', 
-                ml: 1, 
-                animation: 'blink 0.8s step-end infinite',
-                '@keyframes blink': {
-                  '0%, 100%': { opacity: 1 },
-                  '50%': { opacity: 0 }
-                }
-              }} />
-            </Box>
-          </Box>
-          
-          {/* Barra de progreso interactiva simulada */}
-          <Box sx={{ width: '100%', mt: 2, bgcolor: '#1e293b', borderRadius: 2, overflow: 'hidden', height: 6 }}>
-            <Box 
-              sx={{ 
-                width: `${Math.min(((consoleLogs.length + 1) / 10) * 100, 100)}%`, 
-                height: '100%', 
-                bgcolor: '#10b981', 
-                boxShadow: '0 0 10px #10b981',
-                transition: 'width 0.3s ease-out'
-              }} 
-            />
-          </Box>
-        </Paper>
-      )}
 
       {/* Resultados de Escaneo Individual / Por Instancia */}
       {result && !discovering && (
