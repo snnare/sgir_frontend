@@ -279,16 +279,6 @@ export const BackupDiscoveryResponseSchema = z.object({
 export type BackupDiscoveryResponse = z.infer<typeof BackupDiscoveryResponseSchema>;
 export type BackupFile = z.infer<typeof BackupFileSchema>;
 
-export const ServerBackupDiscoveryResponseSchema = z.object({
-    status: z.string(),
-    servidor: z.string(),
-    ruta_respaldo: z.string(),
-    archivos_fisicos_totales: z.number(),
-    peso: z.string(),
-    lista_archivos: z.array(z.string()),
-});
-export type ServerBackupDiscoveryResponse = z.infer<typeof ServerBackupDiscoveryResponseSchema>;
-
 export const BackupHistorySchema = z.object({
     id_respaldo: z.number(),
     id_base_datos: z.number(),

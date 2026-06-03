@@ -32,8 +32,7 @@ import { getBackupPathsByServer } from '../api/backupService';
 import { discoverBackups, discoverInstanceBackups, discoverAllBackups } from '../api/monitoringService';
 import { 
   type Server, type CredentialEnriched, type BackupPath, 
-  type BackupDiscoveryResponse, type Instance, type GlobalBackupDiscoveryResponse,
-  type ServerBackupDiscoveryResponse
+  type BackupDiscoveryResponse, type Instance, type GlobalBackupDiscoveryResponse
 } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
 
@@ -62,7 +61,7 @@ export const BackupDiscoveryPage = () => {
   const [discovering, setDiscovering] = useState(false);
 
   // Resultados
-  const [result, setResult] = useState<BackupDiscoveryResponse | ServerBackupDiscoveryResponse | null>(null);
+  const [result, setResult] = useState<BackupDiscoveryResponse | null>(null);
   const [globalResult, setGlobalResult] = useState<GlobalBackupDiscoveryResponse | null>(null);
 
   // Estados de interacción cliente-side (Búsqueda y Ordenamiento)
@@ -204,26 +203,9 @@ export const BackupDiscoveryPage = () => {
 
   // Filtrado y ordenamiento en cliente de archivos encontrados
   const filteredAndSortedFiles = useMemo(() => {
-    if (!result) return [];
+    if (!result || !result.archivos) return [];
 
-    if (mode === 'server') {
-      const serverResult = result as ServerBackupDiscoveryResponse;
-      if (!serverResult.lista_archivos) return [];
-      let items = serverResult.lista_archivos.filter(name => 
-        name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      items.sort((a, b) => {
-        const comparison = a.localeCompare(b);
-        return sortOrder === 'asc' ? comparison : -comparison;
-      });
-      return items.map(name => ({ nombre: name, tamano_mb: 0, fecha_modificacion: '-' }));
-    }
-
-    // mode === 'instance'
-    const instanceResult = result as BackupDiscoveryResponse;
-    if (!instanceResult.archivos) return [];
-
-    let items = instanceResult.archivos.filter(file => 
+    let items = result.archivos.filter(file => 
       file.nombre.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -243,7 +225,7 @@ export const BackupDiscoveryPage = () => {
     });
 
     return items;
-  }, [result, mode, searchQuery, sortBy, sortOrder]);
+  }, [result, searchQuery, sortBy, sortOrder]);
 
   // Helper para pintar un Chip dinámico de tipo de extensión
   const getFileExtensionChip = (fileName: string) => {
@@ -634,11 +616,7 @@ export const BackupDiscoveryPage = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   ARCHIVOS FÍSICOS
                 </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>
-                  {mode === 'server' 
-                    ? (result as ServerBackupDiscoveryResponse).archivos_fisicos_totales 
-                    : (result as BackupDiscoveryResponse).archivos_fisicos_conteo}
-                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>{result.archivos_fisicos_conteo}</Typography>
               </Paper>
             </Grid>
 
@@ -668,11 +646,7 @@ export const BackupDiscoveryPage = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   PESO TOTAL
                 </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>
-                  {mode === 'server' 
-                    ? (result as ServerBackupDiscoveryResponse).peso 
-                    : `${(result as BackupDiscoveryResponse).total_peso_mb?.toFixed(2) ?? '0.00'} MB`}
-                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>{result.total_peso_mb?.toFixed(2) ?? '0.00'} MB</Typography>
               </Paper>
             </Grid>
 
@@ -702,11 +676,7 @@ export const BackupDiscoveryPage = () => {
                 <Typography variant="caption" color="success.main" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   REGISTROS CREADOS
                 </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1, color: 'success.main' }}>
-                  {mode === 'server' 
-                    ? 'N/A' 
-                    : (result as BackupDiscoveryResponse).registros_respaldo_creados}
-                </Typography>
+                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1, color: 'success.main' }}>{result.registros_respaldo_creados}</Typography>
               </Paper>
             </Grid>
 
