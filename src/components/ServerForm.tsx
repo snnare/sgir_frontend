@@ -29,7 +29,7 @@ interface ServerFormProps {
     puerto: number;
     sid?: string;
   } | null;
-  onSubmitData?: (serverData: ServerCreateInput, dbInstanceData?: any) => void;
+  onSubmitData?: (serverData: ServerCreateInput, dbInstanceData?: any) => Promise<void> | void;
 }
 
 export const ServerForm = ({ 
@@ -153,7 +153,14 @@ export const ServerForm = ({
           sid: isOracle && sid.trim() ? sid.trim() : undefined
         };
       }
-      onSubmitData(payload, dbInstancePayload);
+      setLoading(true);
+      try {
+        await onSubmitData(payload, dbInstancePayload);
+      } catch (error) {
+        // Handled in parent
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 

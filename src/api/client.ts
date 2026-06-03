@@ -41,7 +41,12 @@ api.interceptors.response.use(
                 case 401:
                     // Token expirado o inválido
                     showNotification('Sesión expirada o inválida. Por favor, inicie sesión nuevamente.', 'warning');
-                    useAuthStore.getState().logout();
+                    if (!error.config?.url?.includes('/crud/users/logout')) {
+                        useAuthStore.getState().logout();
+                    } else {
+                        // Si la petición de logout falló con 401, simplemente limpiamos el estado local sin reintentar
+                        useAuthStore.setState({ user: null, token: null, status: 'unauthenticated', error: null });
+                    }
                     break;
                 case 403:
                     showNotification(errorMessage || 'Acceso denegado: No tiene permisos para esta acción', 'error');

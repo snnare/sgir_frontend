@@ -23,7 +23,7 @@ interface CredentialFormProps {
   onSuccess?: (typeId: number) => void;
   isWizardMode?: boolean;
   initialData?: any;
-  onSubmitData?: (data: CredentialCreateInput, extraData?: any) => void;
+  onSubmitData?: (data: CredentialCreateInput, extraData?: any) => Promise<void> | void;
   tipoAccesoFijo?: number;
   onBack?: () => void;
   isServerLegacy?: boolean;
@@ -258,7 +258,14 @@ export const CredentialForm = ({
           oracle_sid: isOracleDb ? oracleSidState?.trim() : undefined
         };
       }
-      onSubmitData(payload, extraData);
+      setLoading(true);
+      try {
+        await onSubmitData(payload, extraData);
+      } catch (err) {
+        // Handled in parent
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 

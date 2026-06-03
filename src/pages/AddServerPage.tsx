@@ -18,7 +18,7 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import { ServerForm } from '../components/ServerForm';
 import { CredentialForm } from '../components/CredentialForm';
 import { createMonitoringSession } from '../api/monitoringService';
-import { createServer, createInstance, createCredential, getDbms } from '../api/infrastructureService';
+import { createServer, createInstance, createCredential, getDbms, updateServer, updateCredential } from '../api/infrastructureService';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { type ServerCreateInput, type CredentialCreateInput, type Dbms } from '../api/types';
 
@@ -40,7 +40,12 @@ export const AddServerPage = () => {
   const [dbmsList, setDbmsList] = useState<Dbms[]>([]);
   const [credSubStep, setCredSubStep] = useState<'ssh' | 'db'>('ssh');
   const [isRegistering, setIsRegistering] = useState(false);
+  
+  // Track backend created IDs during steps
   const [createdServerId, setCreatedServerId] = useState<number | null>(null);
+  const [createdInstanceId, setCreatedInstanceId] = useState<number | null>(null);
+  const [createdSshCredId, setCreatedSshCredId] = useState<number | null>(null);
+  const [createdDbCredId, setCreatedDbCredId] = useState<number | null>(null);
 
   const steps = ['Alcance', 'Datos Técnicos', 'Credenciales', 'Resumen', 'Finalizado'];
 
@@ -57,39 +62,125 @@ export const AddServerPage = () => {
   };
 
   // Called when Step 1 (ServerForm) submits successfully in wizard mode
-  const handleServerFormSubmit = (serverFields: ServerCreateInput, dbInstanceFields: any) => {
-    setServerData(serverFields);
-    setDbInstanceData(dbInstanceFields);
-    
-    // Choose initial sub-step for credentials
-    if (scope === 'both' || scope === 'basic') {
-      setCredSubStep('ssh');
-    } else {
-      setCredSubStep('db');
+  const handleServerFormSubmit = async (serverFields: ServerCreateInput, dbInstanceFields: any) => {
+    try {
+      let serverId = createdServerId;
+      const isDbMon = scope === 'both' || scope === 'database';
+      const isSshMon = scope === 'both' || scope === 'basic';
+
+      if (!serverId) {
+        // Step A: Create the server node
+        const newServer = await createServer(serverFields);
+        serverId = newServer.id_servidor;
+        setCreatedServerId(serverId);
+
+        // Step B: Create DBMS Instance if database monitoring is selected
+        if (isDbMon && dbInstanceFields) {
+          const newInst = await createInstance({
+            ...dbInstanceFields,
+            id_servidor: serverId
+          });
+          setCreatedInstanceId(newInst.id_instancia);
+        }
+        showNotification('Servidor e instancia guardados como borrador inactivo', 'success');
+      } else {
+        // Update server
+        await updateServer(serverId, serverFields);
+        
+        // If they checked DB monitoring and we didn't have an instance yet
+        if (isDbMon && dbInstanceFields && !createdInstanceId) {
+          const newInst = await createInstance({
+            ...dbInstanceFields,
+            id_servidor: serverId
+          });
+          setCreatedInstanceId(newInst.id_instancia);
+        }
+        showNotification('Datos técnicos del servidor actualizados', 'success');
+      }
+
+      setServerData(serverFields);
+      setDbInstanceData(dbInstanceFields);
+      
+      // Choose initial sub-step for credentials
+      if (isSshMon) {
+        setCredSubStep('ssh');
+      } else {
+        setCredSubStep('db');
+      }
+      setActiveStep(2);
+    } catch (error: any) {
+      console.error('Error in step 1 submission:', error);
+      showNotification('Error al guardar datos del servidor: ' + (error.response?.data?.detail || error.message), 'error');
+      throw error; // Re-throw so form isSubmitting state stays correct
     }
-    setActiveStep(2);
   };
 
   // Called when Step 2 SSH form submits successfully
-  const handleSshCredentialSubmit = (credentialFields: CredentialCreateInput) => {
-    setSshCredential(credentialFields);
-    if (scope === 'both') {
-      setCredSubStep('db');
-    } else {
-      setActiveStep(3);
+  const handleSshCredentialSubmit = async (credentialFields: CredentialCreateInput) => {
+    try {
+      if (!createdServerId) {
+        showNotification('Error: El servidor no ha sido registrado correctamente.', 'error');
+        return;
+      }
+
+      if (!createdSshCredId) {
+        const newCred = await createCredential({
+          ...credentialFields,
+          id_servidor: createdServerId
+        });
+        setCreatedSshCredId(newCred.id_credencial);
+        showNotification('Credencial SSH registrada correctamente', 'success');
+      } else {
+        await updateCredential(createdSshCredId, credentialFields);
+        showNotification('Credencial SSH actualizada correctamente', 'success');
+      }
+
+      setSshCredential(credentialFields);
+      if (scope === 'both') {
+        setCredSubStep('db');
+      } else {
+        setActiveStep(3);
+      }
+    } catch (error: any) {
+      console.error('Error in SSH credential submission:', error);
+      showNotification('Error al guardar credencial SSH: ' + (error.response?.data?.detail || error.message), 'error');
+      throw error;
     }
   };
 
   // Called when Step 2 DB form submits successfully
-  const handleDbCredentialSubmit = (credentialFields: CredentialCreateInput, extraData?: any) => {
-    setDbCredential(credentialFields);
-    if (extraData?.oracle_sid !== undefined) {
-      setDbInstanceData((prev: any) => prev ? {
-        ...prev,
-        sid: extraData.oracle_sid
-      } : null);
+  const handleDbCredentialSubmit = async (credentialFields: CredentialCreateInput, extraData?: any) => {
+    try {
+      if (!createdServerId) {
+        showNotification('Error: El servidor no ha sido registrado correctamente.', 'error');
+        return;
+      }
+
+      if (!createdDbCredId) {
+        const newCred = await createCredential({
+          ...credentialFields,
+          id_servidor: createdServerId
+        });
+        setCreatedDbCredId(newCred.id_credencial);
+        showNotification('Credencial DBMS registrada correctamente', 'success');
+      } else {
+        await updateCredential(createdDbCredId, credentialFields);
+        showNotification('Credencial DBMS actualizada correctamente', 'success');
+      }
+
+      setDbCredential(credentialFields);
+      if (extraData?.oracle_sid !== undefined) {
+        setDbInstanceData((prev: any) => prev ? {
+          ...prev,
+          sid: extraData.oracle_sid
+        } : null);
+      }
+      setActiveStep(3);
+    } catch (error: any) {
+      console.error('Error in DB credential submission:', error);
+      showNotification('Error al guardar credencial DBMS: ' + (error.response?.data?.detail || error.message), 'error');
+      throw error;
     }
-    setActiveStep(3);
   };
 
   // Back navigation handler
@@ -112,59 +203,30 @@ export const AddServerPage = () => {
     }
   };
 
-  // Transactional creation logic
+  // Transactional creation logic (Now just activates monitoring session)
   const handleRegisterEverything = async () => {
-    if (!serverData) {
+    if (!createdServerId) {
       showNotification('Faltan datos del servidor para completar el registro', 'error');
       return;
     }
 
     setIsRegistering(true);
     try {
-      // Step A: Create the server node
-      const newServer = await createServer(serverData);
-      const serverId = newServer.id_servidor;
-
-      // Step B: Create DBMS Instance if database monitoring is selected
-      if (scope !== 'basic' && dbInstanceData) {
-        await createInstance({
-          ...dbInstanceData,
-          id_servidor: serverId
-        });
-      }
-
-      // Step C: Create active monitoring session
+      // Create active monitoring session
       await createMonitoringSession({
-        id_servidor: serverId,
+        id_servidor: createdServerId,
         id_estado_monitoreo: 1 // Active
       });
 
-      // Step D: Create SSH credentials (if configured)
-      if ((scope === 'both' || scope === 'basic') && sshCredential) {
-        await createCredential({
-          ...sshCredential,
-          id_servidor: serverId
-        });
-      }
-
-      // Step E: Create DB credentials (if configured)
-      if ((scope === 'both' || scope === 'database') && dbCredential) {
-        await createCredential({
-          ...dbCredential,
-          id_servidor: serverId
-        });
-      }
-
-      setCreatedServerId(serverId);
       showNotification('¡Servidor y componentes registrados con éxito!', 'success');
       setActiveStep(4); // Advance to completion screen
     } catch (error: any) {
-      console.error('Error in transactional registration:', error);
+      console.error('Error activating monitoring session:', error);
       const backendError = error.response?.data?.detail;
       const errorMessage = Array.isArray(backendError)
         ? backendError.map((d: any) => `${d.loc?.[d.loc.length - 1] || 'Campo'}: ${d.msg}`).join(', ')
-        : (typeof backendError === 'string' ? backendError : 'Error al registrar los activos en el servidor.');
-      showNotification(`Error de Registro: ${errorMessage}`, 'error');
+        : (typeof backendError === 'string' ? backendError : 'Error al activar el monitoreo del servidor.');
+      showNotification(`Error de Activación: ${errorMessage}`, 'error');
     } finally {
       setIsRegistering(false);
     }
@@ -319,7 +381,7 @@ export const AddServerPage = () => {
                  <CredentialForm 
                     key="ssh-form"
                     isWizardMode={true}
-                    serverId={9999}
+                    serverId={createdServerId || 9999}
                     serverIp={serverData?.direccion_ip}
                     initialData={sshCredential}
                     tipoAccesoFijo={1} // SSH
@@ -331,7 +393,7 @@ export const AddServerPage = () => {
                   <CredentialForm 
                      key="db-form"
                      isWizardMode={true}
-                     serverId={9999}
+                     serverId={createdServerId || 9999}
                      serverIp={serverData?.direccion_ip}
                      initialData={dbCredential}
                      tipoAccesoFijo={2} // DB Native
