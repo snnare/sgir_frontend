@@ -147,11 +147,43 @@ Este documento sirve como bitácora detallada de todo el trabajo técnico y visu
 * **Limpieza noUnusedLocals**: Limpiamos imports huérfanos o sin usar en componentes clave para cumplir con las directivas estrictas de TypeScript de producción del proyecto.
 * **Actualización del Template de Carga**: Modificamos el template de carga de servidores (`dtic_servers_imp.csv`) en el frontend pre-configurando accesos con credenciales del sistema (`sigr_monitoreo` / `123Nokia`) y asegurando que solo se incluyan servidores basados en Linux.
 
+### Y. Refactorización del Asistente de Registro de Servidor (Wizard Incremental)
+* **Objetivo**: Modificar `AddServerPage.tsx` para persistir activos de forma incremental a lo largo de cada paso del wizard, previniendo fallos al final y habilitando pruebas de conexión SSH/RDBMS dinámicas en tiempo real en base a datos reales y no marcadores ficticios.
+* **Flujo por Pasos**:
+  * **Paso 1 (Datos Técnicos)**: En lugar de guardar únicamente en el estado local, el botón "Siguiente" envía una petición `POST` a `/crud/servidores/` y crea el servidor físico. Si el alcance incluye base de datos, envía un `POST` a `/crud/instancias/` con el ID del servidor recién retornado. En caso de navegación de retroceso (Back) y posterior avance, el componente realiza una petición `PUT` sobre el ID almacenado en el estado local (`createdServerId`) para evitar duplicaciones.
+  * **Paso 2 (Credenciales)**: Vinculamos el ID del servidor real (`createdServerId || 9999`) a los formularios de credenciales de seguridad SSH y de base de datos.
+  * **Paso 3 (Confirmación)**: El botón "Registrar" ahora sólo gatilla la activación del scheduler de observabilidad a través de la llamada `POST /crud/monitoreo/` inyectando el ID del servidor.
+* **Control de Carga Asíncrona**: Actualizamos las firmas de la interfaz `onSubmitData` en `ServerForm.tsx` y `CredentialForm.tsx` para aceptar promesas asíncronas y envolver la ejecución con `setLoading(true/false)`, mostrando adecuadamente el spinner de guardado en el botón "Siguiente" en el modo Wizard.
+
+### Z. Corrección de Bucle Infinito de Logout en 401 Unauthorized
+* **Causa**: El interceptor de respuestas de Axios (`src/api/client.ts`) ejecutaba un logout global al detectar un estado `401 Unauthorized`. Sin embargo, si la sesión ya había expirado, la llamada propia de logout `POST /crud/users/logout` también fallaba con un `401`, provocando una recursión infinita de peticiones idénticas de red que saturaba el navegador del SRE.
+* **Solución**: Agregamos un filtro de escape con `!error.config?.url?.includes('/crud/users/logout')`. Si el error proviene del propio endpoint de cierre de sesión, el interceptor limpia directamente de forma silenciosa el estado en la store local de Zustand (`useAuthStore.setState()`) y detiene la llamada recurrente al servidor.
+
+### AA. Sincronización del Esquema DBMS en Creación de Instancias
+* **Actualización del Modelo**: Cambiamos la propiedad `id_estado_instancia` por **`id_estado`** en el esquema Zod `InstanceSchema` de `src/api/types.ts` y en los formularios `InstanceForm.tsx` y `ServerForm.tsx` para alinearse a la restructuración física de la tabla `Instancia_DBMS`.
+* **Compatibilidad de Lado del Servidor (Doble Envío)**: Para prevenir errores de validación (`422 Unprocessable Entity - Field Required`) de Pydantic/FastAPI en backends antiguos y nuevos, configuramos los payloads de creación de instancias para inyectar simultáneamente ambos campos (`id_estado: 1` e `id_estado_instancia: 1`). Adicionalmente, se configuraron ambos campos como opcionales en el parseador de Zod para mayor resiliencia.
+* **Logs de Auditoría**: Agregamos registros de auditoría por consola (`console.log`) para visibilizar y registrar el empaquetado del parámetro especial `sid` de Oracle dentro de `parametros_conexion` al enviar las peticiones.
+
+### AB. Mapeo Dual y Validación del Explorador de Respaldos (`BackupDiscoveryPage.tsx`)
+* **Problema**: El endpoint de escaneo por servidor (`POST /discover-backups-server/...`) retorna un objeto JSON con esquema simplificado (`lista_archivos` como lista plana de nombres en string, `archivos_fisicos_totales` y `peso` como string), mientras que el escaneo específico de instancia retorna un JSON detallado (`archivos` con objetos que poseen fecha y tamaño individuales, `archivos_fisicos_conteo` y `total_peso_mb` numérico). Esto provocaba caídas de validación estrictas de Zod en la consulta del servidor físico.
+* **Esquemas Separados y Mapeo Condicional**:
+  * Creamos el esquema `ServerBackupDiscoveryResponseSchema` en `types.ts` y actualizamos el tipado del servicio `discoverBackups`.
+  * Adaptamos el renderizado de tarjetas para calcular de manera dinámica las etiquetas y valores basados en el modo activo (`mode === 'server'`).
+  * En `filteredAndSortedFiles`, se inyectó un mapeo sobre la marcha que toma la lista plana de strings de nombres de archivo y los empaqueta en objetos virtuales `{ nombre: name, tamano_mb: 0, fecha_modificacion: '-' }` para garantizar que la tabla original pinte las coincidencias encontradas sin errores sintácticos.
+* **Remoción del Panel de logs SRE**: Removimos el panel simulador de terminal interactive negro para evitar parpadeos visuales al ejecutar escaneos rápidos y pusimos encadenamiento opcional `?.toFixed(2)` en el cálculo de pesos para evitar caídas de estado no sincronizados de React.
+
 ---
 
 ## 2. 📁 Estado del Repositorio de Git
 
 ### Cambios Commiteados y Enviados (Push exitoso a Github)
+* **Commit `e95aba7`**: `fix: restaurar esquema de escaneo de servidor y adaptacion en explorador de respaldos`
+* **Commit `aa6de3a`**: `fix: prevenir TypeError (cannot read properties of undefined reading toFixed) al cambiar de modo de escaneo`
+* **Commit `5ee0d2e`**: `fix: remover consola interactiva simulada de logs SRE en explorador de respaldos`
+* **Commit `3909e58`**: `fix: corregir parseo de respuesta y renderizado en explorador de respaldos para escaneo de servidor`
+* **Commit `3b8b7b6`**: `fix: resolver error de validacion enviando id_estado_instancia e id_estado simultaneamente`
+* **Commit `83fc0b5`**: `refact: actualizar esquema de instancia DBMS y guardar sid en parametros_conexion`
+* **Commit `ae68a4b`**: `refact: wizard de registro de servidor incremental y correccion de bucle infinito en logout`
 * **Commit `673afc1`**: `feat: implementacion de plantillas dinamicas en carga masiva y resolucion de bugs de descarga y propagacion`
 * **Commit `43253e3`**: `cambios en imports y correcciones`
 * **Commit `370b8be`**: `refactor: replace browser alerts with AlertDialog, replace spinners with Skeletons, and standardize submit buttons`
