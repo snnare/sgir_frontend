@@ -118,9 +118,34 @@ Este documento sirve como bitácora detallada de todo el trabajo técnico y visu
 * **Loop de Dependencias Solucionado**: Identificamos que el callback `loadServerData` incluía el objeto de métricas `dbLiveMetricsUnified` dentro de su array de dependencias. Al actualizarse las métricas, la función se regeneraba, disparando el `useEffect` de carga de forma recursiva e infinita.
 * **Lectura Desacoplada**: Desacoplamos la dependencia leyendo el estado instantáneo de la memoria caché mediante `useMonitoringStore.getState().dbLiveMetricsUnified` dentro del cuerpo de la función, eliminando el loop de red y reduciendo el tráfico del servidor UAEMex.
 
-### S. Cancelación de Operaciones SSH en Segundo Plano (`AbortController`)
-* **Fuga de Recursos**: Al entrar a la sección de discos (`DiskManager.tsx`), se iniciaba un escaneo físico remoto vía SSH (`df -h`). Si el SRE salía de la pantalla antes de terminar, la petición seguía su curso en el browser y el backend, desperdiciando CPU del servidor.
-* **Control de Cancelación**: Inyectamos el soporte de `AbortSignal` en `discoverFilesystems` (`infrastructureService.ts`) y configuramos un `AbortController` en el ciclo de desmontado del hook `useEffect` en `DiskManager.tsx`. Al salir de la vista, la llamada Axios es **abortada instantáneamente**, liberando sockets del pool del cliente y cancelando la tarea en el backend.
+### S. Optimización de Consulta de Salud e Integración en HomePage
+* **Análisis de Impacto**: Analizamos la llamada al endpoint `GET /sgir/v1/m1/host/health-status/{id_server}`. Se concluyó que invocarlo en `HomePage.tsx` era redundante y generaba sobrecargas innecesarias al servidor físico en cada polling, dado que los datos generales son provistos eficientemente por `/live-cache`.
+* **Centralización**: Eliminamos la llamada al estado detallado de salud de hosts de la vista principal y la restringimos exclusivamente a la página de detalles individuales (`ServerDetailsPage.tsx`).
+* **Resiliencia en Caché Vacía / Arranque**: Ajustamos la lógica para asegurar que el sistema maneje estados vacíos de forma controlada cuando la caché no se ha inicializado o el monitoreo está en pausa, previniendo comportamientos inconsistentes en UI.
+
+### T. Limpieza de Formularios de Carga Masiva redundantes
+* **Remoción en Credenciales, Rutas y Políticas**: Removemos los botones de subida masiva obsoletos en `CredentialsPage.tsx`, `BackupPathsPage.tsx` y `BackupPoliciesPage.tsx` para evitar confusión con el flujo global de Carga Masiva.
+* **Limpieza de Endpoints en Backend**: Se depuraron y removieron los routers y métodos de carga en bloque inactivos o redundantes del backend (`base_de_datos_routes.py`, `politica_respaldo_routes.py`, etc.), manteniendo en producción únicamente las importaciones validadas (Servidores y Credenciales).
+
+### U. Módulo de Reportes PDF Offline
+* **Endpoints Backend**: Implementación de los endpoints `/assets/sre-pdf-offline` y `/assets/sre-sla-pdf` bajo el prefijo de API `/sgir/v1`. Estos resuelven la información mediante joins de SQLAlchemy directo de la BD PostgreSQL sin necesidad de ejecutar pings de red o SSH remotos a los hosts activos (eliminando cuellos de botella de red).
+* **Navegación e Icono**: Registramos la nueva ruta `/reportes` en el frontend (`App.tsx`) y agregamos una pestaña exclusiva en `Sidebar.tsx` con el nombre de *"Reportes"* y el icono `PictureAsPdfIcon`, unificando el menú y enlazándolo directamente al renderizado de `ReportsPage.tsx`.
+
+### V. Simplificación de Filtros de Destino (`BackupPathsPage.tsx`)
+* **Canales Permitidos**: Limitamos las opciones del filtro de tipo de almacenamiento en `BackupPathsPage.tsx` únicamente a:
+  1. Disco Local
+  2. Sharepoint
+* Se eliminaron todas las opciones redundantes que no forman parte de la directiva de infraestructura física.
+
+### W. Entorno de Maqueta Estática e Interactiva (`static/index.html`)
+* **Directorio /static**: Creamos la carpeta `static/` con un archivo interactivo auto-contenido `index.html`.
+* **Cobertura Total**: Representa las 11 vistas operativas principales del sistema y permite navegar entre ellas dinámicamente mediante un tab-switcher JS.
+* **Mínimo de 10 datos por vista**: Poblamos cada sección de datos con un arreglo estático de al menos 10 registros detallados realistas. Incorporamos simulación de carga masiva, notificaciones y escaneos de disco simulados.
+
+### X. Compatibilidad y Ajustes TypeScript
+* **Compatibilidad MUI v6**: En `ReportsPage.tsx`, migramos la estructura del elemento Grid obsoleto (`item xs md`) al nuevo prop `size` (`size={{ xs: 12, md: 6 }}`), solucionando advertencias de compilación crítica.
+* **Limpieza noUnusedLocals**: Limpiamos imports huérfanos o sin usar en componentes clave para cumplir con las directivas estrictas de TypeScript de producción del proyecto.
+* **Actualización del Template de Carga**: Modificamos el template de carga de servidores (`dtic_servers_imp.csv`) en el frontend pre-configurando accesos con credenciales del sistema (`sigr_monitoreo` / `123Nokia`) y asegurando que solo se incluyan servidores basados en Linux.
 
 ---
 
@@ -131,19 +156,6 @@ Este documento sirve como bitácora detallada de todo el trabajo técnico y visu
 * **Commit `43253e3`**: `cambios en imports y correcciones`
 * **Commit `370b8be`**: `refactor: replace browser alerts with AlertDialog, replace spinners with Skeletons, and standardize submit buttons`
 * **Commit `9f1798a`**: `refactor: migrate CredentialsPage delete to ConfirmDialog and implement skeletal load rows in policies and credentials pages`
-
-### Cambios Locales en Working Directory (Staged / Uncommitted - Listo para la siguiente sesión)
-Los siguientes archivos han sido modificados, completamente validados a nivel de tipo (`pnpm tsc --noEmit` exitoso) y empaquetados en producción (`pnpm run build` exitoso), pero **NO han sido commiteados ni enviados a Git**, según las instrucciones:
-1. `src/components/Sidebar.tsx` (Selector optimizations y useShallow).
-2. `src/pages/HomePage.tsx` (Selectors y useShallow en Zustand stores).
-3. `src/components/ServerCard.tsx` (Componente memoizado React.memo y selectores optimizados).
-4. `src/pages/ServerDetailsPage.tsx` (useShallow, remoción del bucle infinito de dbLiveMetricsUnified, llavero de credenciales con redirección rápida).
-5. `src/store/useMonitoringStore.ts` (Fallback de health individual procesado en lotes de 4 con 100ms de retraso).
-6. `src/api/infrastructureService.ts` (Fallback ultra-resiliente client-side en getCredentialById y soporte de AbortSignal en discoverFilesystems).
-7. `src/components/DiskManager.tsx` (AbortController para cancelar peticiones SSH en background en desmontaje de la vista).
-8. `sgir_backend/app/routes/core_crud/infrastructure/credencial_acceso_routes.py` (Endpoint backend GET /crud/credenciales/{id} implementado).
-9. `README.md` (Documentación actualizada).
-10. `Summary.md` (Bitácora consolidada de desarrollo actualizada).
 
 ---
 

@@ -16,8 +16,6 @@ import type {
     DBInstanceHealth, DBGlobalSummary, DBDiscoveryResponse,
     ParsedDBLiveMetrics
 } from '../api/types';
-import { useInfrastructureStore } from './useInfrastructureStore';
-
 interface MonitoringState {
     alerts: Alert[];
     alertLevels: AlertLevel[];
@@ -265,30 +263,9 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
             // console.log('[MonitoringStore] Live Cache raw data:', data);
             
             if (Object.keys(data).length === 0) {
-                console.warn('[MonitoringStore] Live Cache is empty. Falling back to individual polling.');
-                const { servers } = useInfrastructureStore.getState();
-                
-                if (servers.length > 0) {
-                    const newMetrics = { ...useMonitoringStore.getState().liveMetrics };
-                    // Process in batches of 4 to avoid browser HTTP connection pool congestion
-                    const batchSize = 4;
-                    for (let i = 0; i < servers.length; i += batchSize) {
-                        const batch = servers.slice(i, i + batchSize);
-                        await Promise.all(batch.map(async (server) => {
-                            try {
-                                const individualData = await getHealthStatus(server.id_servidor);
-                                newMetrics[server.id_servidor] = individualData;
-                            } catch (err) {
-                                console.error(`[MonitoringStore] Error fetching for server ${server.id_servidor}:`, err);
-                            }
-                        }));
-                        if (i + batchSize < servers.length) {
-                            await new Promise((resolve) => setTimeout(resolve, 100));
-                        }
-                    }
-                    set({ liveMetrics: newMetrics });
-                    return;
-                }
+                console.warn('[MonitoringStore] Live Cache is empty. Monitoring is likely paused or not initialized yet.');
+                set({ liveMetrics: {} });
+                return;
             }
 
             // Procesamos el caché. El backend envía Record<number, HealthStatus | string | any>

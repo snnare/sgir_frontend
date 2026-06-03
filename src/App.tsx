@@ -8,7 +8,8 @@ import { useAuthStore } from './store/useAuthStore';
 import { HomePage } from './pages/HomePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { LoginPage } from './pages/LoginPage';
-import { CheckPage } from './pages/CheckPage'
+import { CheckPage } from './pages/CheckPage';
+import { ReportsPage } from './pages/ReportsPage';
 
 import { ProfilePage } from './pages/ProfilePage';
 import { CredentialsPage } from './pages/CredentialsPage';
@@ -128,6 +129,7 @@ function App() {
             <Route path="backups/explorador" element={<BackupDiscoveryPage />} />
             <Route path="monitoreo/logs" element={<MonitoringLogsPage />} />
             <Route path="monitoreo/alertas" element={<MonitoringAlertsPage />} />
+            <Route path="reportes" element={<ReportsPage />} />
           </Route>
 
           {/* Redirección por defecto */}

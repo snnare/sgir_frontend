@@ -25,6 +25,7 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - **Bitácora de Actividad (Auditoría)**: Historial completo de cambios en el sistema (quién, qué y cuándo) con soporte para **paginación dinámica** y filtrado avanzado.
 - **Control Inteligente del Scheduler**: Mando flotante que se auto-esconde en estado saludable y se activa mediante hover en la esquina superior derecha.
 - **Monitoreo de Bases de Datos Multi-Motor**: Observabilidad reactiva y en tiempo real de estados de salud (`healthy`, `critical`, `fatal`, `stale`, `unknown`) y métricas de desempeño (`ping`, `capacity_pct`, `stuck_processes`, `specific_value`) con estrategias de polling controlado y estado Zustand aislado del hardware.
+- **Optimización de Diagnósticos de Red**: Restricción de consultas del endpoint `health-status` únicamente al ingresar a la vista detallada (`ServerDetailsPage.tsx`), eliminando la llamada redundante desde la página de inicio (`HomePage.tsx`). Gestión robusta de estado ante cachés vacías durante el primer arranque.
 
 ### 🏗️ Gestión de Inventario y Activos
 - **Inventario CMDB Real**: Búsqueda global enriquecida (`/inventory/assets`) que cruza Servidor -> Instancia -> Bases de Datos.
@@ -36,6 +37,15 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - **Alcance de Monitoreo Selectivo**: Configuración granular para activar monitoreo de Host y Base de Datos de forma independiente.
 - **Módulo de Políticas**: Gestión completa (CRUD) de reglas de respaldo automatizado.
   - **Importador de Crontab**: Formulario de alta provisto de un parser inteligente de crontab (estándar y corta de 4 campos) para auto-completar rutas, periodicidades, horas y días de forma reactiva, con saneamiento y prevención de solapamiento de etiquetas MUI (`InputLabelProps={{ shrink: true }}`).
+- **Filtros de Almacenamiento**: Simplificación del filtro en la sección de Rutas de Respaldo (`BackupPathsPage.tsx`) para admitir únicamente `Disco Local` y `Sharepoint`, alineándose con las directivas de infraestructura.
+
+### 📁 Módulo de Reportes PDF
+- **Reportes PDF Offline**: Integración de los endpoints en backend `/assets/sre-pdf-offline` y `/assets/sre-sla-pdf` para la generación local rápida de informes ejecutivos y de SLA sin llamadas externas remotas.
+- **Vista de Reportes**: Nueva interfaz `/reportes` en el frontend, integrada con el Sidebar mediante un icono de PDF dedicado (`PictureAsPdfIcon`).
+
+### 💻 Entorno de Demostración Estática (`static/`)
+- **Centro de Control Offline**: Ubicado en `/static/index.html`, contiene una versión auto-contenido del Dashboard e integra las 11 vistas principales del sistema.
+- **Datos Simulados**: Mínimo de 10 datos de simulación realistas por página (servidores, bases de datos, políticas, rutas, credenciales, alertas, bitácora de auditoría, sesiones y cargas masivas) que permite demostraciones 100% estáticas sin dependencia de un backend activo.
 
 ### 🎨 Experiencia de Usuario (UI/UX)
 - **Componentes Estandarizados**:
@@ -46,7 +56,7 @@ Este proyecto es la interfaz de usuario para el SGIR, diseñada para proporciona
 - **Diseño Glassmorphism**: Controles flotantes con desenfoque de fondo y sombras profundas para una estética moderna.
 
 ## 📥 Kit de Importación
-El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que contiene la plantilla técnica oficial y el manual de instrucciones.
+El sistema incluye un kit descargable (.zip) en el módulo de Carga Masiva que contiene la plantilla técnica oficial y el manual de instrucciones. Las plantillas CSV (`dtic_servers_imp.csv`) se han actualizado para excluir sistemas Windows y pre-configurar credenciales estandarizadas de monitoreo (`sigr_monitoreo` / `123Nokia`).
 
 ## 📦 Instalación y Desarrollo
 
@@ -71,5 +81,3 @@ Se ha integrado de forma completa y robusta la observabilidad, registro y valida
 - **Soporte para Parámetros de Conexión (`parametros_conexion`)**: Gestión completa del campo JSON para registrar el **System Identifier (SID)** y **Service Name** en Oracle, **authSource** en MongoDB, o parámetros JSON libres.
 - **Asistente de Registro All-in-One**: El primer paso del alta de servidores (`ServerForm.tsx`) permite capturar dinámicamente los datos del motor DBMS y registrarlos de forma transaccional y secuencial (Servidor $\rightarrow$ Instancia).
 - **Test de Conexión Inteligente para Oracle**: El validador de credenciales detecta si el servidor es **Legacy** u **Estándar** para rutear dinámicamente y de forma transparente la prueba de conexión a los endpoints específicos (`oracle/legacy` u `oracle/no-legacy`).
-
-

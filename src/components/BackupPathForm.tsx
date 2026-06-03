@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import StorageIcon from '@mui/icons-material/Storage';
-import CloudQueueIcon from '@mui/icons-material/CloudQueue';
 import SaveIcon from '@mui/icons-material/Save';
 import DnsIcon from '@mui/icons-material/Dns';
 import { BackupPathCreateSchema, type BackupPathCreateInput, type BackupPath } from '../api/types';
@@ -17,10 +16,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const STORAGE_TYPES = [
   { id: 1, name: 'Disco Local' },
-  { id: 2, name: 'S3 Cloud' },
-  { id: 3, name: 'NFS/NAS' },
-  { id: 4, name: 'SAN/Fibre Channel' },
-  { id: 5, name: 'NFS' },
+  { id: 2, name: 'Sharepoint' },
 ];
 
 interface BackupPathFormProps {
@@ -151,7 +147,7 @@ export const BackupPathForm = ({ initialData, isEdit = false }: BackupPathFormPr
           {STORAGE_TYPES.map((type) => (
             <MenuItem key={type.id} value={type.id}>
               <Stack direction="row" sx={{ alignItems: 'center' }} spacing={1}>
-                {type.id === 2 ? <CloudQueueIcon fontSize="inherit" /> : <StorageIcon fontSize="inherit" />}
+                {type.id === 2 ? <DnsIcon fontSize="inherit" /> : <StorageIcon fontSize="inherit" />}
                 <span>{type.name}</span>
               </Stack>
             </MenuItem>

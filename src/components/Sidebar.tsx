@@ -16,6 +16,7 @@ import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { useShallow } from 'zustand/react/shallow';
 import { useLocation } from 'react-router-dom';
 import { SidebarItem } from './SidebarItem';
@@ -289,6 +290,14 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
             />
           </Stack>
         </Collapse>
+        
+        <SidebarItem 
+          icon={<PictureAsPdfIcon fontSize="small" />} 
+          label="Reportes" 
+          to="/reportes" 
+          active={location.pathname.startsWith('/reportes')} 
+          open={isExpanded} 
+        />
       </Stack>
 
       {/* Footer / User Profile & Logout */}

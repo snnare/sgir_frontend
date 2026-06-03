@@ -25,10 +25,8 @@ import { type BackupPathDetails } from '../api/types';
 import { getBackupPathsDetails } from '../api/backupService';
 
 const STORAGE_TYPES_MAP: Record<number, { label: string; icon: React.ReactNode; color: string }> = {
-  1: { label: 'Local Disk', icon: <StorageIcon fontSize="inherit" />, color: 'primary' },
-  2: { label: 'Network (NAS)', icon: <DnsIcon fontSize="inherit" />, color: 'info' },
-  3: { label: 'Cloud Storage', icon: <CloudQueueIcon fontSize="inherit" />, color: 'secondary' },
-  4: { label: 'Amazon S3', icon: <CloudQueueIcon fontSize="inherit" />, color: 'warning' },
+  1: { label: 'Disco Local', icon: <StorageIcon fontSize="inherit" />, color: 'primary' },
+  2: { label: 'Sharepoint', icon: <DnsIcon fontSize="inherit" />, color: 'info' },
 };
 
 const TEST_PATHS_DETAILS: BackupPathDetails[] = [

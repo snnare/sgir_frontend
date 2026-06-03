@@ -11,7 +11,6 @@ import EditIcon from '@mui/icons-material/Edit';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import StorageIcon from '@mui/icons-material/Storage';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useNavigate } from 'react-router-dom';
 import { getCredentials, deleteCredential } from '../api/infrastructureService';
 import { type CredentialEnriched } from '../api/types';
@@ -262,12 +261,6 @@ export const CredentialsPage = () => {
 
       <FloatingActionGroup 
         items={[
-          {
-            label: "Carga Masiva (Credenciales)",
-            icon: <CloudUploadIcon />,
-            color: "secondary",
-            onClick: () => navigate('/bulk-upload?type=credenciales')
-          },
           {
             label: "Nueva Credencial",
             icon: <AddIcon />,
