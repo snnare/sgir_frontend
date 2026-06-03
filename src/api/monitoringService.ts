@@ -10,6 +10,7 @@ import {
     HealthStatusSchema, type HealthStatus,
     GlobalSummarySchema, type GlobalSummary,
     BackupDiscoveryResponseSchema, type BackupDiscoveryResponse,
+    ServerBackupDiscoveryResponseSchema, type ServerBackupDiscoveryResponse,
     MonitoringSessionSchema, type MonitoringSession,
     MonitoringSessionDetailSchema, type MonitoringSessionDetail,
     type MonitoringCreateInput, type ParsedDBLiveMetrics,
@@ -111,9 +112,9 @@ export const getMongoDBMetrics = async (serverId: number, credId: number): Promi
     return MongoDBMetricsSchema.parse(data);
 };
 
-export const discoverBackups = async (serverId: number, credId: number, pathId: number): Promise<BackupDiscoveryResponse> => {
+export const discoverBackups = async (serverId: number, credId: number, pathId: number): Promise<ServerBackupDiscoveryResponse> => {
     const { data } = await api.post(`/m3/inventory/discover-backups-server/${serverId}/${credId}/${pathId}`);
-    return BackupDiscoveryResponseSchema.parse(data);
+    return ServerBackupDiscoveryResponseSchema.parse(data);
 };
 
 export const discoverInstanceBackups = async (instanceId: number, credId: number, pathId: number): Promise<BackupDiscoveryResponse> => {
