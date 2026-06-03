@@ -29,23 +29,6 @@ const STORAGE_TYPES_MAP: Record<number, { label: string; icon: React.ReactNode; 
   2: { label: 'Sharepoint', icon: <DnsIcon fontSize="inherit" />, color: 'info' },
 };
 
-const TEST_PATHS_DETAILS: BackupPathDetails[] = [
-  {
-    ip: "192.168.12.10",
-    path: "/data/respaldos",
-    descripcion: "Almacenamiento Local de Backups",
-    estado: "Activo",
-    id_ruta: 201
-  },
-  {
-    ip: "192.168.12.20",
-    path: "/u01/app/oracle/backups",
-    descripcion: "Respaldo Oracle RMAN",
-    estado: "Activo",
-    id_ruta: 202
-  }
-];
-
 export const BackupPathsPage = () => {
   const navigate = useNavigate();
   const { paths, fetchPaths, deletePath, loading: storeLoading } = useBackupStore();
@@ -62,14 +45,10 @@ export const BackupPathsPage = () => {
       try {
         await fetchPaths();
         const data = await getBackupPathsDetails();
-        if (data.length > 0) {
-          setDetailsList(data);
-        } else {
-          setDetailsList(TEST_PATHS_DETAILS);
-        }
+        setDetailsList(data);
       } catch (error) {
         console.error("Error fetching path details:", error);
-        setDetailsList(TEST_PATHS_DETAILS);
+        setDetailsList([]);
       } finally {
         setLoading(false);
       }
@@ -88,7 +67,7 @@ export const BackupPathsPage = () => {
           await deletePath(id);
           showNotification('Ruta eliminada correctamente', 'success');
           const data = await getBackupPathsDetails();
-          setDetailsList(data.length > 0 ? data : TEST_PATHS_DETAILS);
+          setDetailsList(data);
         } catch (error: any) {
           console.error('Error deleting path:', error);
           showNotification(error.response?.data?.detail || 'Error al eliminar la ruta', 'error');
@@ -102,10 +81,10 @@ export const BackupPathsPage = () => {
     try {
       await fetchPaths();
       const data = await getBackupPathsDetails();
-      setDetailsList(data.length > 0 ? data : TEST_PATHS_DETAILS);
+      setDetailsList(data);
       showNotification('Datos de rutas actualizados', 'info');
     } catch (error) {
-      setDetailsList(TEST_PATHS_DETAILS);
+      setDetailsList([]);
     } finally {
       setLoading(false);
     }

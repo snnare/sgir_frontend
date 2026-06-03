@@ -441,6 +441,7 @@ export const AuditLogSchema = z.object({
     entidad_afectada: z.string(),
     descripcion_evento: z.string(),
     fecha_evento: z.string(),
+    email: z.string().nullable().optional(),
 });
 export type AuditLog = z.infer<typeof AuditLogSchema>;
 

@@ -104,8 +104,8 @@ export const MonitoringLogsPage = () => {
         <Table>
           <TableHead sx={{ bgcolor: 'action.hover' }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 800 }}>Fecha y Hora</TableCell>
               <TableCell sx={{ fontWeight: 800 }}>Usuario</TableCell>
+              <TableCell sx={{ fontWeight: 800 }}>Fecha y Hora</TableCell>
               <TableCell sx={{ fontWeight: 800 }}>Acción</TableCell>
               <TableCell sx={{ fontWeight: 800 }}>Módulo</TableCell>
               <TableCell sx={{ fontWeight: 800 }}>Descripción</TableCell>
@@ -127,6 +127,16 @@ export const MonitoringLogsPage = () => {
                 
                 return (
                   <TableRow key={log.id_bitacora} hover>
+                    <TableCell>
+                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                        <Avatar sx={{ width: 24, height: 24, bgcolor: 'action.selected', color: 'text.secondary' }}>
+                          <PersonIcon sx={{ fontSize: 16 }} />
+                        </Avatar>
+                        <Typography variant="body2" sx={{ fontWeight: 650, color: 'text.primary' }}>
+                          {log.email || `Usuario #${log.id_usuario}`}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {new Date(log.fecha_evento).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -134,16 +144,6 @@ export const MonitoringLogsPage = () => {
                       <Typography variant="caption" color="text.secondary">
                         {new Date(log.fecha_evento).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                        <Avatar sx={{ width: 24, height: 24, bgcolor: 'action.selected', color: 'text.secondary' }}>
-                          <PersonIcon sx={{ fontSize: 16 }} />
-                        </Avatar>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Usuario #{log.id_usuario}
-                        </Typography>
-                      </Stack>
                     </TableCell>
                     <TableCell>
                       <Chip 

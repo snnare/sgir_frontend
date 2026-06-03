@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import api from './client';
 import { LoginResponseSchema, UserResponseSchema } from './types';
 import type { LoginInput, LoginResponse, RegisterInput, UserResponse, UserUpdateInput } from './types';
@@ -35,4 +36,9 @@ export const logout = async (): Promise<void> => {
 export const updateUser = async (userId: number, userData: UserUpdateInput): Promise<UserResponse> => {
     const { data } = await api.put(`/crud/users/${userId}`, userData);
     return UserResponseSchema.parse(data);
+};
+
+export const getUsers = async (skip: number = 0, limit: number = 200): Promise<UserResponse[]> => {
+    const { data } = await api.get('/crud/users/', { params: { skip, limit } });
+    return z.array(UserResponseSchema).parse(data);
 };
