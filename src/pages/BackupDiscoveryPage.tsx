@@ -7,7 +7,8 @@ import {
   TableCell, TableContainer, TableHead, TableRow, 
   Chip, Alert, ToggleButton, ToggleButtonGroup,
   Card, CardContent, List, ListItem, ListItemText, Divider,
-  TextField, InputAdornment, IconButton, Skeleton, Tooltip
+  TextField, InputAdornment, IconButton, Skeleton, Tooltip,
+  Checkbox, FormControlLabel, Switch
 } from '@mui/material';
 import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import DnsIcon from '@mui/icons-material/Dns';
@@ -29,13 +30,14 @@ import CodeIcon from '@mui/icons-material/Code';
 
 import { getServers, getCredentialsByServer, getInstancesByServer } from '../api/infrastructureService';
 import { getBackupPathsByServer } from '../api/backupService';
-import { discoverBackups, discoverInstanceBackups, discoverAllBackups } from '../api/monitoringService';
+import { discoverBackups, discoverInstanceBackups, discoverAllBackups, discoverBackupsCustom } from '../api/monitoringService';
 import { 
   type Server, type CredentialEnriched, type BackupPath, 
   type BackupDiscoveryResponse, type Instance, type GlobalBackupDiscoveryResponse,
   type ServerBackupDiscoveryResponse
 } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
+import { BackButton } from '../components/BackButton';
 
 export const BackupDiscoveryPage = () => {
   const { showNotification } = useNotificationStore();
@@ -70,6 +72,11 @@ export const BackupDiscoveryPage = () => {
   const [sortBy, setSortBy] = useState<'nombre' | 'tamano_mb' | 'fecha_modificacion'>('fecha_modificacion');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [copiedFileIdx, setCopiedFileIdx] = useState<number | null>(null);
+
+  // Estados para Escaneo en Caliente / Personalizado
+  const [isCustomScan, setIsCustomScan] = useState(false);
+  const [customDays, setCustomDays] = useState<number>(0);
+  const [customDeep, setCustomDeep] = useState<boolean>(true);
 
   // 1. Cargar servidores al inicio
   useEffect(() => {
@@ -115,17 +122,25 @@ export const BackupDiscoveryPage = () => {
           getInstancesByServer(Number(selectedServerId))
         ]);
         // Solo credenciales SSH para descubrimiento de archivos (tipo 1 suele ser SSH)
-        setCredentials(credsData.filter(c => c.tipo.id_tipo_acceso === 1));
+        const sshCreds = credsData.filter(c => c.tipo.id_tipo_acceso === 1);
+        setCredentials(sshCreds);
         setPaths(pathsData);
         setInstances(instancesData);
+        
+        // Auto-seleccionar la primera credencial SSH si existe
+        if (sshCreds.length > 0) {
+          setSelectedCredId(sshCreds[0].id_credencial);
+        } else {
+          setSelectedCredId('');
+        }
       } catch (err) {
         showNotification('Error al cargar detalles del servidor', 'error');
+        setSelectedCredId('');
       } finally {
         setLoadingDetails(false);
       }
     };
     fetchDetails();
-    setSelectedCredId('');
     setSelectedPathId('');
     setSelectedInstanceId('');
   }, [selectedServerId, showNotification]);
@@ -138,6 +153,7 @@ export const BackupDiscoveryPage = () => {
       setGlobalResult(null);
       try {
         const res = await discoverAllBackups();
+        console.log('Info de respuesta del backend (global):', res);
         setGlobalResult(res);
         showNotification('Escaneo global de respaldos completado', 'success');
       } catch (err: any) {
@@ -154,13 +170,30 @@ export const BackupDiscoveryPage = () => {
       setDiscovering(true);
       setResult(null);
       try {
-        const res = await discoverBackups(
-          Number(selectedServerId), 
-          Number(selectedCredId), 
-          Number(selectedPathId)
-        );
+        let res;
+        if (isCustomScan) {
+          res = await discoverBackupsCustom(
+            Number(selectedServerId), 
+            Number(selectedCredId), 
+            Number(selectedPathId),
+            customDays,
+            customDeep
+          );
+        } else {
+          res = await discoverBackups(
+            Number(selectedServerId), 
+            Number(selectedCredId), 
+            Number(selectedPathId)
+          );
+        }
+        console.log('Info de respuesta del backend (server):', res);
         setResult(res);
-        showNotification('Escaneo de archivos completado', 'success');
+        showNotification(
+          isCustomScan 
+            ? 'Escaneo en caliente (personalizado) completado' 
+            : 'Escaneo rápido (diario) completado', 
+          'success'
+        );
       } catch (err: any) {
         console.error(err);
       } finally {
@@ -177,6 +210,7 @@ export const BackupDiscoveryPage = () => {
           Number(selectedCredId), 
           Number(selectedPathId)
         );
+        console.log('Info de respuesta del backend (instance):', res);
         setResult(res);
         showNotification('Escaneo de archivos por instancia completado', 'success');
       } catch (err: any) {
@@ -208,26 +242,63 @@ export const BackupDiscoveryPage = () => {
 
     if (mode === 'server') {
       const serverResult = result as ServerBackupDiscoveryResponse;
-      if (!serverResult.lista_archivos) return [];
-      let items = serverResult.lista_archivos.filter(name => 
-        name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      items.sort((a, b) => {
-        const comparison = a.localeCompare(b);
-        return sortOrder === 'asc' ? comparison : -comparison;
+      if (!Array.isArray(serverResult)) return [];
+      const active = serverResult.filter(d => d.archivo_encontrado);
+      let items = active.map(d => {
+        const parts = d.ruta_path ? d.ruta_path.split('/') : [];
+        const nombre = parts.length > 0 ? parts[parts.length - 1] : 'unknown';
+        return {
+          nombre,
+          tamano_mb: d.tamano_encontrado_mb,
+          fecha_modificacion: d.timestamp_verificacion ? d.timestamp_verificacion.replace('T', ' ').substring(0, 19) : '-',
+          nombre_base: d.nombre_base,
+          politica_nombre: d.politica_nombre
+        };
       });
-      return items.map(name => ({ nombre: name, tamano_mb: 0, fecha_modificacion: '-' }));
+
+      let filtered = items.filter(file => 
+        file.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      filtered.sort((a, b) => {
+        const valA = a[sortBy];
+        const valB = b[sortBy];
+
+        if (sortBy === 'tamano_mb') {
+          return sortOrder === 'asc' 
+            ? (valA as number) - (valB as number)
+            : (valB as number) - (valA as number);
+        } else {
+          return sortOrder === 'asc'
+            ? String(valA).localeCompare(String(valB))
+            : String(valB).localeCompare(String(valA));
+        }
+      });
+      return filtered;
     }
 
     // mode === 'instance'
     const instanceResult = result as BackupDiscoveryResponse;
-    if (!instanceResult.archivos) return [];
+    if (Array.isArray(instanceResult) || !instanceResult.detalles) return [];
 
-    let items = instanceResult.archivos.filter(file => 
+    const active = instanceResult.detalles.filter(d => d.archivo_encontrado);
+    let items = active.map(d => {
+      const parts = d.ruta_path ? d.ruta_path.split('/') : [];
+      const nombre = parts.length > 0 ? parts[parts.length - 1] : 'unknown';
+      return {
+        nombre,
+        tamano_mb: d.tamano_encontrado_mb,
+        fecha_modificacion: '-',
+        nombre_base: d.nombre_base,
+        politica_nombre: d.politica_nombre
+      };
+    });
+
+    let filtered = items.filter(file => 
       file.nombre.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    items.sort((a, b) => {
+    filtered.sort((a, b) => {
       const valA = a[sortBy];
       const valB = b[sortBy];
 
@@ -242,7 +313,7 @@ export const BackupDiscoveryPage = () => {
       }
     });
 
-    return items;
+    return filtered;
   }, [result, mode, searchQuery, sortBy, sortOrder]);
 
   // Helper para pintar un Chip dinámico de tipo de extensión
@@ -290,20 +361,10 @@ export const BackupDiscoveryPage = () => {
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
+      <BackButton to="/" label="Volver al Panel de Control" />
       {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 3 }}>
-        <Box sx={{ 
-          p: 1.5, 
-          borderRadius: 3, 
-          bgcolor: 'primary.light', 
-          color: 'primary.main', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          boxShadow: '0 4px 14px 0 rgba(25, 118, 210, 0.15)'
-        }}>
-          <TravelExploreIcon sx={{ fontSize: 32 }} />
-        </Box>
+        <TravelExploreIcon sx={{ fontSize: 36, color: 'primary.main' }} />
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.03em' }}>
             Explorador General de Respaldos
@@ -589,9 +650,87 @@ export const BackupDiscoveryPage = () => {
                   }
                 }}
               >
-                {discovering ? 'Escaneando...' : 'Iniciar Escaneo'}
+                {discovering ? 'Escaneando...' : isCustomScan ? 'Escaneo en Caliente' : 'Iniciar Escaneo'}
               </Button>
             </Grid>
+
+            {/* Opciones de Escaneo en Caliente / Personalizado */}
+            {mode === 'server' && (
+              <Grid size={{ xs: 12 }}>
+                <Box sx={{ 
+                  mt: 2, 
+                  pt: 2.5, 
+                  borderTop: '1px solid', 
+                  borderColor: 'divider',
+                  display: 'flex', 
+                  flexDirection: { xs: 'column', sm: 'row' }, 
+                  alignItems: 'center', 
+                  gap: 3 
+                }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isCustomScan}
+                        onChange={(e) => setIsCustomScan(e.target.checked)}
+                        disabled={discovering}
+                        color="primary"
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                          Escaneo en Caliente (Personalizado)
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Permite buscar recursivamente y con filtros de antigüedad en días.
+                        </Typography>
+                      </Box>
+                    }
+                  />
+
+                  {isCustomScan && (
+                    <Stack direction="row" spacing={3} sx={{ flexGrow: 1, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
+                      {/* Días de antigüedad */}
+                      <FormControl size="small" sx={{ width: 240 }} disabled={discovering}>
+                        <InputLabel>Antigüedad</InputLabel>
+                        <Select
+                          value={customDays}
+                          label="Antigüedad"
+                          onChange={(e) => setCustomDays(e.target.value as number)}
+                        >
+                          <MenuItem value={1}>Últimas 24 horas</MenuItem>
+                          <MenuItem value={3}>Últimos 3 días</MenuItem>
+                          <MenuItem value={7}>Última semana</MenuItem>
+                          <MenuItem value={0}>(Recomendado) Cualquier antigüedad</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      {/* Búsqueda profunda */}
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={customDeep}
+                            onChange={(e) => setCustomDeep(e.target.checked)}
+                            disabled={discovering}
+                            color="primary"
+                          />
+                        }
+                        label={
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              Búsqueda profunda
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Recursivo en subcarpetas
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    </Stack>
+                  )}
+                </Box>
+              </Grid>
+            )}
           </Grid>
 
           {selectedServerId && credentials.length === 0 && !loadingDetails && (
@@ -635,9 +774,11 @@ export const BackupDiscoveryPage = () => {
                   ARCHIVOS FÍSICOS
                 </Typography>
                 <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>
-                  {mode === 'server' 
-                    ? (result as ServerBackupDiscoveryResponse).archivos_fisicos_totales 
-                    : (result as BackupDiscoveryResponse).archivos_fisicos_conteo}
+                  {mode === 'server' && Array.isArray(result)
+                    ? (result as ServerBackupDiscoveryResponse).filter(d => d.archivo_encontrado).length 
+                    : (result && !Array.isArray(result) && (result as BackupDiscoveryResponse).archivos_procesados !== undefined)
+                      ? (result as BackupDiscoveryResponse).archivos_procesados
+                      : 0}
                 </Typography>
               </Paper>
             </Grid>
@@ -669,9 +810,11 @@ export const BackupDiscoveryPage = () => {
                   PESO TOTAL
                 </Typography>
                 <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>
-                  {mode === 'server' 
-                    ? (result as ServerBackupDiscoveryResponse).peso 
-                    : `${(result as BackupDiscoveryResponse).total_peso_mb?.toFixed(2) ?? '0.00'} MB`}
+                  {mode === 'server' && Array.isArray(result)
+                    ? `${(result as ServerBackupDiscoveryResponse).reduce((acc, d) => acc + (d.tamano_encontrado_mb || 0), 0).toFixed(2)} MB`
+                    : (result && !Array.isArray(result) && (result as BackupDiscoveryResponse).detalles)
+                      ? `${(result as BackupDiscoveryResponse).detalles.reduce((acc, d) => acc + (d.tamano_encontrado_mb || 0), 0).toFixed(2)} MB`
+                      : '0.00 MB'}
                 </Typography>
               </Paper>
             </Grid>
@@ -705,7 +848,9 @@ export const BackupDiscoveryPage = () => {
                 <Typography variant="h3" sx={{ fontWeight: 900, mt: 1, color: 'success.main' }}>
                   {mode === 'server' 
                     ? 'N/A' 
-                    : (result as BackupDiscoveryResponse).registros_respaldo_creados}
+                    : (result && !Array.isArray(result) && (result as BackupDiscoveryResponse).nuevos_respaldos_registrados !== undefined)
+                      ? (result as BackupDiscoveryResponse).nuevos_respaldos_registrados
+                      : 0}
                 </Typography>
               </Paper>
             </Grid>

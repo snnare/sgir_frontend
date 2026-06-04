@@ -117,6 +117,19 @@ export const discoverBackups = async (serverId: number, credId: number, pathId: 
     return ServerBackupDiscoveryResponseSchema.parse(data);
 };
 
+export const discoverBackupsCustom = async (
+    serverId: number,
+    credId: number,
+    pathId: number,
+    days: number = 0,
+    deep: boolean = true
+): Promise<ServerBackupDiscoveryResponse> => {
+    const { data } = await api.post(
+        `/m3/inventory/discover-backups-custom/${serverId}/${credId}/${pathId}?days=${days}&deep=${deep}`
+    );
+    return ServerBackupDiscoveryResponseSchema.parse(data);
+};
+
 export const discoverInstanceBackups = async (instanceId: number, credId: number, pathId: number): Promise<BackupDiscoveryResponse> => {
     const { data } = await api.post(`/m3/inventory/discover-backups/${instanceId}/${credId}/${pathId}`);
     return BackupDiscoveryResponseSchema.parse(data);

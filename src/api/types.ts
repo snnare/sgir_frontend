@@ -261,32 +261,38 @@ export const BackupPathDetailsSchema = z.object({
 });
 export type BackupPathDetails = z.infer<typeof BackupPathDetailsSchema>;
 
-export const BackupFileSchema = z.object({
-    nombre: z.string(),
-    tamano_mb: z.coerce.number(),
-    fecha_modificacion: z.string(),
+export const BackupDetailSchema = z.object({
+    base_datos_id: z.number(),
+    nombre_base: z.string(),
+    politica_nombre: z.string(),
+    ruta_path: z.string().nullable().optional(),
+    archivo_encontrado: z.boolean(),
+    tamano_encontrado_mb: z.coerce.number(),
 });
+export type BackupDetail = z.infer<typeof BackupDetailSchema>;
 
 export const BackupDiscoveryResponseSchema = z.object({
-    status: z.string(),
-    servidor: z.string(),
-    ruta_respaldo: z.string(),
-    archivos_fisicos_conteo: z.number(),
-    total_peso_mb: z.coerce.number(),
-    registros_respaldo_creados: z.number(),
-    archivos: z.array(BackupFileSchema),
+    instancia_id: z.number(),
+    ruta_escaneada: z.string(),
+    archivos_procesados: z.number(),
+    nuevos_respaldos_registrados: z.number(),
+    detalles: z.array(BackupDetailSchema),
 });
 export type BackupDiscoveryResponse = z.infer<typeof BackupDiscoveryResponseSchema>;
-export type BackupFile = z.infer<typeof BackupFileSchema>;
 
-export const ServerBackupDiscoveryResponseSchema = z.object({
-    status: z.string(),
-    servidor: z.string(),
-    ruta_respaldo: z.string(),
-    archivos_fisicos_totales: z.number(),
-    peso: z.string(),
-    lista_archivos: z.array(z.string()),
+export const ServerBackupDetailSchema = z.object({
+    base_datos_id: z.number(),
+    nombre_base: z.string(),
+    politica_nombre: z.string(),
+    ruta_path: z.string().nullable().optional(),
+    archivo_encontrado: z.boolean(),
+    tamano_encontrado_mb: z.coerce.number(),
+    timestamp_verificacion: z.string().nullable().optional(),
+    detalle: z.string().nullable().optional(),
 });
+export type ServerBackupDetail = z.infer<typeof ServerBackupDetailSchema>;
+
+export const ServerBackupDiscoveryResponseSchema = z.array(ServerBackupDetailSchema);
 export type ServerBackupDiscoveryResponse = z.infer<typeof ServerBackupDiscoveryResponseSchema>;
 
 export const BackupHistorySchema = z.object({
