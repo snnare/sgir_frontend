@@ -216,8 +216,15 @@ export const SearchAssetsPage = () => {
           item.servidor.toLowerCase().includes(searchStr) ||
           item.instancia.toLowerCase().includes(searchStr);
         
-        const matchesDbms = 
-          dbmsFilter === 'all' || item.motor === dbmsFilter;
+        const matchesDbms = (() => {
+          if (dbmsFilter === 'all') return true;
+          const motorLower = item.motor.toLowerCase();
+          if (dbmsFilter === 'mysql5') return motorLower.includes('mysql 5') || motorLower.includes('mysql5');
+          if (dbmsFilter === 'mysql8') return motorLower.includes('mysql 8') || motorLower.includes('mysql8');
+          if (dbmsFilter === 'mongo') return motorLower.includes('mongo');
+          if (dbmsFilter === 'oracle') return motorLower.includes('oracle');
+          return motorLower.includes(dbmsFilter.toLowerCase());
+        })();
         
         return matchesSearch && matchesDbms;
       });
@@ -242,8 +249,15 @@ export const SearchAssetsPage = () => {
             item.instancia.toLowerCase().includes(searchStr) ||
             item.bases_de_datos.some(db => db.nombre.toLowerCase().includes(searchStr));
           
-          const matchesDbms = 
-            dbmsFilter === 'all' || item.motor === dbmsFilter;
+          const matchesDbms = (() => {
+            if (dbmsFilter === 'all') return true;
+            const motorLower = item.motor.toLowerCase();
+            if (dbmsFilter === 'mysql5') return motorLower.includes('mysql 5') || motorLower.includes('mysql5');
+            if (dbmsFilter === 'mysql8') return motorLower.includes('mysql 8') || motorLower.includes('mysql8');
+            if (dbmsFilter === 'mongo') return motorLower.includes('mongo');
+            if (dbmsFilter === 'oracle') return motorLower.includes('oracle');
+            return motorLower.includes(dbmsFilter.toLowerCase());
+          })();
           
           return matchesSearch && matchesDbms;
         });
@@ -512,7 +526,10 @@ export const SearchAssetsPage = () => {
         }
         filters={[
           { label: 'Todos', value: 'all' },
-          ...uniqueMotors.map(motor => ({ label: motor, value: motor }))
+          { label: 'MySQL 5', value: 'mysql5' },
+          { label: 'MySQL 8', value: 'mysql8' },
+          { label: 'Mongo', value: 'mongo' },
+          { label: 'Oracle', value: 'oracle' }
         ]}
         activeFilter={dbmsFilter}
         onFilterChange={setDbmsFilter}
