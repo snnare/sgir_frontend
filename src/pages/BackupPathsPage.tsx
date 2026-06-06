@@ -13,7 +13,6 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchOffIcon from '@mui/icons-material/SearchOff';
 import StorageIcon from '@mui/icons-material/Storage';
 import DnsIcon from '@mui/icons-material/Dns';
-import CloudQueueIcon from '@mui/icons-material/CloudQueue';
 import { useBackupStore } from '../store/useBackupStore';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { useConfirmStore } from '../store/useConfirmStore';
@@ -177,7 +176,7 @@ export const BackupPathsPage = () => {
             display: 'grid', 
             gridTemplateColumns: { 
               xs: '1fr', 
-              sm: 'repeat(3, 1fr)'
+              sm: 'repeat(2, 1fr)'
             }, 
             gap: 3,
             mb: 4
@@ -197,14 +196,6 @@ export const BackupPathsPage = () => {
             percent={Math.round((paths.filter(p => p.id_estado_ruta === 1).length / paths.length) * 100)} 
             color="#22c55e"
             icon={<StorageIcon fontSize="small" />} 
-          />
-          <MetricCard 
-            title="Almacenamiento Red" 
-            value={paths.filter(p => p.id_tipo_almacenamiento !== 1).length} 
-            unit="NAS/Cloud" 
-            percent={100} 
-            color="#3b82f6"
-            icon={<CloudQueueIcon fontSize="small" />} 
           />
         </Box>
       )}

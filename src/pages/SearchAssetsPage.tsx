@@ -188,11 +188,6 @@ export const SearchAssetsPage = () => {
     fetchAllAssets();
   };
 
-  // Generar lista de motores únicos para los filtros
-  const uniqueMotors = useMemo(() => {
-    const motors = new Set(assets.map(a => a.motor));
-    return Array.from(motors);
-  }, [assets]);
 
   const filteredData = useMemo(() => {
     if (viewMode === 'detailed') {

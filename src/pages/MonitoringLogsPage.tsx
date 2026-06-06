@@ -132,9 +132,16 @@ export const MonitoringLogsPage = () => {
                         <Avatar sx={{ width: 24, height: 24, bgcolor: 'action.selected', color: 'text.secondary' }}>
                           <PersonIcon sx={{ fontSize: 16 }} />
                         </Avatar>
-                        <Typography variant="body2" sx={{ fontWeight: 650, color: 'text.primary' }}>
-                          {log.email || `Usuario #${log.id_usuario}`}
-                        </Typography>
+                        <Stack>
+                          <Typography variant="body2" sx={{ fontWeight: 650, color: 'text.primary' }}>
+                            {log.usuario ? `${log.usuario.nombres} ${log.usuario.apellidos}` : (log.email || `Usuario #${log.id_usuario}`)}
+                          </Typography>
+                          {(log.usuario?.email || (!log.usuario && log.email)) && (
+                            <Typography variant="caption" color="text.secondary">
+                              {log.usuario?.email || log.email}
+                            </Typography>
+                          )}
+                        </Stack>
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>
@@ -242,6 +249,18 @@ export const MonitoringLogsPage = () => {
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>ID ENTIDAD AFECTADA</Typography>
                   <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>#{selectedLog.id_entidad}</Typography>
                 </Box>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>USUARIO ASOCIADO</Typography>
+                {selectedLog.usuario ? (
+                  <Typography variant="body2">
+                    {selectedLog.usuario.nombres} {selectedLog.usuario.apellidos} ({selectedLog.usuario.email})
+                  </Typography>
+                ) : (
+                  <Typography variant="body2">
+                    {selectedLog.email || `Usuario ID #${selectedLog.id_usuario}`}
+                  </Typography>
+                )}
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>FECHA EXACTA</Typography>

@@ -1,1221 +1,804 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
-  Box, Typography, Stack, Paper, Button, Grid, 
-  FormControl, InputLabel, Select, MenuItem, 
-  CircularProgress, Table, TableBody, 
-  TableCell, TableContainer, TableHead, TableRow, 
-  Chip, Alert, ToggleButton, ToggleButtonGroup,
-  Card, CardContent, List, ListItem, ListItemText, Divider,
-  TextField, InputAdornment, IconButton, Skeleton, Tooltip,
-  Checkbox, FormControlLabel, Switch
+  Box, Typography, Stack, Paper,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Chip, IconButton, Tooltip, CircularProgress, Skeleton,
+  Button, Menu, MenuItem, ListItemIcon, ListItemText,
+  Dialog, DialogTitle, DialogContent, DialogActions, Grid
 } from '@mui/material';
-import TravelExploreIcon from '@mui/icons-material/TravelExplore';
-import DnsIcon from '@mui/icons-material/Dns';
-import KeyIcon from '@mui/icons-material/Key';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import StorageIcon from '@mui/icons-material/Storage';
-import LanIcon from '@mui/icons-material/Lan';
-import ErrorOutlinedIcon from '@mui/icons-material/ErrorOutlined';
-import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
-import DnsOutlinedIcon from '@mui/icons-material/DnsOutlined';
-import SearchIcon from '@mui/icons-material/Search';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import CheckIcon from '@mui/icons-material/Check';
-import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
-import CodeIcon from '@mui/icons-material/Code';
-
-import { getServers, getCredentialsByServer, getInstancesByServer } from '../api/infrastructureService';
-import { getBackupPathsByServer } from '../api/backupService';
-import { discoverBackups, discoverInstanceBackups, discoverAllBackups, discoverBackupsCustom } from '../api/monitoringService';
-import { 
-  type Server, type CredentialEnriched, type BackupPath, 
-  type BackupDiscoveryResponse, type Instance, type GlobalBackupDiscoveryResponse,
-  type ServerBackupDiscoveryResponse
-} from '../api/types';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
+import DnsIcon from '@mui/icons-material/Dns';
+import InfoIcon from '@mui/icons-material/Info';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import ViewCompactIcon from '@mui/icons-material/ViewCompact';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import DownloadIcon from '@mui/icons-material/Download';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import api from '../api/client';
+import { getAssets } from '../api/infrastructureService';
+import { discoverAllBackups } from '../api/monitoringService';
+import { type Asset, type GlobalBackupDiscoveryResponse, type BackupDiscoveryResponse, type ServerBackupDiscoveryResponse } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
-import { BackButton } from '../components/BackButton';
+import { useAlertStore } from '../store/useAlertStore';
+import { BackupDiscoveryWizard } from '../components/BackupDiscoveryWizard';
+import { FilterBar } from '../components/FilterBar';
 
 export const BackupDiscoveryPage = () => {
-  const { showNotification } = useNotificationStore();
-  const navigate = useNavigate();
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dbmsFilter, setDbmsFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [syncingAll, setSyncingAll] = useState(false);
   
-  // Modos de escaneo: 'server' (General), 'instance' (Específica), 'global' (Masiva)
-  const [mode, setMode] = useState<'server' | 'instance' | 'global'>('server');
-
-  // Datos maestros
-  const [servers, setServers] = useState<Server[]>([]);
-  const [instances, setInstances] = useState<Instance[]>([]);
-  const [credentials, setCredentials] = useState<CredentialEnriched[]>([]);
-  const [paths, setPaths] = useState<BackupPath[]>([]);
-
-  // Selecciones
-  const [selectedServerId, setSelectedServerId] = useState<number | ''>('');
-  const [selectedInstanceId, setSelectedInstanceId] = useState<number | ''>('');
-  const [selectedCredId, setSelectedCredId] = useState<number | ''>('');
-  const [selectedPathId, setSelectedPathId] = useState<number | ''>('');
-
-  // Estados de carga
-  const [loadingServers, setLoadingServers] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [discovering, setDiscovering] = useState(false);
-
-  // Resultados
-  const [result, setResult] = useState<BackupDiscoveryResponse | ServerBackupDiscoveryResponse | null>(null);
+  // Menú Sincronizar
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const menuOpen = Boolean(anchorEl);
+  
+  // Resultados global
   const [globalResult, setGlobalResult] = useState<GlobalBackupDiscoveryResponse | null>(null);
+  const [resultDialogOpen, setResultDialogOpen] = useState(false);
 
-  // Estados de interacción cliente-side (Búsqueda y Ordenamiento)
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'nombre' | 'tamano_mb' | 'fecha_modificacion'>('fecha_modificacion');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [copiedFileIdx, setCopiedFileIdx] = useState<number | null>(null);
+  // Estados para soportar vista detallada vs comprimida y fecha de actualización
+  const [viewMode, setViewMode] = useState<'detailed' | 'compressed'>('detailed');
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
 
-  // Estados para Escaneo en Caliente / Personalizado
-  const [isCustomScan, setIsCustomScan] = useState(false);
-  const [customDays, setCustomDays] = useState<number>(0);
-  const [customDeep, setCustomDeep] = useState<boolean>(true);
+  // Unidad de visualización de tamaño
+  const [sizeUnit, setSizeUnit] = useState<'auto' | 'mb' | 'gb'>('auto');
 
-  // 1. Cargar servidores al inicio
-  useEffect(() => {
-    const fetchServers = async () => {
-      setLoadingServers(true);
-      try {
-        const data = await getServers();
-        setServers(data);
-      } catch (err) {
-        showNotification('Error al cargar servidores', 'error');
-      } finally {
-        setLoadingServers(false);
-      }
-    };
-    fetchServers();
-  }, [showNotification]);
-
-  // Limpiar resultados al cambiar de modo
-  useEffect(() => {
-    setResult(null);
-    setGlobalResult(null);
-    setSearchQuery('');
-  }, [mode]);
-
-  // 2. Cargar credenciales, rutas e instancias cuando cambia el servidor
-  useEffect(() => {
-    if (!selectedServerId) {
-      setCredentials([]);
-      setPaths([]);
-      setInstances([]);
-      setSelectedCredId('');
-      setSelectedPathId('');
-      setSelectedInstanceId('');
-      return;
+  // Formateador de tamaño reactivo
+  const formatSize = useCallback((sizeInMb: number | null | undefined) => {
+    if (sizeInMb === null || sizeInMb === undefined) return '-';
+    if (sizeUnit === 'mb') {
+      return `${sizeInMb.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MB`;
     }
-
-    const fetchDetails = async () => {
-      setLoadingDetails(true);
-      try {
-        const [credsData, pathsData, instancesData] = await Promise.all([
-          getCredentialsByServer(Number(selectedServerId)),
-          getBackupPathsByServer(Number(selectedServerId)),
-          getInstancesByServer(Number(selectedServerId))
-        ]);
-        // Solo credenciales SSH para descubrimiento de archivos (tipo 1 suele ser SSH)
-        const sshCreds = credsData.filter(c => c.tipo.id_tipo_acceso === 1);
-        setCredentials(sshCreds);
-        setPaths(pathsData);
-        setInstances(instancesData);
-        
-        // Auto-seleccionar la primera credencial SSH si existe
-        if (sshCreds.length > 0) {
-          setSelectedCredId(sshCreds[0].id_credencial);
-        } else {
-          setSelectedCredId('');
-        }
-      } catch (err) {
-        showNotification('Error al cargar detalles del servidor', 'error');
-        setSelectedCredId('');
-      } finally {
-        setLoadingDetails(false);
-      }
-    };
-    fetchDetails();
-    setSelectedPathId('');
-    setSelectedInstanceId('');
-  }, [selectedServerId, showNotification]);
-
-
-
-  const handleStartDiscovery = async () => {
-    if (mode === 'global') {
-      setDiscovering(true);
-      setGlobalResult(null);
-      try {
-        const res = await discoverAllBackups();
-        console.log('Info de respuesta del backend (global):', res);
-        setGlobalResult(res);
-        showNotification('Escaneo global de respaldos completado', 'success');
-      } catch (err: any) {
-        console.error(err);
-      } finally {
-        setDiscovering(false);
-      }
-      return;
+    if (sizeUnit === 'gb') {
+      return `${(sizeInMb / 1024).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} GB`;
     }
-
-    if (mode === 'server') {
-      if (!selectedServerId || !selectedCredId || !selectedPathId) return;
-
-      setDiscovering(true);
-      setResult(null);
-      try {
-        let res;
-        if (isCustomScan) {
-          res = await discoverBackupsCustom(
-            Number(selectedServerId), 
-            Number(selectedCredId), 
-            Number(selectedPathId),
-            customDays,
-            customDeep
-          );
-        } else {
-          res = await discoverBackups(
-            Number(selectedServerId), 
-            Number(selectedCredId), 
-            Number(selectedPathId)
-          );
-        }
-        console.log('Info de respuesta del backend (server):', res);
-        setResult(res);
-        showNotification(
-          isCustomScan 
-            ? 'Escaneo en caliente (personalizado) completado' 
-            : 'Escaneo rápido (diario) completado', 
-          'success'
-        );
-      } catch (err: any) {
-        console.error(err);
-      } finally {
-        setDiscovering(false);
-      }
-    } else if (mode === 'instance') {
-      if (!selectedInstanceId || !selectedCredId || !selectedPathId) return;
-
-      setDiscovering(true);
-      setResult(null);
-      try {
-        const res = await discoverInstanceBackups(
-          Number(selectedInstanceId), 
-          Number(selectedCredId), 
-          Number(selectedPathId)
-        );
-        console.log('Info de respuesta del backend (instance):', res);
-        setResult(res);
-        showNotification('Escaneo de archivos por instancia completado', 'success');
-      } catch (err: any) {
-        console.error(err);
-      } finally {
-        setDiscovering(false);
-      }
+    // Mode 'auto'
+    if (sizeInMb >= 1024) {
+      return `${(sizeInMb / 1024).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} GB`;
     }
+    return `${sizeInMb.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MB`;
+  }, [sizeUnit]);
+
+  // Estados para el menú de descargas de Reporte
+  const [reportAnchorEl, setReportAnchorEl] = useState<null | HTMLElement>(null);
+  const reportMenuOpen = Boolean(reportAnchorEl);
+
+  const handleReportClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setReportAnchorEl(event.currentTarget);
   };
 
-  // Copiar nombre de archivo
-  const handleCopyFileName = (fileName: string, idx: number) => {
-    navigator.clipboard.writeText(fileName);
-    setCopiedFileIdx(idx);
-    showNotification('Copiado al portapapeles', 'info');
-    setTimeout(() => setCopiedFileIdx(null), 2000);
+  const handleReportClose = () => {
+    setReportAnchorEl(null);
   };
 
-  // Solicitar ordenamiento por cabecera
-  const handleRequestSort = (property: 'nombre' | 'tamano_mb' | 'fecha_modificacion') => {
-    const isAsc = sortBy === property && sortOrder === 'asc';
-    setSortOrder(isAsc ? 'desc' : 'asc');
-    setSortBy(property);
+  const { showNotification } = useNotificationStore();
+  const { showAlert } = useAlertStore();
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
   };
 
-  // Filtrado y ordenamiento en cliente de archivos encontrados
-  const filteredAndSortedFiles = useMemo(() => {
-    if (!result) return [];
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
 
-    if (mode === 'server') {
-      const serverResult = result as ServerBackupDiscoveryResponse;
-      if (!Array.isArray(serverResult)) return [];
-      const active = serverResult.filter(d => d.archivo_encontrado);
-      let items = active.map(d => {
-        const parts = d.ruta_path ? d.ruta_path.split('/') : [];
-        const nombre = parts.length > 0 ? parts[parts.length - 1] : 'unknown';
-        return {
-          nombre,
-          tamano_mb: d.tamano_encontrado_mb,
-          fecha_modificacion: d.timestamp_verificacion ? d.timestamp_verificacion.replace('T', ' ').substring(0, 19) : '-',
-          nombre_base: d.nombre_base,
-          politica_nombre: d.politica_nombre
-        };
+  const handleSyncAll = async () => {
+    handleMenuClose();
+    setSyncingAll(true);
+    showNotification('Iniciando sincronización global de respaldos...', 'info');
+    try {
+      const res = await discoverAllBackups();
+      setGlobalResult(res);
+      setResultDialogOpen(true);
+      showNotification('Sincronización global de respaldos completada', 'success');
+      fetchAllAssets();
+    } catch (error) {
+      console.error('Error in global sync:', error);
+      showAlert({
+        title: 'Error de Sincronización',
+        description: 'No se pudo completar la sincronización global de respaldos físico. Verifique el estado del servidor e intente de nuevo.',
+        severity: 'error'
       });
+    } finally {
+      setSyncingAll(false);
+    }
+  };
 
-      let filtered = items.filter(file => 
-        file.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+  const handleSyncByServer = () => {
+    handleMenuClose();
+    setWizardOpen(true);
+  };
+
+  // Estos endpoints de descargas se adaptarán en la siguiente etapa, se mantienen consistentes visualmente
+  const handleDownloadPDF = async () => {
+    handleReportClose();
+    showNotification('Generando reporte PDF de respaldos...', 'info');
+    try {
+      const response = await api.get('/assets/pdf', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `reporte_respaldos_${new Date().toISOString().split('T')[0]}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showNotification('Reporte PDF descargado exitosamente', 'success');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      showAlert({
+        title: 'Error de Descarga',
+        description: 'No se pudo descargar el reporte PDF de respaldos. Intente más tarde.',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleDownloadPDFOffline = async () => {
+    handleReportClose();
+    showNotification('Generando reporte PDF Offline de respaldos...', 'info');
+    try {
+      const response = await api.get('/assets/pdf-offline', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'reporte_respaldos_offline.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showNotification('Reporte PDF Offline descargado exitosamente', 'success');
+    } catch (error) {
+      console.error('Error downloading PDF Offline:', error);
+      showAlert({
+        title: 'Error de Descarga',
+        description: 'No se pudo descargar el reporte PDF Offline de respaldos.',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleDownloadCSV = async () => {
+    handleReportClose();
+    showNotification('Generando reporte CSV de respaldos...', 'info');
+    try {
+      const response = await api.get('/assets/csv', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `reporte_respaldos_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showNotification('Reporte CSV descargado exitosamente', 'success');
+    } catch (error) {
+      console.error('Error downloading CSV:', error);
+      showAlert({
+        title: 'Error de Descarga',
+        description: 'No se pudo descargar el reporte CSV (Excel) de respaldos.',
+        severity: 'error'
+      });
+    }
+  };
+
+  const fetchAllAssets = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getAssets();
+      setAssets(data);
+      setLastSyncTime(new Date());
+    } catch (error) {
+      console.error('Error fetching assets:', error);
+      showAlert({
+        title: 'Error de Conexión',
+        description: 'No se pudieron recuperar los archivos de respaldo desde la infraestructura. Verifique su conexión.',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [showNotification, showAlert]);
+
+  useEffect(() => {
+    fetchAllAssets();
+  }, [fetchAllAssets]);
+
+  const handleRefresh = () => {
+    fetchAllAssets();
+  };
+
+  // Callback del Wizard al completar con éxito un escaneo individual
+  const handleWizardSuccess = (
+    _resultData: BackupDiscoveryResponse | ServerBackupDiscoveryResponse | null, 
+    _mode: 'server' | 'instance'
+  ) => {
+    showNotification('Escaneo individual de respaldos completado', 'success');
+    fetchAllAssets();
+  };
+
+  const filteredData = useMemo(() => {
+    if (viewMode === 'detailed') {
+      const flattened = assets.flatMap(item => 
+        item.bases_de_datos.map(db => ({
+          ...item,
+          base_datos: db.nombre,
+          estado_bd: db.estado,
+          tamano_mb: db.tamano_mb,
+          id_composite: `${item.ip}-${item.instancia}-${db.nombre}`
+        }))
       );
 
-      filtered.sort((a, b) => {
-        const valA = a[sortBy];
-        const valB = b[sortBy];
-
-        if (sortBy === 'tamano_mb') {
-          return sortOrder === 'asc' 
-            ? (valA as number) - (valB as number)
-            : (valB as number) - (valA as number);
-        } else {
-          return sortOrder === 'asc'
-            ? String(valA).localeCompare(String(valB))
-            : String(valB).localeCompare(String(valA));
-        }
+      return flattened.filter(item => {
+        const searchStr = searchTerm.toLowerCase();
+        const matchesSearch = 
+          (item.base_datos?.toLowerCase() || '').includes(searchStr) ||
+          item.ip.includes(searchStr) ||
+          item.motor.toLowerCase().includes(searchStr) ||
+          item.servidor.toLowerCase().includes(searchStr) ||
+          item.instancia.toLowerCase().includes(searchStr);
+        
+        const matchesDbms = (() => {
+          if (dbmsFilter === 'all') return true;
+          const motorLower = item.motor.toLowerCase();
+          if (dbmsFilter === 'mysql5') return motorLower.includes('mysql 5') || motorLower.includes('mysql5');
+          if (dbmsFilter === 'mysql8') return motorLower.includes('mysql 8') || motorLower.includes('mysql8');
+          if (dbmsFilter === 'mongo') return motorLower.includes('mongo');
+          if (dbmsFilter === 'oracle') return motorLower.includes('oracle');
+          return motorLower.includes(dbmsFilter.toLowerCase());
+        })();
+        
+        return matchesSearch && matchesDbms;
       });
-      return filtered;
+    } else {
+      return assets
+        .map(item => {
+          const totalSize = item.bases_de_datos.reduce((sum, db) => sum + (db.tamano_mb || 0), 0);
+          return {
+            ...item,
+            total_db: item.bases_de_datos.length,
+            peso_total_mb: totalSize,
+            id_composite: `${item.ip}-${item.instancia}`
+          };
+        })
+        .filter(item => {
+          const searchStr = searchTerm.toLowerCase();
+          const matchesSearch = 
+            item.ip.includes(searchStr) ||
+            item.motor.toLowerCase().includes(searchStr) ||
+            item.servidor.toLowerCase().includes(searchStr) ||
+            item.instancia.toLowerCase().includes(searchStr) ||
+            item.bases_de_datos.some(db => db.nombre.toLowerCase().includes(searchStr));
+          
+          const matchesDbms = (() => {
+            if (dbmsFilter === 'all') return true;
+            const motorLower = item.motor.toLowerCase();
+            if (dbmsFilter === 'mysql5') return motorLower.includes('mysql 5') || motorLower.includes('mysql5');
+            if (dbmsFilter === 'mysql8') return motorLower.includes('mysql 8') || motorLower.includes('mysql8');
+            if (dbmsFilter === 'mongo') return motorLower.includes('mongo');
+            if (dbmsFilter === 'oracle') return motorLower.includes('oracle');
+            return motorLower.includes(dbmsFilter.toLowerCase());
+          })();
+          
+          return matchesSearch && matchesDbms;
+        });
     }
-
-    // mode === 'instance'
-    const instanceResult = result as BackupDiscoveryResponse;
-    if (Array.isArray(instanceResult) || !instanceResult.detalles) return [];
-
-    const active = instanceResult.detalles.filter(d => d.archivo_encontrado);
-    let items = active.map(d => {
-      const parts = d.ruta_path ? d.ruta_path.split('/') : [];
-      const nombre = parts.length > 0 ? parts[parts.length - 1] : 'unknown';
-      return {
-        nombre,
-        tamano_mb: d.tamano_encontrado_mb,
-        fecha_modificacion: '-',
-        nombre_base: d.nombre_base,
-        politica_nombre: d.politica_nombre
-      };
-    });
-
-    let filtered = items.filter(file => 
-      file.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    filtered.sort((a, b) => {
-      const valA = a[sortBy];
-      const valB = b[sortBy];
-
-      if (sortBy === 'tamano_mb') {
-        return sortOrder === 'asc' 
-          ? (valA as number) - (valB as number)
-          : (valB as number) - (valA as number);
-      } else {
-        return sortOrder === 'asc'
-          ? String(valA).localeCompare(String(valB))
-          : String(valB).localeCompare(String(valA));
-      }
-    });
-
-    return filtered;
-  }, [result, mode, searchQuery, sortBy, sortOrder]);
-
-  // Helper para pintar un Chip dinámico de tipo de extensión
-  const getFileExtensionChip = (fileName: string) => {
-    const parts = fileName.split('.');
-    if (parts.length <= 1) return null;
-    const ext = parts.pop()?.toLowerCase();
-    
-    let color: "warning" | "secondary" | "success" | "info" | "default" = "default";
-    let label = ext?.toUpperCase() || '';
-
-    if (ext === 'sql') {
-      color = 'warning';
-      label = 'SQL Script';
-    } else if (ext === 'dmp' || ext === 'dump') {
-      color = 'secondary';
-      label = 'Oracle Dump';
-    } else if (ext === 'gz' || ext === 'tar' || ext === 'zip' || ext === 'tgz') {
-      color = 'success';
-      label = ext === 'gz' ? 'GZIP Archive' : label;
-    } else if (ext === 'log' || ext === 'txt') {
-      color = 'info';
-    }
-
-    return (
-      <Chip 
-        label={label} 
-        size="small" 
-        color={color} 
-        variant="outlined" 
-        sx={{ 
-          fontSize: '0.65rem', 
-          fontWeight: 700, 
-          height: 18,
-          borderRadius: 1
-        }} 
-      />
-    );
-  };
-
-  const isExecuteDisabled = 
-    mode === 'global' ? discovering :
-    mode === 'server' ? (!selectedServerId || !selectedCredId || !selectedPathId || discovering) :
-    (!selectedInstanceId || !selectedCredId || !selectedPathId || discovering);
+  }, [assets, searchTerm, dbmsFilter, viewMode]);
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
-      <BackButton to="/" label="Volver al Panel de Control" />
-      {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2, borderBottom: '1px solid', borderColor: 'divider', pb: 3 }}>
-        <TravelExploreIcon sx={{ fontSize: 36, color: 'primary.main' }} />
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: '-0.03em' }}>
-            Explorador General de Respaldos
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Escaneo reactivo y profundo de dumps físicos en la infraestructura de servidores.
-          </Typography>
-        </Box>
+      {/* --- 1. TITULO --- */}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+              <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.05em' }}>
+              Explorador de Respaldos
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+              Búsqueda global y control centralizado de archivos de respaldo físico en la infraestructura.
+              </Typography>
+          </Box>
+          <Stack direction="row" spacing={0.5} sx={{ bgcolor: 'background.paper', p: 0.5, borderRadius: 2.5, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+            <Tooltip title="Vista Detallada (Archivos)">
+              <IconButton 
+                onClick={() => setViewMode('detailed')}
+                color={viewMode === 'detailed' ? 'primary' : 'default'}
+                sx={{ 
+                  borderRadius: 2, 
+                  bgcolor: viewMode === 'detailed' ? 'action.selected' : 'transparent',
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+              >
+                <ViewListIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Vista Comprimida (Servidores)">
+              <IconButton 
+                onClick={() => setViewMode('compressed')}
+                color={viewMode === 'compressed' ? 'primary' : 'default'}
+                sx={{ 
+                  borderRadius: 2, 
+                  bgcolor: viewMode === 'compressed' ? 'action.selected' : 'transparent',
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+              >
+                <ViewCompactIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
       </Box>
 
-      {/* Selector de Modo de Escaneo */}
-      <Box sx={{ mb: 4 }}>
-        <ToggleButtonGroup
-          color="primary"
-          value={mode}
-          exclusive
-          onChange={(_, newMode) => newMode && setMode(newMode)}
-          disabled={discovering}
-          fullWidth
-          sx={{
-            bgcolor: 'action.hover',
-            p: 0.5,
-            borderRadius: 4,
-            border: '1px solid',
-            borderColor: 'divider',
-            '& .MuiToggleButton-root': {
-              py: 1.2,
-              fontWeight: 700,
-              textTransform: 'none',
-              borderRadius: 3,
-              border: 'none',
-              transition: 'all 0.2s ease-in-out',
-              '&.Mui-selected': {
-                bgcolor: 'background.paper',
-                color: 'primary.main',
-                boxShadow: '0 4px 12px 0 rgba(0, 0, 0, 0.05)',
-                '&:hover': {
-                  bgcolor: 'background.paper'
-                }
-              },
-              '&:hover': {
-                bgcolor: 'action.selected',
-                transform: 'translateY(-1px)'
-              }
-            }
-          }}
-        >
-          <ToggleButton value="server">
-            <LanIcon sx={{ mr: 1, fontSize: 20 }} /> Escaneo por Servidor
-          </ToggleButton>
-          <ToggleButton value="instance">
-            <StorageIcon sx={{ mr: 1, fontSize: 20 }} /> Escaneo por Instancia DBMS
-          </ToggleButton>
-          <ToggleButton value="global">
-            <PlaylistAddCheckIcon sx={{ mr: 1, fontSize: 20 }} /> Sincronización Global
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+      {/* Wizard de Escaneo Individual */}
+      <BackupDiscoveryWizard 
+        open={wizardOpen} 
+        onClose={() => setWizardOpen(false)} 
+        onSuccess={handleWizardSuccess} 
+      />
 
-      {/* Panel de Selección */}
-      {mode === 'global' ? (
-        <Paper 
-          variant="outlined" 
-          sx={{ 
-            p: 5, 
-            borderRadius: 4, 
-            mb: 4, 
-            bgcolor: 'background.paper', 
-            textAlign: 'center',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 4px 20px 0 rgba(0, 0, 0, 0.02)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          {discovering && (
-            <Box sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '4px',
-              background: 'linear-gradient(90deg, #1976d2, #4caf50, #1976d2)',
-              backgroundSize: '200% 100%',
-              animation: 'movingGradient 2s linear infinite',
-              '@keyframes movingGradient': {
-                '0%': { backgroundPosition: '0% 50%' },
-                '100%': { backgroundPosition: '100% 50%' }
-              }
-            }} />
+      {/* --- DIALOGO DE RESULTADOS GLOBAL --- */}
+      <Dialog 
+        open={resultDialogOpen} 
+        onClose={() => setResultDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        slotProps={{ paper: { sx: { borderRadius: 3 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <AutoAwesomeIcon color="primary" /> Resultado de Sincronización Global de Respaldos
+        </DialogTitle>
+        <DialogContent dividers>
+          {globalResult && (
+            <Box>
+              {/* Resumen de KPIs */}
+              <Grid container spacing={2} sx={{ mb: 4 }}>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2, bgcolor: 'action.hover' }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Rutas Procesadas</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800 }}>{globalResult.total_rutas_procesadas}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2, borderLeft: '4px solid', borderLeftColor: 'success.main' }}>
+                    <Typography variant="caption" color="success.main" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Respaldos Registrados</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800 }}>{globalResult.total_respaldos_registrados}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', borderRadius: 2, borderLeft: '4px solid', borderLeftColor: 'info.main' }}>
+                    <Typography variant="caption" color="info.main" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>Servidores Escaneados</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800 }}>{globalResult.servidores_escaneados.length}</Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {/* Servidores Procesados */}
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <DnsIcon fontSize="small" color="action" /> Servidores Procesados
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 4 }}>
+                {globalResult.servidores_escaneados.map((ip, idx) => (
+                  <Chip key={idx} label={ip} variant="outlined" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700 }} />
+                ))}
+              </Box>
+
+              {/* Errores */}
+              {globalResult.errores.length > 0 && (
+                <>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1, color: 'error.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <InfoIcon fontSize="small" color="error" /> Incidencias Detectadas ({globalResult.errores.length})
+                  </Typography>
+                  <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, maxHeight: 300 }}>
+                    <Table size="small" stickyHeader>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: 700, bgcolor: 'background.paper' }}>Servidor</TableCell>
+                          <TableCell sx={{ fontWeight: 700, bgcolor: 'background.paper' }}>Ruta</TableCell>
+                          <TableCell sx={{ fontWeight: 700, bgcolor: 'background.paper' }}>Error Técnico</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {globalResult.errores.map((err, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{err.servidor} {err.instancia ? `(${err.instancia})` : ''}</TableCell>
+                            <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{err.ruta}</TableCell>
+                            <TableCell sx={{ color: 'error.main', fontSize: '0.75rem' }}>{err.error}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </>
+              )}
+            </Box>
           )}
-
-          <PlaylistAddCheckIcon color="primary" sx={{ fontSize: 64, mb: 2, filter: discovering ? 'drop-shadow(0 0 8px rgba(25,118,210,0.5))' : 'none' }} />
-          <Typography variant="h5" sx={{ fontWeight: 850, mb: 1.5, letterSpacing: '-0.02em' }}>
-            Sincronización y Descubrimiento Global
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 550, mx: 'auto', mb: 4, lineHeight: 1.6 }}>
-            Escanea simultáneamente todas las rutas de almacenamiento físico declaradas en la base de datos, resolviendo de forma segura las credenciales SSH activas para registrar y auditar respaldos de forma automatizada.
-          </Typography>
-          
-          <Button
-            variant="contained"
-            size="large"
-            disabled={discovering}
-            startIcon={discovering ? <CircularProgress size={20} color="inherit" /> : <AutoAwesomeIcon />}
-            onClick={handleStartDiscovery}
-            sx={{ 
-              px: 6, 
-              py: 1.8, 
-              borderRadius: 3, 
-              fontWeight: 800,
-              boxShadow: discovering ? 'none' : '0 8px 24px rgba(25, 118, 210, 0.25)',
-              transition: 'all 0.3s ease-out',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 12px 30px rgba(25, 118, 210, 0.35)'
-              }
-            }}
-          >
-            {discovering ? 'Ejecutando Barrido de Red...' : 'Iniciar Sincronización Global'}
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button variant="contained" fullWidth onClick={() => setResultDialogOpen(false)} sx={{ fontWeight: 700, borderRadius: 2 }}>
+            Cerrar Resumen
           </Button>
-        </Paper>
-      ) : (
-        <Paper 
-          variant="outlined" 
-          sx={{ 
-            p: 4, 
-            borderRadius: 4, 
-            mb: 4, 
-            bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 4px 20px 0 rgba(0, 0, 0, 0.02)'
-          }}
-        >
-          <Grid container spacing={3} sx={{ alignItems: 'flex-end' }}>
-            
-            {/* Servidor */}
-            <Grid size={{ xs: 12, md: mode === 'instance' ? 2.5 : 3 }}>
-              {loadingServers ? (
-                <Stack spacing={0.5}>
-                  <Typography variant="caption" color="text.secondary">Cargando servidores...</Typography>
-                  <Skeleton variant="rounded" height={40} />
-                </Stack>
-              ) : (
-                <FormControl fullWidth size="small">
-                  <InputLabel>Servidor</InputLabel>
-                  <Select
-                    value={selectedServerId}
-                    label="Servidor"
-                    onChange={(e) => setSelectedServerId(e.target.value as number)}
-                    disabled={discovering}
-                  >
-                    {servers.map((s) => (
-                      <MenuItem key={s.id_servidor} value={s.id_servidor}>
-                        <DnsIcon sx={{ fontSize: 16, mr: 1, color: 'primary.main' }} /> 
-                        <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{s.direccion_ip}</span>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-            </Grid>
+        </DialogActions>
+      </Dialog>
 
-            {/* Instancia (Solo Modo Instancia) */}
-            {mode === 'instance' && (
-              <Grid size={{ xs: 12, md: 2.5 }}>
-                {loadingDetails ? (
-                  <Stack spacing={0.5}>
-                    <Typography variant="caption" color="text.secondary">Cargando instancias...</Typography>
-                    <Skeleton variant="rounded" height={40} />
-                  </Stack>
-                ) : (
-                  <FormControl fullWidth size="small" disabled={!selectedServerId || discovering}>
-                    <InputLabel>Instancia DBMS</InputLabel>
-                    <Select
-                      value={selectedInstanceId}
-                      label="Instancia DBMS"
-                      onChange={(e) => setSelectedInstanceId(e.target.value as number)}
-                    >
-                      {instances.length === 0 ? (
-                        <MenuItem disabled>Sin instancias registradas</MenuItem>
-                      ) : (
-                        instances.map((inst) => (
-                          <MenuItem key={inst.id_instancia} value={inst.id_instancia}>
-                            <StorageIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} /> 
-                            <span>{inst.nombre_instancia}</span>
-                          </MenuItem>
-                        ))
-                      )}
-                    </Select>
-                  </FormControl>
-                )}
-              </Grid>
-            )}
-
-            {/* Credencial SSH */}
-            <Grid size={{ xs: 12, md: mode === 'instance' ? 2.5 : 3 }}>
-              {loadingDetails ? (
-                <Stack spacing={0.5}>
-                  <Typography variant="caption" color="text.secondary">Cargando llaves...</Typography>
-                  <Skeleton variant="rounded" height={40} />
-                </Stack>
-              ) : (
-                <FormControl fullWidth size="small" disabled={!selectedServerId || discovering}>
-                  <InputLabel>Credencial SSH</InputLabel>
-                  <Select
-                    value={selectedCredId}
-                    label="Credencial SSH"
-                    onChange={(e) => setSelectedCredId(e.target.value as number)}
-                  >
-                    {credentials.length === 0 ? (
-                      <MenuItem disabled>Sin credenciales SSH</MenuItem>
-                    ) : (
-                      credentials.map((c) => (
-                        <MenuItem key={c.id_credencial} value={c.id_credencial}>
-                          <KeyIcon sx={{ fontSize: 16, mr: 1, color: 'amber.main' }} /> {c.usuario}
-                        </MenuItem>
-                      ))
-                    )}
-                  </Select>
-                </FormControl>
-              )}
-            </Grid>
-
-            {/* Ruta de Respaldo */}
-            <Grid size={{ xs: 12, md: mode === 'instance' ? 2.5 : 3 }}>
-              {loadingDetails ? (
-                <Stack spacing={0.5}>
-                  <Typography variant="caption" color="text.secondary">Cargando rutas...</Typography>
-                  <Skeleton variant="rounded" height={40} />
-                </Stack>
-              ) : (
-                <FormControl fullWidth size="small" disabled={!selectedServerId || discovering}>
-                  <InputLabel>Ruta de Respaldo</InputLabel>
-                  <Select
-                    value={selectedPathId}
-                    label="Ruta de Respaldo"
-                    onChange={(e) => {
-                      const val = e.target.value as any;
-                      if (val === 'add-new') {
-                        navigate('/add-path', { state: { serverId: selectedServerId } });
-                      } else {
-                        setSelectedPathId(val as number);
-                      }
-                    }}
-                  >
-                    {paths.length === 0 ? (
-                      <MenuItem disabled>Sin rutas configuradas</MenuItem>
-                    ) : (
-                      paths.map((p) => (
-                        <MenuItem key={p.id_ruta} value={p.id_ruta}>
-                          <FolderOpenIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} /> {p.descripcion_ruta}
-                        </MenuItem>
-                      ))
-                    )}
-                    <Divider />
-                    <MenuItem value="add-new" sx={{ color: 'primary.main', fontWeight: 700 }}>
-                      + Agregar ruta respaldo
-                    </MenuItem>
-                  </Select>
-                </FormControl>
-              )}
-            </Grid>
-
-            {/* Botón Escaneo */}
-            <Grid size={{ xs: 12, md: mode === 'instance' ? 2 : 3 }}>
-              <Button
-                fullWidth
-                variant="contained"
-                startIcon={discovering ? <CircularProgress size={16} color="inherit" /> : <AutoAwesomeIcon />}
-                onClick={handleStartDiscovery}
-                disabled={isExecuteDisabled}
-                sx={{ 
-                  height: 40, 
-                  borderRadius: 2.5, 
-                  fontWeight: 800,
-                  transition: 'all 0.2s',
-                  '&:not(:disabled):hover': {
-                    transform: 'translateY(-1px)',
-                    boxShadow: '0 4px 12px rgba(25, 118, 210, 0.25)'
-                  }
-                }}
-              >
-                {discovering ? 'Escaneando...' : isCustomScan ? 'Escaneo en Caliente' : 'Iniciar Escaneo'}
-              </Button>
-            </Grid>
-
-            {/* Opciones de Escaneo en Caliente / Personalizado */}
-            {mode === 'server' && (
-              <Grid size={{ xs: 12 }}>
-                <Box sx={{ 
-                  mt: 2, 
-                  pt: 2.5, 
-                  borderTop: '1px solid', 
-                  borderColor: 'divider',
-                  display: 'flex', 
-                  flexDirection: { xs: 'column', sm: 'row' }, 
-                  alignItems: 'center', 
-                  gap: 3 
-                }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={isCustomScan}
-                        onChange={(e) => setIsCustomScan(e.target.checked)}
-                        disabled={discovering}
-                        color="primary"
-                      />
-                    }
-                    label={
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                          Escaneo en Caliente (Personalizado)
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Permite buscar recursivamente y con filtros de antigüedad en días.
-                        </Typography>
-                      </Box>
-                    }
-                  />
-
-                  {isCustomScan && (
-                    <Stack direction="row" spacing={3} sx={{ flexGrow: 1, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
-                      {/* Días de antigüedad */}
-                      <FormControl size="small" sx={{ width: 240 }} disabled={discovering}>
-                        <InputLabel>Antigüedad</InputLabel>
-                        <Select
-                          value={customDays}
-                          label="Antigüedad"
-                          onChange={(e) => setCustomDays(e.target.value as number)}
-                        >
-                          <MenuItem value={1}>Últimas 24 horas</MenuItem>
-                          <MenuItem value={3}>Últimos 3 días</MenuItem>
-                          <MenuItem value={7}>Última semana</MenuItem>
-                          <MenuItem value={0}>(Recomendado) Cualquier antigüedad</MenuItem>
-                        </Select>
-                      </FormControl>
-
-                      {/* Búsqueda profunda */}
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={customDeep}
-                            onChange={(e) => setCustomDeep(e.target.checked)}
-                            disabled={discovering}
-                            color="primary"
-                          />
-                        }
-                        label={
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                              Búsqueda profunda
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Recursivo en subcarpetas
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </Stack>
-                  )}
-                </Box>
-              </Grid>
-            )}
-          </Grid>
-
-          {selectedServerId && credentials.length === 0 && !loadingDetails && (
-            <Alert severity="warning" sx={{ mt: 3, borderRadius: 2.5, fontWeight: 600 }}>
-              Este servidor no posee credenciales de acceso SSH (Puerto 22) habilitadas para la exploración física de archivos.
-            </Alert>
-          )}
-        </Paper>
-      )}
-
-
-      {/* Resultados de Escaneo Individual / Por Instancia */}
-      {result && !discovering && (
-        <Box sx={{ animation: 'slideUp 0.4s ease-out' }}>
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper 
-                variant="outlined" 
-                sx={{ 
-                  p: 3, 
-                  textAlign: 'center', 
-                  borderRadius: 4,
-                  bgcolor: 'background.paper',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  boxShadow: '0 4px 20px 0 rgba(0,0,0,0.02)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-3px)',
-                    boxShadow: '0 8px 24px 0 rgba(0,0,0,0.06)',
-                  }
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-                  <Box sx={{ p: 1, borderRadius: 2.5, bgcolor: 'primary.light', color: 'primary.main', display: 'inline-flex' }}>
-                    <CodeIcon fontSize="medium" />
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  ARCHIVOS FÍSICOS
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>
-                  {mode === 'server' && Array.isArray(result)
-                    ? (result as ServerBackupDiscoveryResponse).filter(d => d.archivo_encontrado).length 
-                    : (result && !Array.isArray(result) && (result as BackupDiscoveryResponse).archivos_procesados !== undefined)
-                      ? (result as BackupDiscoveryResponse).archivos_procesados
-                      : 0}
-                </Typography>
-              </Paper>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper 
-                variant="outlined" 
-                sx={{ 
-                  p: 3, 
-                  textAlign: 'center', 
-                  borderRadius: 4,
-                  bgcolor: 'background.paper',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  boxShadow: '0 4px 20px 0 rgba(0,0,0,0.02)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-3px)',
-                    boxShadow: '0 8px 24px 0 rgba(0,0,0,0.06)',
-                  }
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-                  <Box sx={{ p: 1, borderRadius: 2.5, bgcolor: 'info.light', color: 'info.main', display: 'inline-flex' }}>
-                    <StorageIcon fontSize="medium" />
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  PESO TOTAL
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>
-                  {mode === 'server' && Array.isArray(result)
-                    ? `${(result as ServerBackupDiscoveryResponse).reduce((acc, d) => acc + (d.tamano_encontrado_mb || 0), 0).toFixed(2)} MB`
-                    : (result && !Array.isArray(result) && (result as BackupDiscoveryResponse).detalles)
-                      ? `${(result as BackupDiscoveryResponse).detalles.reduce((acc, d) => acc + (d.tamano_encontrado_mb || 0), 0).toFixed(2)} MB`
-                      : '0.00 MB'}
-                </Typography>
-              </Paper>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper 
-                variant="outlined" 
-                sx={{ 
-                  p: 3, 
-                  textAlign: 'center', 
-                  borderRadius: 4,
-                  bgcolor: 'background.paper',
-                  border: '1px solid',
-                  borderColor: 'success.light',
-                  boxShadow: '0 4px 20px 0 rgba(0,0,0,0.02)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-3px)',
-                    boxShadow: '0 8px 24px 0 rgba(0,0,0,0.06)',
-                  }
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-                  <Box sx={{ p: 1, borderRadius: 2.5, bgcolor: 'success.light', color: 'success.main', display: 'inline-flex' }}>
-                    <AutoAwesomeIcon fontSize="medium" />
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="success.main" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  REGISTROS CREADOS
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1, color: 'success.main' }}>
-                  {mode === 'server' 
-                    ? 'N/A' 
-                    : (result && !Array.isArray(result) && (result as BackupDiscoveryResponse).nuevos_respaldos_registrados !== undefined)
-                      ? (result as BackupDiscoveryResponse).nuevos_respaldos_registrados
-                      : 0}
-                </Typography>
-              </Paper>
-            </Grid>
-
-          </Grid>
-
-          {/* Barra de Filtro de Archivos Cliente-side */}
-          <Paper 
-            variant="outlined" 
-            sx={{ 
-              p: 2, 
-              mb: 3, 
-              borderRadius: 3.5, 
-              bgcolor: 'background.paper', 
-              display: 'flex', 
-              gap: 2, 
-              alignItems: 'center', 
-              flexWrap: 'wrap',
-              boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.02)',
-              border: '1px solid',
-              borderColor: 'divider'
-            }}
-          >
-            <TextField
-              placeholder="Filtrar archivos por nombre..."
-              size="small"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+      {/* --- 2. GENERAL (Buscador y Filtros) --- */}
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Buscar por archivo, IP, motor o servidor..."
+        rightActions={
+          <>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<DownloadIcon />}
+              endIcon={<KeyboardArrowDownIcon />}
+              onClick={handleReportClick}
+              sx={{
+                borderRadius: 2,
+                px: 3,
+                height: 40,
+                whiteSpace: 'nowrap',
+                fontWeight: 700
+              }}
+            >
+              Reporte
+            </Button>
+            <Menu
+              anchorEl={reportAnchorEl}
+              open={reportMenuOpen}
+              onClose={handleReportClose}
               slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
+                paper: {
+                  sx: {
+                    borderRadius: 2,
+                    mt: 1,
+                    minWidth: 180,
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+                  }
                 }
               }}
-              sx={{ flexGrow: 1, minWidth: 250 }}
-            />
-            
-            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-              <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.secondary' }}>
-                Ordenar por:
-              </Typography>
-              <ToggleButtonGroup
-                size="small"
-                value={sortBy}
-                exclusive
-                onChange={(_, val) => val && setSortBy(val)}
-                sx={{
-                  bgcolor: 'action.hover',
-                  p: 0.2,
-                  borderRadius: 2,
-                  '& .MuiToggleButton-root': {
-                    px: 1.5,
-                    py: 0.4,
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    textTransform: 'none',
-                    border: 'none',
-                    borderRadius: 1.5,
-                    '&.Mui-selected': {
-                      bgcolor: 'background.paper',
-                      color: 'primary.main',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-                    }
+              transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+            >
+              <MenuItem onClick={handleDownloadPDF}>
+                <ListItemIcon>
+                  <PictureAsPdfIcon fontSize="small" color="success" />
+                </ListItemIcon>
+                <ListItemText primary="PDF Online" secondary="Sincronización en vivo" />
+              </MenuItem>
+              <MenuItem onClick={handleDownloadPDFOffline}>
+                <ListItemIcon>
+                  <PictureAsPdfIcon fontSize="small" color="warning" />
+                </ListItemIcon>
+                <ListItemText primary="PDF (Offline)" secondary="Sin conexiones remotas" />
+              </MenuItem>
+              <MenuItem onClick={handleDownloadCSV}>
+                <ListItemIcon>
+                  <StorageIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Crudo (CSV)" secondary="Excel" />
+              </MenuItem>
+            </Menu>
+            <Button 
+              variant="contained" 
+              startIcon={syncingAll ? <CircularProgress size={16} color="inherit" /> : <AutoAwesomeIcon />}
+              endIcon={<KeyboardArrowDownIcon />}
+              onClick={handleMenuClick}
+              disabled={syncingAll}
+              sx={{ 
+                  borderRadius: 2, 
+                  px: 3, 
+                  height: 40,
+                  whiteSpace: 'nowrap',
+                  fontWeight: 700,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              }}
+            >
+              {syncingAll ? 'Escaneando...' : 'Escaneo / Sinc'}
+            </Button>
+            <Menu
+              anchorEl={anchorEl}
+              open={menuOpen}
+              onClose={handleMenuClose}
+              slotProps={{
+                paper: {
+                  sx: {
+                    borderRadius: 2,
+                    mt: 1,
+                    minWidth: 180,
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
                   }
-                }}
+                }
+              }}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            >
+              <MenuItem onClick={handleSyncAll}>
+                <ListItemIcon>
+                  <AllInclusiveIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Todos" secondary="Sincronización global" />
+              </MenuItem>
+              <MenuItem onClick={handleSyncByServer}>
+                <ListItemIcon>
+                  <DnsIcon fontSize="small" color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="Por servidor" secondary="Wizard de escaneo" />
+              </MenuItem>
+            </Menu>
+          </>
+        }
+        filters={[
+          { label: 'Todos', value: 'all' },
+          { label: 'MySQL 5', value: 'mysql5' },
+          { label: 'MySQL 8', value: 'mysql8' },
+          { label: 'Mongo', value: 'mongo' },
+          { label: 'Oracle', value: 'oracle' }
+        ]}
+        activeFilter={dbmsFilter}
+        onFilterChange={setDbmsFilter}
+        bottomActions={
+          <Stack direction="row" spacing={0.5} sx={{ bgcolor: 'action.hover', p: 0.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Tooltip title="Unidad Automática (MB/GB)">
+              <Button 
+                size="small"
+                onClick={() => setSizeUnit('auto')}
+                variant={sizeUnit === 'auto' ? 'contained' : 'text'}
+                color={sizeUnit === 'auto' ? 'primary' : 'inherit'}
+                sx={{ minWidth: 40, height: 24, borderRadius: 1.5, textTransform: 'none', fontWeight: 700, fontSize: '0.65rem', px: 1 }}
               >
-                <ToggleButton value="nombre">Nombre</ToggleButton>
-                <ToggleButton value="tamano_mb">Tamaño</ToggleButton>
-                <ToggleButton value="fecha_modificacion">Fecha</ToggleButton>
-              </ToggleButtonGroup>
-
-              <IconButton 
-                size="small" 
-                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                color="primary"
-                sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 0.8 }}
+                Auto
+              </Button>
+            </Tooltip>
+            <Tooltip title="Forzar Megabytes (MB)">
+              <Button 
+                size="small"
+                onClick={() => setSizeUnit('mb')}
+                variant={sizeUnit === 'mb' ? 'contained' : 'text'}
+                color={sizeUnit === 'mb' ? 'primary' : 'inherit'}
+                sx={{ minWidth: 40, height: 24, borderRadius: 1.5, textTransform: 'none', fontWeight: 700, fontSize: '0.65rem', px: 1 }}
               >
-                {sortOrder === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
-              </IconButton>
-            </Box>
-          </Paper>
+                MB
+              </Button>
+            </Tooltip>
+            <Tooltip title="Forzar Gigabytes (GB)">
+              <Button 
+                size="small"
+                onClick={() => setSizeUnit('gb')}
+                variant={sizeUnit === 'gb' ? 'contained' : 'text'}
+                color={sizeUnit === 'gb' ? 'primary' : 'inherit'}
+                sx={{ minWidth: 40, height: 24, borderRadius: 1.5, textTransform: 'none', fontWeight: 700, fontSize: '0.65rem', px: 1 }}
+              >
+                GB
+              </Button>
+            </Tooltip>
+          </Stack>
+        }
+        statsLabel={`${filteredData.length} archivos de respaldo encontrados`}
+      />
 
-          {/* Tabla de Archivos */}
-          <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
-            <Table>
-              <TableHead sx={{ bgcolor: 'action.hover' }}>
-                <TableRow>
-                  <TableCell 
-                    onClick={() => handleRequestSort('nombre')} 
-                    sx={{ fontWeight: 800, cursor: 'pointer', '&:hover': { color: 'primary.main' }, py: 1.8 }}
-                  >
-                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                      <span>Nombre del Archivo</span>
-                      {sortBy === 'nombre' && (sortOrder === 'asc' ? <ArrowUpwardIcon sx={{ fontSize: 14 }} /> : <ArrowDownwardIcon sx={{ fontSize: 14 }} />)}
-                    </Stack>
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 800 }}>Extensión / Tipo</TableCell>
-                  <TableCell 
-                    align="center" 
-                    onClick={() => handleRequestSort('tamano_mb')} 
-                    sx={{ fontWeight: 800, cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
-                  >
-                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', justifyContent: 'center' }}>
-                      <span>Tamaño</span>
-                      {sortBy === 'tamano_mb' && (sortOrder === 'asc' ? <ArrowUpwardIcon sx={{ fontSize: 14 }} /> : <ArrowDownwardIcon sx={{ fontSize: 14 }} />)}
-                    </Stack>
-                  </TableCell>
-                  <TableCell 
-                    align="right" 
-                    onClick={() => handleRequestSort('fecha_modificacion')} 
-                    sx={{ fontWeight: 800, cursor: 'pointer', '&:hover': { color: 'primary.main' } }}
-                  >
-                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-                      <span>Última Modificación</span>
-                      {sortBy === 'fecha_modificacion' && (sortOrder === 'asc' ? <ArrowUpwardIcon sx={{ fontSize: 14 }} /> : <ArrowDownwardIcon sx={{ fontSize: 14 }} />)}
-                    </Stack>
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 800, pr: 3 }}>Acciones</TableCell>
+      {/* --- 4. LISTAS (Tabla) --- */}
+      <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', minHeight: 400 }}>
+        {loading ? (
+          <Table>
+            <TableHead sx={{ bgcolor: 'action.hover' }}>
+              <TableRow>
+                {viewMode === 'detailed' ? (
+                  <>
+                    <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Archivo de Respaldo</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Instancia / Motor</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Frecuencia</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
+                  </>
+                ) : (
+                  <>
+                    <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>Tipo de RDBMS</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Total Respaldos</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>Peso Total</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>Fecha Actualización</TableCell>
+                  </>
+                )}
+                <TableCell align="right" sx={{ width: 50 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <TableRow key={i}>
+                  {viewMode === 'detailed' ? (
+                    <>
+                      <TableCell><Skeleton width="50%" height={24} /></TableCell>
+                      <TableCell><Skeleton width="60%" height={24} /></TableCell>
+                      <TableCell><Skeleton width="70%" height={24} /></TableCell>
+                      <TableCell align="center"><Skeleton width={60} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                      <TableCell align="center"><Skeleton width={50} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell><Skeleton width="60%" height={24} /></TableCell>
+                      <TableCell><Skeleton width="40%" height={24} /></TableCell>
+                      <TableCell align="center"><Skeleton width={40} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                      <TableCell align="right"><Skeleton width={80} height={24} sx={{ ml: 'auto' }} /></TableCell>
+                      <TableCell align="center"><Skeleton width={120} height={24} sx={{ mx: 'auto' }} /></TableCell>
+                    </>
+                  )}
+                  <TableCell align="right"><Skeleton width={28} height={28} variant="circular" sx={{ ml: 'auto' }} /></TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredAndSortedFiles.length > 0 ? (
-                  filteredAndSortedFiles.map((file, idx) => (
-                    <TableRow key={idx} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+        <Table>
+          <TableHead sx={{ bgcolor: 'action.hover' }}>
+            <TableRow>
+              {viewMode === 'detailed' ? (
+                <>
+                  <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Archivo de Respaldo</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Instancia / Motor</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Frecuencia</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Estado</TableCell>
+                </>
+              ) : (
+                <>
+                  <TableCell sx={{ fontWeight: 800 }}>Servidor / IP</TableCell>
+                  <TableCell sx={{ fontWeight: 800 }}>Tipo de RDBMS</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Total Respaldos</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 800 }}>Peso Total</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>Fecha Actualización</TableCell>
+                </>
+              )}
+              <TableCell align="right" sx={{ width: 50 }}>
+                <Tooltip title="Actualizar Tabla">
+                  <IconButton onClick={handleRefresh} size="small">
+                    <RefreshIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredData.length > 0 ? (
+              filteredData.map((row) => (
+                <TableRow key={row.id_composite} hover>
+                  {viewMode === 'detailed' ? (
+                    <>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: '"JetBrains Mono", monospace' }}>
+                          {row.ip}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          {row.servidor}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                          <StorageIcon fontSize="small" color="primary" />
+                          <Box>
+                            {/* Generamos un nombre representativo para el dump de la DB */}
+                            <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                              backup_db_{(row as any).base_datos}_{row.instancia}.sql.gz
+                            </Typography>
+                            {(row as any).tamano_mb !== null && (
+                              <Typography variant="caption" color="text.secondary">
+                                {formatSize((row as any).tamano_mb)}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.instancia}</Typography>
+                        <Typography variant="caption" color="primary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                          {row.motor}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip 
+                            label={row.criticidad === 'Alta' ? 'Diario' : row.criticidad === 'Media' ? 'Semanal' : 'Mensual'}
+                            size="small"
+                            sx={{ 
+                                fontWeight: 700, 
+                                borderRadius: 1.5, 
+                                fontSize: '0.6rem',
+                                bgcolor: row.criticidad === 'Alta' ? 'error.lighter' : row.criticidad === 'Media' ? 'warning.lighter' : 'success.lighter',
+                                color: row.criticidad === 'Alta' ? 'error.dark' : row.criticidad === 'Media' ? 'warning.dark' : 'success.dark',
+                                border: '1px solid',
+                                borderColor: 'currentColor'
+                            }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip 
+                          label="Disponible" 
+                          size="small" 
+                          color="success"
+                          variant="outlined"
+                          sx={{ fontWeight: 700, borderRadius: 1.5, fontSize: '0.65rem' }}
+                        />
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
                       <TableCell>
                         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                          <StorageIcon fontSize="small" color="primary" />
-                          <Typography variant="body2" sx={{ fontWeight: 650, fontFamily: '"JetBrains Mono", monospace' }}>
-                            {file.nombre}
+                          <DnsIcon fontSize="small" color="primary" />
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.servidor}</Typography>
+                            <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: 'text.secondary' }}>
+                              {row.ip}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{row.instancia}</Typography>
+                        <Chip 
+                          label={row.motor}
+                          size="small"
+                          sx={{ 
+                            fontWeight: 800, 
+                            borderRadius: 1.5, 
+                            fontSize: '0.6rem',
+                            bgcolor: row.motor.toLowerCase().includes('oracle') ? 'error.lighter' : row.motor.toLowerCase().includes('mongo') ? 'success.lighter' : 'primary.lighter',
+                            color: row.motor.toLowerCase().includes('oracle') ? 'error.dark' : row.motor.toLowerCase().includes('mongo') ? 'success.dark' : 'primary.dark',
+                            border: '1px solid',
+                            borderColor: 'currentColor',
+                            textTransform: 'uppercase',
+                            mt: 0.5,
+                            display: 'inline-flex'
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip 
+                          label={`${(row as any).total_db} archivos`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ fontWeight: 700, borderRadius: 1.5, fontSize: '0.65rem' }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                          {formatSize((row as any).peso_total_mb)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', justifyContent: 'center' }}>
+                          <CalendarTodayIcon sx={{ fontSize: '0.75rem', color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            {lastSyncTime.toLocaleDateString('es-ES', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
                           </Typography>
                         </Stack>
                       </TableCell>
-                      <TableCell align="center">
-                        {getFileExtensionChip(file.nombre) || (
-                          <Chip label="UNKNOWN" size="small" variant="outlined" sx={{ fontSize: '0.65rem', fontWeight: 700 }} />
-                        )}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip label={`${file.tamano_mb.toFixed(2)} MB`} size="small" variant="outlined" sx={{ fontWeight: 750, border: '1px solid', borderColor: 'divider' }} />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, color: 'text.secondary' }}>
-                          {file.fecha_modificacion}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right" sx={{ pr: 3 }}>
-                        <Tooltip title={copiedFileIdx === idx ? "¡Copiado!" : "Copiar Nombre"}>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleCopyFileName(file.nombre, idx)}
-                            color={copiedFileIdx === idx ? "success" : "default"}
-                            sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
-                          >
-                            {copiedFileIdx === idx ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
-                      <Box sx={{ opacity: 0.6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
-                        <HourglassBottomIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
-                        <Typography variant="h6" sx={{ fontWeight: 750 }}>
-                          Sin archivos coincidentes
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 350 }}>
-                          No se encontraron archivos que coincidan con la búsqueda "{searchQuery}". Pruebe con otro término.
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      )}
-
-      {/* Resultados de Sincronización Global */}
-      {globalResult && !discovering && (
-        <Box sx={{ animation: 'slideUp 0.4s ease-out' }}>
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper 
-                variant="outlined" 
-                sx={{ 
-                  p: 3, 
-                  textAlign: 'center', 
-                  borderRadius: 4, 
-                  bgcolor: 'background.paper',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  boxShadow: '0 4px 20px 0 rgba(0,0,0,0.02)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-3px)',
-                    boxShadow: '0 8px 24px 0 rgba(0,0,0,0.06)',
-                  }
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-                  <Box sx={{ p: 1, borderRadius: 2.5, bgcolor: 'primary.light', color: 'primary.main', display: 'inline-flex' }}>
-                    <FolderOpenIcon fontSize="medium" />
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Rutas Procesadas
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: 'primary.main', mt: 1 }}>{globalResult.total_rutas_procesadas}</Typography>
-              </Paper>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper 
-                variant="outlined" 
-                sx={{ 
-                  p: 3, 
-                  textAlign: 'center', 
-                  borderRadius: 4, 
-                  bgcolor: 'background.paper',
-                  border: '1px solid',
-                  borderColor: 'success.light',
-                  boxShadow: '0 4px 20px 0 rgba(0,0,0,0.02)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-3px)',
-                    boxShadow: '0 8px 24px 0 rgba(0,0,0,0.06)',
-                  }
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-                  <Box sx={{ p: 1, borderRadius: 2.5, bgcolor: 'success.light', color: 'success.main', display: 'inline-flex' }}>
-                    <PlaylistAddCheckIcon fontSize="medium" />
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="success.main" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Respaldos Registrados
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, color: 'success.main', mt: 1 }}>{globalResult.total_respaldos_registrados}</Typography>
-              </Paper>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Paper 
-                variant="outlined" 
-                sx={{ 
-                  p: 3, 
-                  textAlign: 'center', 
-                  borderRadius: 4, 
-                  bgcolor: 'background.paper',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  boxShadow: '0 4px 20px 0 rgba(0,0,0,0.02)',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-3px)',
-                    boxShadow: '0 8px 24px 0 rgba(0,0,0,0.06)',
-                  }
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-                  <Box sx={{ p: 1, borderRadius: 2.5, bgcolor: 'info.light', color: 'info.main', display: 'inline-flex' }}>
-                    <DnsIcon fontSize="medium" />
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Servidores Escaneados
-                </Typography>
-                <Typography variant="h3" sx={{ fontWeight: 900, mt: 1 }}>{globalResult.servidores_escaneados.length}</Typography>
-              </Paper>
-            </Grid>
-
-          </Grid>
-
-          {/* Listado de Servidores Escaneados */}
-          <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, mb: 4, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <DnsOutlinedIcon color="primary" /> Servidores Procesados en el Ciclo
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1.2, flexWrap: 'wrap' }}>
-              {globalResult.servidores_escaneados.length > 0 ? (
-                globalResult.servidores_escaneados.map((ip, idx) => (
-                  <Chip key={idx} label={ip} variant="outlined" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, border: '1px solid', borderColor: 'divider' }} />
-                ))
-              ) : (
-                <Typography variant="body2" color="text.secondary">Ningún servidor fue escaneado.</Typography>
-              )}
-            </Box>
-          </Paper>
-
-          {/* Reporte de Errores e Incidencias */}
-          {globalResult.errores.length > 0 ? (
-            <Card variant="outlined" sx={{ borderRadius: 4, borderColor: 'error.main', bgcolor: 'error.lighter', boxShadow: '0 4px 12px rgba(211, 47, 47, 0.05)' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
-                  <ErrorOutlinedIcon color="error" />
-                  <Typography variant="subtitle1" color="error.main" sx={{ fontWeight: 850, letterSpacing: '-0.01em' }}>
-                    Reporte de Incidencias / Errores de Conexión ({globalResult.errores.length})
+                    </>
+                  )}
+                  <TableCell />
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No se encontraron archivos de respaldo que coincidan con la búsqueda.
                   </Typography>
-                </Stack>
-                <Divider sx={{ mb: 2 }} />
-                <List disablePadding>
-                  {globalResult.errores.map((err, idx) => (
-                    <ListItem key={idx} disableGutters sx={{ py: 1.8, borderBottom: idx < globalResult.errores.length - 1 ? '1px solid' : 'none', borderColor: 'divider' }}>
-                      <ListItemText
-                        primary={
-                          <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                            Servidor: <span style={{ fontFamily: 'monospace' }}>{err.servidor}</span> {err.instancia ? `| Instancia: ${err.instancia}` : ''}
-                          </Typography>
-                        }
-                        secondary={
-                          <Box sx={{ mt: 1 }}>
-                            <Typography variant="caption" component="div" sx={{ fontFamily: '"JetBrains Mono", monospace', color: 'text.secondary', bgcolor: 'action.hover', p: 1, borderRadius: 1.5, mb: 1, border: '1px solid', borderColor: 'divider' }}>
-                              Ruta física: {err.ruta}
-                            </Typography>
-                            <Typography variant="caption" color="error" sx={{ fontWeight: 700 }}>
-                              Detalle técnico: {err.error}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </CardContent>
-            </Card>
-          ) : (
-            <Alert severity="success" icon={<PlaylistAddCheckIcon />} sx={{ borderRadius: 3.5, fontWeight: 700, py: 1.5 }}>
-              Sincronización global completada con éxito. Todos los servidores y rutas fueron procesados sin incidencias de red.
-            </Alert>
-          )}
-        </Box>
-      )}
-
-      {/* Vista de Bienvenida o Estado Inicial Vacío */}
-      {!result && !globalResult && !discovering && (
-        <Paper 
-          variant="outlined" 
-          sx={{ 
-            py: 12, 
-            textAlign: 'center', 
-            borderRadius: 4, 
-            bgcolor: 'background.paper',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.01)'
-          }}
-        >
-          <TravelExploreIcon sx={{ fontSize: 72, color: 'primary.main', opacity: 0.25, mb: 2, animation: 'pulse 2s infinite', '@keyframes pulse': { '0%, 100%': { transform: 'scale(1)', opacity: 0.25 }, '50%': { transform: 'scale(1.08)', opacity: 0.4 } } }} />
-          <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-            Listo para Explorar la Infraestructura
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 450, mx: 'auto', px: 2 }}>
-            {mode === 'global' 
-              ? 'Haga clic en el botón superior para realizar un barrido masivo de todas las rutas de almacenamiento físico registradas.' 
-              : 'Seleccione un servidor, sus credenciales SSH y una ruta de destino para buscar dumps físicos e indexarlos en el sistema.'}
-          </Typography>
-        </Paper>
-      )}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        )}
+      </TableContainer>
     </Box>
   );
 };

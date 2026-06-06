@@ -172,9 +172,36 @@ Este documento sirve como bitácora detallada de todo el trabajo técnico y visu
   * En `filteredAndSortedFiles`, se inyectó un mapeo sobre la marcha que toma la lista plana de strings de nombres de archivo y los empaqueta en objetos virtuales `{ nombre: name, tamano_mb: 0, fecha_modificacion: '-' }` para garantizar que la tabla original pinte las coincidencias encontradas sin errores sintácticos.
 * **Remoción del Panel de logs SRE**: Removimos el panel simulador de terminal interactive negro para evitar parpadeos visuales al ejecutar escaneos rápidos y pusimos encadenamiento opcional `?.toFixed(2)` en el cálculo de pesos para evitar caídas de estado no sincronizados de React.
 
+### AC. Actualización de Auditoría (Estructura de Usuario en logs)
+* **Objetivo**: Reflejar en el frontend el cambio en la respuesta del endpoint `/sgir/v1/crud/audit-logs/` que ahora incluye un objeto anidado de `usuario` con nombres, apellidos y email.
+* **Cambios**:
+  * **Esquema Zod**: Se expandió `AuditLogSchema` en `src/api/types.ts` para contener de forma opcional y robusta el objeto anidado `usuario` (`email`, `nombres`, `apellidos`).
+  * **UI de Registro**: Se actualizó `MonitoringLogsPage.tsx` para agrupar en un stack vertical el nombre completo del usuario y su correo electrónico (o utilizar la estructura legacy de forma transparente).
+  * **Modal de Detalles**: Se incorporó un nuevo apartado de **USUARIO ASOCIADO** que muestra el desglose completo del usuario (nombre, apellido, email).
+
+### AD. Remoción de Métrica "Almacenamiento Red"
+* **Objetivo**: Atender la solicitud de remover la métrica "Almacenamiento Red" en la sección de Rutas de Respaldo (`/backups/rutas`).
+* **Cambios**:
+  * Se removió la tarjeta `MetricCard` correspondiente de `BackupPathsPage.tsx`.
+  * Se ajustó el sistema de rejilla (*Grid*) de 3 columnas a 2 columnas (`repeat(2, 1fr)`) para mantener el balance estético de la vista.
+  * Se removió el import inactivo de `CloudQueueIcon` de las dependencias.
+
+### AE. Saneamiento de Opciones de Tipo de Acceso en Credenciales
+* **Objetivo**: Limitar las opciones de registro de credenciales únicamente a canales soportados y descartar SFTP y API.
+* **Cambios**:
+  * Se removieron los items SFTP (3) y API (4) en `CredentialForm.tsx` (alta de credenciales) y en `EditCredentialPage.tsx` (edición de credenciales). El formulario ahora limita la selección exclusivamente a **SSH** y **DB Native**.
+
 ---
 
 ## 2. 📁 Estado del Repositorio de Git
+
+### Cambios Locales en esta Sesión (Pendientes de Commit/Push)
+* **Modificado**: `src/api/types.ts`
+* **Modificado**: `src/pages/MonitoringLogsPage.tsx`
+* **Modificado**: `src/pages/SearchAssetsPage.tsx`
+* **Modificado**: `src/pages/BackupPathsPage.tsx`
+* **Modificado**: `src/components/CredentialForm.tsx`
+* **Modificado**: `src/pages/EditCredentialPage.tsx`
 
 ### Cambios Commiteados y Enviados (Push exitoso a Github)
 * **Commit `e95aba7`**: `fix: restaurar esquema de escaneo de servidor y adaptacion en explorador de respaldos`

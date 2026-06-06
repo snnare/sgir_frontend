@@ -232,8 +232,6 @@ export const EditCredentialPage = () => {
           >
             <MenuItem value={1}>SSH (Monitoreo Básico)</MenuItem>
             <MenuItem value={2}>DB Native (Monitoreo BD)</MenuItem>
-            <MenuItem value={3}>SFTP</MenuItem>
-            <MenuItem value={4}>API</MenuItem>
           </TextField>
 
           {/* Usuario */}
