@@ -312,8 +312,19 @@ export const BackupHistorySchema = z.object({
     fecha_descubrimiento: z.string().nullable().optional(),
     id_credencial: z.number().nullable().optional(),
     metadata_tecnica: z.any().nullable().optional(),
+    // Enriched fields
+    nombre_base: z.string().optional(),
+    instancia: z.string().optional(),
+    motor: z.string().optional(),
+    servidor: z.string().optional(),
+    ip: z.string().optional(),
+    criticidad: z.string().optional(),
+    nombre_politica: z.string().optional(),
+    frecuencia_horas: z.number().optional(),
+    estado_ejecucion: z.string().optional(),
 });
 export type BackupHistory = z.infer<typeof BackupHistorySchema>;
+
 
 export const BackupHistoryCreateSchema = z.object({
     id_base_datos: z.number().int().positive(),

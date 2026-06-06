@@ -66,9 +66,10 @@ export const getBackupPathsDetails = async (): Promise<BackupPathDetails[]> => {
 };
 
 export const getBackupHistory = async (): Promise<BackupHistory[]> => {
-    const { data } = await api.get('/crud/respaldos/historial');
+    const { data } = await api.get('/crud/respaldos/historial-enriquecido');
     return z.array(BackupHistorySchema).parse(data);
 };
+
 
 export const createBackup = async (backupData: BackupHistoryCreateInput): Promise<BackupHistory> => {
     const { data } = await api.post('/crud/respaldos/', backupData);

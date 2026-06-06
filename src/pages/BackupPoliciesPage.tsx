@@ -280,10 +280,13 @@ export const BackupPoliciesPage = () => {
                 <TableCell align="right" sx={{ fontWeight: 800 }}>Acciones</TableCell>
                 <TableCell align="center" sx={{ width: 50 }}>
                   <Tooltip title="Actualizar Tabla">
-                    <IconButton onClick={handleRefresh} size="small" disabled={storeLoading}>
-                      <RefreshIcon fontSize="small" />
-                    </IconButton>
+                    <span>
+                      <IconButton onClick={handleRefresh} size="small" disabled={storeLoading}>
+                        <RefreshIcon fontSize="small" />
+                      </IconButton>
+                    </span>
                   </Tooltip>
+
                 </TableCell>
               </TableRow>
             </TableHead>

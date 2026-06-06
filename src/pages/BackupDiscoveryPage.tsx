@@ -19,21 +19,22 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DownloadIcon from '@mui/icons-material/Download';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import api from '../api/client';
-import { getAssets } from '../api/infrastructureService';
+import { getBackupHistory } from '../api/backupService';
 import { discoverAllBackups } from '../api/monitoringService';
-import { type Asset, type GlobalBackupDiscoveryResponse, type BackupDiscoveryResponse, type ServerBackupDiscoveryResponse } from '../api/types';
+import { type BackupHistory, type GlobalBackupDiscoveryResponse, type BackupDiscoveryResponse, type ServerBackupDiscoveryResponse } from '../api/types';
 import { useNotificationStore } from '../components/GlobalNotification';
 import { useAlertStore } from '../store/useAlertStore';
 import { BackupDiscoveryWizard } from '../components/BackupDiscoveryWizard';
 import { FilterBar } from '../components/FilterBar';
 
 export const BackupDiscoveryPage = () => {
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [backups, setBackups] = useState<BackupHistory[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dbmsFilter, setDbmsFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [syncingAll, setSyncingAll] = useState(false);
+
   
   // Menú Sincronizar
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -98,7 +99,7 @@ export const BackupDiscoveryPage = () => {
       setGlobalResult(res);
       setResultDialogOpen(true);
       showNotification('Sincronización global de respaldos completada', 'success');
-      fetchAllAssets();
+      fetchAllBackups();
     } catch (error) {
       console.error('Error in global sync:', error);
       showAlert({
@@ -116,12 +117,11 @@ export const BackupDiscoveryPage = () => {
     setWizardOpen(true);
   };
 
-  // Estos endpoints de descargas se adaptarán en la siguiente etapa, se mantienen consistentes visualmente
   const handleDownloadPDF = async () => {
     handleReportClose();
     showNotification('Generando reporte PDF de respaldos...', 'info');
     try {
-      const response = await api.get('/assets/pdf', { responseType: 'blob' });
+      const response = await api.get('/backups/pdf', { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -144,7 +144,7 @@ export const BackupDiscoveryPage = () => {
     handleReportClose();
     showNotification('Generando reporte PDF Offline de respaldos...', 'info');
     try {
-      const response = await api.get('/assets/pdf-offline', { responseType: 'blob' });
+      const response = await api.get('/backups/pdf-offline', { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -167,7 +167,7 @@ export const BackupDiscoveryPage = () => {
     handleReportClose();
     showNotification('Generando reporte CSV de respaldos...', 'info');
     try {
-      const response = await api.get('/assets/csv', { responseType: 'blob' });
+      const response = await api.get('/backups/csv', { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -186,17 +186,17 @@ export const BackupDiscoveryPage = () => {
     }
   };
 
-  const fetchAllAssets = useCallback(async () => {
+  const fetchAllBackups = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAssets();
-      setAssets(data);
+      const data = await getBackupHistory();
+      setBackups(data);
       setLastSyncTime(new Date());
     } catch (error) {
-      console.error('Error fetching assets:', error);
+      console.error('Error fetching backups history:', error);
       showAlert({
         title: 'Error de Conexión',
-        description: 'No se pudieron recuperar los archivos de respaldo desde la infraestructura. Verifique su conexión.',
+        description: 'No se pudieron recuperar las ejecuciones de respaldo desde la base de datos. Verifique su conexión.',
         severity: 'error'
       });
     } finally {
@@ -205,11 +205,11 @@ export const BackupDiscoveryPage = () => {
   }, [showNotification, showAlert]);
 
   useEffect(() => {
-    fetchAllAssets();
-  }, [fetchAllAssets]);
+    fetchAllBackups();
+  }, [fetchAllBackups]);
 
   const handleRefresh = () => {
-    fetchAllAssets();
+    fetchAllBackups();
   };
 
   // Callback del Wizard al completar con éxito un escaneo individual
@@ -218,33 +218,25 @@ export const BackupDiscoveryPage = () => {
     _mode: 'server' | 'instance'
   ) => {
     showNotification('Escaneo individual de respaldos completado', 'success');
-    fetchAllAssets();
+    fetchAllBackups();
   };
+
 
   const filteredData = useMemo(() => {
     if (viewMode === 'detailed') {
-      const flattened = assets.flatMap(item => 
-        item.bases_de_datos.map(db => ({
-          ...item,
-          base_datos: db.nombre,
-          estado_bd: db.estado,
-          tamano_mb: db.tamano_mb,
-          id_composite: `${item.ip}-${item.instancia}-${db.nombre}`
-        }))
-      );
-
-      return flattened.filter(item => {
+      return backups.filter(item => {
         const searchStr = searchTerm.toLowerCase();
         const matchesSearch = 
-          (item.base_datos?.toLowerCase() || '').includes(searchStr) ||
-          item.ip.includes(searchStr) ||
-          item.motor.toLowerCase().includes(searchStr) ||
-          item.servidor.toLowerCase().includes(searchStr) ||
-          item.instancia.toLowerCase().includes(searchStr);
+          (item.nombre_base?.toLowerCase() || '').includes(searchStr) ||
+          (item.nombre_archivo?.toLowerCase() || '').includes(searchStr) ||
+          (item.ip || '').includes(searchStr) ||
+          (item.motor || '').toLowerCase().includes(searchStr) ||
+          (item.servidor || '').toLowerCase().includes(searchStr) ||
+          (item.instancia || '').toLowerCase().includes(searchStr);
         
         const matchesDbms = (() => {
           if (dbmsFilter === 'all') return true;
-          const motorLower = item.motor.toLowerCase();
+          const motorLower = (item.motor || '').toLowerCase();
           if (dbmsFilter === 'mysql5') return motorLower.includes('mysql 5') || motorLower.includes('mysql5');
           if (dbmsFilter === 'mysql8') return motorLower.includes('mysql 8') || motorLower.includes('mysql8');
           if (dbmsFilter === 'mongo') return motorLower.includes('mongo');
@@ -255,39 +247,52 @@ export const BackupDiscoveryPage = () => {
         return matchesSearch && matchesDbms;
       });
     } else {
-      return assets
-        .map(item => {
-          const totalSize = item.bases_de_datos.reduce((sum, db) => sum + (db.tamano_mb || 0), 0);
-          return {
-            ...item,
-            total_db: item.bases_de_datos.length,
-            peso_total_mb: totalSize,
-            id_composite: `${item.ip}-${item.instancia}`
+      const grouped: { [key: string]: any } = {};
+      backups.forEach(b => {
+        const key = `${b.ip}-${b.instancia}`;
+        if (!grouped[key]) {
+          grouped[key] = {
+            ip: b.ip,
+            servidor: b.servidor,
+            instancia: b.instancia,
+            motor: b.motor,
+            total_db: 0,
+            peso_total_mb: 0,
+            id_composite: key,
+            bases_de_datos: [] as string[]
           };
-        })
-        .filter(item => {
-          const searchStr = searchTerm.toLowerCase();
-          const matchesSearch = 
-            item.ip.includes(searchStr) ||
-            item.motor.toLowerCase().includes(searchStr) ||
-            item.servidor.toLowerCase().includes(searchStr) ||
-            item.instancia.toLowerCase().includes(searchStr) ||
-            item.bases_de_datos.some(db => db.nombre.toLowerCase().includes(searchStr));
-          
-          const matchesDbms = (() => {
-            if (dbmsFilter === 'all') return true;
-            const motorLower = item.motor.toLowerCase();
-            if (dbmsFilter === 'mysql5') return motorLower.includes('mysql 5') || motorLower.includes('mysql5');
-            if (dbmsFilter === 'mysql8') return motorLower.includes('mysql 8') || motorLower.includes('mysql8');
-            if (dbmsFilter === 'mongo') return motorLower.includes('mongo');
-            if (dbmsFilter === 'oracle') return motorLower.includes('oracle');
-            return motorLower.includes(dbmsFilter.toLowerCase());
-          })();
-          
-          return matchesSearch && matchesDbms;
-        });
+        }
+        grouped[key].total_db += 1;
+        grouped[key].peso_total_mb += b.tamano_mb || 0;
+        if (b.nombre_base) {
+          grouped[key].bases_de_datos.push(b.nombre_base);
+        }
+      });
+
+      return Object.values(grouped).filter(item => {
+        const searchStr = searchTerm.toLowerCase();
+        const matchesSearch = 
+          (item.ip || '').includes(searchStr) ||
+          (item.motor || '').toLowerCase().includes(searchStr) ||
+          (item.servidor || '').toLowerCase().includes(searchStr) ||
+          (item.instancia || '').toLowerCase().includes(searchStr) ||
+          item.bases_de_datos.some((db: string) => db.toLowerCase().includes(searchStr));
+        
+        const matchesDbms = (() => {
+          if (dbmsFilter === 'all') return true;
+          const motorLower = (item.motor || '').toLowerCase();
+          if (dbmsFilter === 'mysql5') return motorLower.includes('mysql 5') || motorLower.includes('mysql5');
+          if (dbmsFilter === 'mysql8') return motorLower.includes('mysql 8') || motorLower.includes('mysql8');
+          if (dbmsFilter === 'mongo') return motorLower.includes('mongo');
+          if (dbmsFilter === 'oracle') return motorLower.includes('oracle');
+          return motorLower.includes(dbmsFilter.toLowerCase());
+        })();
+        
+        return matchesSearch && matchesDbms;
+      });
     }
-  }, [assets, searchTerm, dbmsFilter, viewMode]);
+  }, [backups, searchTerm, dbmsFilter, viewMode]);
+
 
   return (
     <Box sx={{ animation: 'fadeIn 0.5s ease-in-out' }}>
@@ -678,13 +683,12 @@ export const BackupDiscoveryPage = () => {
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                           <StorageIcon fontSize="small" color="primary" />
                           <Box>
-                            {/* Generamos un nombre representativo para el dump de la DB */}
                             <Typography variant="body2" sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
-                              backup_db_{(row as any).base_datos}_{row.instancia}.sql.gz
+                              {row.nombre_archivo || `backup_db_${row.nombre_base || 'db'}_${row.instancia || 'inst'}.sql.gz`}
                             </Typography>
-                            {(row as any).tamano_mb !== null && (
+                            {row.tamano_mb !== null && row.tamano_mb !== undefined && (
                               <Typography variant="caption" color="text.secondary">
-                                {formatSize((row as any).tamano_mb)}
+                                {formatSize(row.tamano_mb)}
                               </Typography>
                             )}
                           </Box>
@@ -713,9 +717,15 @@ export const BackupDiscoveryPage = () => {
                       </TableCell>
                       <TableCell align="center">
                         <Chip 
-                          label="Disponible" 
+                          label={row.estado_ejecucion || 'Disponible'} 
                           size="small" 
-                          color="success"
+                          color={
+                            row.id_estado_ejecucion === 4 || row.estado_ejecucion?.toLowerCase() === 'exito' || row.estado_ejecucion?.toLowerCase() === 'éxito'
+                              ? 'success' 
+                              : row.id_estado_ejecucion === 5 || row.estado_ejecucion?.toLowerCase() === 'fallo' 
+                                ? 'error' 
+                                : 'default'
+                          }
                           variant="outlined"
                           sx={{ fontWeight: 700, borderRadius: 1.5, fontSize: '0.65rem' }}
                         />
@@ -743,8 +753,8 @@ export const BackupDiscoveryPage = () => {
                             fontWeight: 800, 
                             borderRadius: 1.5, 
                             fontSize: '0.6rem',
-                            bgcolor: row.motor.toLowerCase().includes('oracle') ? 'error.lighter' : row.motor.toLowerCase().includes('mongo') ? 'success.lighter' : 'primary.lighter',
-                            color: row.motor.toLowerCase().includes('oracle') ? 'error.dark' : row.motor.toLowerCase().includes('mongo') ? 'success.dark' : 'primary.dark',
+                            bgcolor: (row.motor || '').toLowerCase().includes('oracle') ? 'error.lighter' : (row.motor || '').toLowerCase().includes('mongo') ? 'success.lighter' : 'primary.lighter',
+                            color: (row.motor || '').toLowerCase().includes('oracle') ? 'error.dark' : (row.motor || '').toLowerCase().includes('mongo') ? 'success.dark' : 'primary.dark',
                             border: '1px solid',
                             borderColor: 'currentColor',
                             textTransform: 'uppercase',
@@ -783,6 +793,7 @@ export const BackupDiscoveryPage = () => {
                       </TableCell>
                     </>
                   )}
+
                   <TableCell />
                 </TableRow>
               ))

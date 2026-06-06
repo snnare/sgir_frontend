@@ -13,7 +13,7 @@ interface BackupState {
     error: string | null;
 
     fetchPolicies: () => Promise<void>;
-    addPolicy: (policy: BackupPolicyCreateInput) => Promise<void>;
+    addPolicy: (policy: BackupPolicyCreateInput) => Promise<BackupPolicy>;
     updatePolicy: (id: number, policy: Partial<BackupPolicyCreateInput>) => Promise<void>;
     deletePolicy: (id: number) => Promise<void>;
     
@@ -49,6 +49,7 @@ export const useBackupStore = create<BackupState>((set, get) => ({
                 policies: [...get().policies, newPolicy], 
                 loading: false 
             });
+            return newPolicy;
         } catch (err: any) {
             set({ error: err.message, loading: false });
             throw err;
