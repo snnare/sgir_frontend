@@ -56,6 +56,11 @@ export const pingServer = async (ip: string): Promise<boolean> => {
     return data as boolean;
 };
 
+export const getInstances = async (): Promise<Instance[]> => {
+    const { data } = await api.get('/crud/instancias/');
+    return z.array(InstanceSchema).parse(data);
+};
+
 export const getInstancesByServer = async (serverId: number): Promise<Instance[]> => {
     const { data } = await api.get(`/crud/instancias/servidor/${serverId}`);
     return z.array(InstanceSchema).parse(data);
@@ -64,6 +69,10 @@ export const getInstancesByServer = async (serverId: number): Promise<Instance[]
 export const createInstance = async (instanceData: any): Promise<Instance> => {
     const { data } = await api.post('/crud/instancias/', instanceData);
     return InstanceSchema.parse(data);
+};
+
+export const deleteInstance = async (id: number): Promise<void> => {
+    await api.delete(`/crud/instancias/${id}`);
 };
 
 export const getDbms = async (): Promise<Dbms[]> => {

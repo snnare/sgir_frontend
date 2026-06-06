@@ -17,6 +17,7 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import SettingsIcon from '@mui/icons-material/Settings';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import StorageIcon from '@mui/icons-material/Storage';
 import { useShallow } from 'zustand/react/shallow';
 import { useLocation } from 'react-router-dom';
 import { SidebarItem } from './SidebarItem';
@@ -212,6 +213,13 @@ export const Sidebar = ({ open: pinned, onToggle }: SidebarProps) => {
           label="Buscar Activos" 
           to="/activos" 
           active={location.pathname.startsWith('/activos')} 
+          open={isExpanded} 
+        />
+        <SidebarItem 
+          icon={<StorageIcon fontSize="small" />} 
+          label="Instancias" 
+          to="/instancias" 
+          active={location.pathname.startsWith('/instancias') || location.pathname.startsWith('/add-instance')} 
           open={isExpanded} 
         />
         

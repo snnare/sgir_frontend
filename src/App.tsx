@@ -22,6 +22,7 @@ import { ServerDetailsPage } from './pages/ServerDetailsPage';
 import { AddCredentialPage } from './pages/AddCredentialPage'
 import { AddInstancePage } from './pages/AddInstancePage'
 import { AddDbmsPage } from './pages/AddDbmsPage'
+import { InstancesPage } from './pages/InstancesPage'
 import { AddBackupPolicyPage } from './pages/AddBackupPolicyPage';
 import { BackupPoliciesPage } from './pages/BackupPoliciesPage';
 import { EditBackupPolicyPage } from './pages/EditBackupPolicyPage';
@@ -118,6 +119,7 @@ function App() {
             <Route path="credenciales/nueva" element={<AddCredentialPage />} />
             <Route path="credenciales/editar/:id" element={<EditCredentialPage />} />
             <Route path="add-instance" element={<AddInstancePage />} />
+            <Route path="instancias" element={<InstancesPage />} />
             <Route path="add-dbms" element={<AddDbmsPage />} />
             <Route path="backups/politicas" element={<BackupPoliciesPage />} />
             <Route path="backups/politica/:id" element={<BackupPoliciesDetailsPage />} />
